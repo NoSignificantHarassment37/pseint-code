@@ -13,7 +13,7 @@ GPP=${MAC_PREFIX}-clang++
 AR=${MAC_PREFIX}-ar
 
 CXXFLAGS=-O3 -DNDEBUG -Wno-invalid-source-encoding -Wno-inconsistent-missing-override
-LIBS=
+LDFLASG=
 
 WX_CXXFLAGS=`wx-config --cppflags` -DWX3
 WX_LDFLAGS=`wx-config --libs std,stc,aui`
