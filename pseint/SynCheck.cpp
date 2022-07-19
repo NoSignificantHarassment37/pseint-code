@@ -785,7 +785,7 @@ int SynCheck(int linea_from, int linea_to) {
 							 instruction_type==IT_ASIGNAR || instruction_type==IT_LEER || instruction_type==IT_ESPERAR || 
 							 instruction_type==IT_ESPERARTECLA || instruction_type==IT_BORRARPANTALLA || instruction_type==IT_INVOCAR;
 			if (lleva_pyc) {
-				if (cadena[cadena.size()-1]!=';') {
+				if (cadena.empty() or cadena[cadena.size()-1]!=';') {
 					if (lang[LS_FORCE_SEMICOLON])
 						{ SynError (38,"Falta punto y coma."); errores++; }
 					cadena=cadena+';';
@@ -1086,8 +1086,8 @@ int SynCheck(int linea_from, int linea_to) {
 							expr_start=i+1;
 						}
 					}
+					cadena[cadena.size()-1]=';';
 				}
-				cadena[cadena.size()-1]=';';
 			}
 			if (instruction_type==IT_PARA){  // ------------ PARA -----------//
 				str=cadena; // cortar instrucción
@@ -1395,10 +1395,12 @@ int SynCheck(int linea_from, int linea_to) {
 						do {
 							pos_coma=BuscarComa(args,pos_coma+1,args_last_pos,',');
 							if (pos_coma==-1) pos_coma=args_last_pos;
-							string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
-							if (not SirveParaReferencia(arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
-								if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) { SynError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")")); errores++; }
-								else EvaluarSC(arg_actual,func->tipos[cant_args+1]);
+							if (cant_args<func->cant_arg) {
+								string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
+								if (not SirveParaReferencia(arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
+									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) { SynError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")")); errores++; }
+									else EvaluarSC(arg_actual,func->tipos[cant_args+1]);
+								}
 							}
 							cant_args++; last_pos_coma=pos_coma;
 						} while (pos_coma!=args_last_pos);

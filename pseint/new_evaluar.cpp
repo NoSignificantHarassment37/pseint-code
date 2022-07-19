@@ -1,12 +1,12 @@
-#include "new_evaluar.h"
-#include "global.h"
-#include "new_funciones.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include "intercambio.h"
 #include <cstdlib>
+#include "new_evaluar.h"
+#include "global.h"
+#include "new_funciones.h"
+#include "intercambio.h"
 #include "utils.h"
 #include "Ejecutar.h"
 #include "SynCheck.h"
