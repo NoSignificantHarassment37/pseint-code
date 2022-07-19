@@ -12,20 +12,19 @@
 	{Definir Tab2 Como Caracter}{;}
 	Dimension Tab1[3,3]{;}
 	Dimension Tab2[3,3]{;}
-	{Definir i,j,CantTurnos,Valor,Pos Como Entero}{;}
-	{Definir Objetivo,aux_i,aux_j,aux_d1,aux_d2 Como Entero}{;}
-	{Definir Terminado,Ganador,TurnoJugador1 Como Logico}{;}
+	{Definir i, j, CantTurnos, Valor, Pos Como Entero}{;}
+	{Definir Objetivo, aux_i, aux_j, aux_d1, aux_d2 Como Entero}{;}
+	{Definir Terminado, HayGanador Como Logico}{;}
 	{Definir Ficha Como Caracter;}{;}
-	Para i<-{1#0} Hasta {3#2} Hacer
-		Para j<-{1#0} Hasta {3#2} Hacer
-			Tab1[i,j]<-0{;}
-			Tab2[i,j]<-" "{;}
+	Para i <- {1#0} Hasta {3#2} Hacer
+		Para j <- {1#0} Hasta {3#2} Hacer
+			Tab1[i,j] <- 0{;}
+			Tab2[i,j] <- " "{;}
 		FinPara
 	FinPara
-	TurnoJugador1<-Verdadero{;}
-	Terminado<-Falso{;}
-	Ganador<-Falso{;}
-	CantTurnos<-0{;}
+	Terminado <- Falso{;}
+	HayGanador <- Falso{;}
+	CantTurnos <- 0{;}
 	
 	Mientras ~ Terminado hacer
 		
@@ -45,14 +44,15 @@
 		Escribir "     7||    8||    9"{;}
 		Escribir " "{;}
 		
-		Si ~ Ganador y CantTurnos<9 Entonces
+		Si ~ HayGanador y CantTurnos<9 Entonces
 			
 			// carga auxiliares segun a qué jugador le toca
-			Si TurnoJugador1 Entonces
-				Ficha<-'O'; Valor<- 1; Objetivo<-1{;}
+			CantTurnos <- CantTurnos+1{;}
+			Si CantTurnos%2=1 Entonces
+				Ficha <- 'X'; Valor <-  1; Objetivo <- 1{;}
 				Escribir "Turno del jugador 1 (X)"{;}
 			SiNo
-				Ficha<-'X'; Valor<- 2; Objetivo<-8{;}
+				Ficha <- 'O'; Valor <-  2; Objetivo <- 8{;}
 				Escribir "Turno del jugador 2 (O)"{;}
 			FinSi
 			
@@ -63,46 +63,43 @@
 				Leer Pos{;}
 				Si Pos<1 o Pos>9 Entonces
 					Escribir "Posición incorrecta, ingrese nuevamente: "{;}
-					Pos<-99;
+					Pos <- 99;
 				SiNo
-					i<-trunc((Pos-1)/3){+1#}{;}
-					j<-((Pos-1) {%} 3){+1#}{;}
+					i <- trunc((Pos-1)/3){+1#}{;}
+					j <- ((Pos-1) {%} 3){+1#}{;}
 					Si Tab1[i,j]<>0 Entonces
-						pos<-99{;}
+						pos <- 99{;}
 						Escribir "Posición incorrecta, ingrese nuevamente: "{;}
 					FinSi
 				FinSi
 			Hasta Que Pos<>99
 			// guarda la ficha en la matriz tab2 y el valor en tab1
-			CantTurnos<-CantTurnos+1{;}
-			Tab1[i,j]<-Valor{;}
-			Tab2[i,j]<-Ficha{;}
+			Tab1[i,j] <- Valor{;}
+			Tab2[i,j] <- Ficha{;}
 			
 			// verifica si ganó, buscando que el producto de las fichas en el tablero de Objetivo
-			aux_d1<-1; aux_d2<-1{;}
-			Para i<-{1#0} hasta {3#2} hacer
-				aux_i<-1; aux_j<-1{;}
-				aux_d1<-aux_d1*Tab1[i,i]{;}
-				aux_d2<-aux_d2*Tab1[i,{4#2}-i]{;}
-				Para j<-{1#0} hasta {3#2} hacer
-					aux_i<-aux_i*Tab1[i,j]{;}
-					aux_j<-aux_j*Tab1[j,i]{;}
+			aux_d1 <- 1; aux_d2 <- 1{;}
+			Para i <- {1#0} hasta {3#2} hacer
+				aux_i <- 1; aux_j <- 1{;}
+				aux_d1 <- aux_d1*Tab1[i,i]{;}
+				aux_d2 <- aux_d2*Tab1[i,{4#2}-i]{;}
+				Para j <- {1#0} hasta {3#2} hacer
+					aux_i <- aux_i*Tab1[i,j]{;}
+					aux_j <- aux_j*Tab1[j,i]{;}
 				FinPara
 				Si aux_i=Objetivo o aux_j=Objetivo Entonces
-					Ganador<-Verdadero{;}
+					HayGanador <- Verdadero{;}
 				FinSi
 			FinPara
 			Si aux_d1=Objetivo o aux_d2=Objetivo Entonces
-				Ganador<-Verdadero{;}
-			SiNo
-				TurnoJugador1 <- ~ TurnoJugador1{;}
+				HayGanador <- Verdadero{;}
 			FinSi
 			
 		SiNo
 			
-			Si Ganador Entonces
-				Escribir "Ganador: "{;}
-				Si TurnoJugador1 Entonces
+			Si HayGanador Entonces
+				Escribir "Hay ganador: " sin saltar{;}
+				Si CantTurnos%2=1 Entonces
 					Escribir "Jugador 1!"{;}
 				SiNo
 					Escribir "Jugador 2!"{;}
@@ -110,7 +107,7 @@
 			SiNo
 				Escribir "Empate!"{;}
 			FinSi
-			Terminado<-Verdadero{;}
+			Terminado <- Verdadero{;}
 			
 		FinSi
 		
