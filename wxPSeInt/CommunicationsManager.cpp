@@ -59,7 +59,7 @@ void mxSocketClient::ProcessInput (wxSocketEvent & evt) {
 		for (int i=0;i<n;i++)
 			if (buf[i]=='\n') {
 				buf[i]='\0';
-				buffer<<aux;
+				buffer<<_Z(aux);
 				ProcessCommand();
 				buffer=_T("");
 				aux=buf+i+1;

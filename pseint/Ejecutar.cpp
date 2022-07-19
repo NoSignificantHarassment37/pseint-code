@@ -165,7 +165,14 @@ void Ejecutar(int LineStart, int LineEnd) {
 						ExeError(120,string("No coinciden los tipos (")+aux2+").");
 					else if (tipo==vt_numerica_entera && tipo.rounded && aux1.find(".",0)!=string::npos)
 						ExeError(313,string("No coinciden los tipos (")+aux2+"), el valor ingresado debe ser un entero.");
-					_sub(line,string("El valor ingresado se almacena en ")+aux2); // tipo?
+					if (Inter.subtitles_on) {
+						string name = aux2; 
+						for (char &c:name) {
+							if (c=='(') c='[';
+							if (c==')') c=']';
+						}
+						_sub(line,string("El valor ingresado se almacena en ")+name);
+					}
 					memoria->DefinirTipo(aux2,tipo);
 					memoria->EscribirValor(aux2,DataValue(tipo,aux1));
 				}
@@ -312,7 +319,14 @@ void Ejecutar(int LineStart, int LineEnd) {
 					ExeError(314,"No coinciden los tipos, el valor a asignar debe ser un entero.");
 				_sub(line,string("El resultado es: ")+result.GetForUser());
 				// escribir en memoria
-				_sub(line,string("El resultado se guarda en ")+aux1);
+				if (Inter.subtitles_on and aux2!=aux1) { 
+					string name = aux1; 
+					for (char &c:name) {
+						if (c=='(') c='[';
+						if (c==')') c=']';
+					}
+					_sub(line,string("El resultado se guarda en ")+name);
+				}
 				result.type.rounded=false; // no forzar a entera la variable en la que se asigna
 				memoria->DefinirTipo(aux1,result.type);
 				memoria->EscribirValor(aux1,result);
