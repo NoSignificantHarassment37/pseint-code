@@ -192,10 +192,10 @@ DataValue func_ftoa(DataValue *arg) {
 }
 
 DataValue func_pi(DataValue *arg) {
-	return DataValue::MakeReal("3.141592653589793238462643383279502884197169399375105820974944592");
+	return DataValue::MakeReal(3.141592653589793238462643383279502884197169399375105820974944592);
 }
 DataValue func_euler(DataValue *arg) {
-	return DataValue::MakeReal("2.7182818284590452353602874713527");
+	return DataValue::MakeReal(2.7182818284590452353602874713527);
 }
 
 void LoadFunciones() {
