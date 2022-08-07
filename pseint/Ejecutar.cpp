@@ -1,9 +1,9 @@
-#include "Ejecutar.h"
 #include <string>
+#include <iostream>
+#include "Ejecutar.h"
 #include "global.h"
 #include "intercambio.h"
 #include "utils.h"
-#include <iostream>
 #include "new_evaluar.h"
 #include "new_memoria.h"
 #include "zcurlib.h"
@@ -16,7 +16,7 @@ using namespace std;
 // Las variables aux?, tmp? y tipo quedaron del código viejo, se reutilizan para diferentes
 // cosas, por lo que habría que analizarlas y cambiarlas por varias otras variables con scope y 
 // nombres mas claros... por ahora cambie las obvias y reduje el scope de las que quedaron, pero falta...
-void Ejecutar(int LineStart, int LineEnd) {
+void Ejecutar::Run(int LineStart, int LineEnd) {
 	// variables auxiliares
 	// Ejecutar el bloque
 	int line=LineStart-1;
@@ -28,7 +28,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 		
 		switch (inst.type) {
 			case IT_FINPROCESO: {
-				auto &inst_impl = getImpl<IT_FINPROCESO>(inst);
+				const auto &inst_impl = getImpl<IT_FINPROCESO>(inst);
 				Inter.OnAboutToEndFunction();
 				_pos(line);
 				if (inst_impl.principal) {
@@ -39,7 +39,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 				}
 			} return;
 			case IT_PROCESO: {
-				auto &inst_impl = getImpl<IT_PROCESO>(inst);
+				const auto &inst_impl = getImpl<IT_PROCESO>(inst);
 				Inter.OnFunctionIn(inst_impl.nombre);
 				_pos(line);
 				_sub(line,string(inst_impl.principal?"El algoritmo comienza con el proceso ":"Se ingresa en el subproceso ")+inst_impl.nombre);
@@ -68,7 +68,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ----------- ESCRIBIR ------------ //
 			case IT_ESCRIBIR: {
 				_pos(line);
-				auto &inst_impl = getImpl<IT_ESCRIBIR>(inst);
+				const auto &inst_impl = getImpl<IT_ESCRIBIR>(inst);
 				// Separar parametros
 				for(size_t i_expr=0;i_expr<inst_impl.expressiones.size();++i_expr) {
 					const string &expression = inst_impl.expressiones[i_expr];
@@ -88,7 +88,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ------------- LEER --------------- //
 			case IT_LEER: {
 				_pos(line);
-				auto &inst_impl = getImpl<IT_LEER>(inst);
+				const auto &inst_impl = getImpl<IT_LEER>(inst);
 				for(size_t i_var = 0; i_var<inst_impl.variables.size(); ++i_var) {
 					string variable = inst_impl.variables[i_var];  // es copia por CheckDims
 					
@@ -230,7 +230,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ------------- ESPERAR un tiempo --------------- //
 			case IT_ESPERAR: {
 				_pos(line);
-				auto &inst_impl = getImpl<IT_ESPERAR>(inst);
+				const auto &inst_impl = getImpl<IT_ESPERAR>(inst);
 				string tiempo = inst_impl.tiempo; 
 				int factor = inst_impl.factor;
 				_sub(line,string("Se evalúa la cantidad de tiempo: ")+tiempo);
@@ -246,7 +246,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ------------- ASIGNACION --------------- //
 			case IT_ASIGNAR: {
 				_pos(line);
-				auto &inst_impl = getImpl<IT_ASIGNAR>(inst);
+				const auto &inst_impl = getImpl<IT_ASIGNAR>(inst);
 				string var = inst_impl.variable; // es copia por CheckDims
 				const string &valor = inst_impl.valor;
 				if (lang[LS_FORCE_DEFINE_VARS] && !memoria->EstaDefinida(var)) {
@@ -289,7 +289,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			
 			// ---------------- SI ------------------ //
 			case IT_SI: {
-				auto &inst_impl = getImpl<IT_SI>(inst);
+				const auto &inst_impl = getImpl<IT_SI>(inst);
 				_pos(line);
 				_sub(line,string("Se evalúa la condición para Si-Entonces: ")+inst_impl.condicion);
 				tipo_var tipo;
@@ -303,13 +303,13 @@ void Ejecutar(int LineStart, int LineEnd) {
 					if (condition_is_true) {
 						_sub(line+1,"El resultado es Verdadero, se sigue por la rama del Entonces");
 						if (line_sino==-1) line_sino=line_finsi;
-						Ejecutar(line+2,line_sino-1); // ejecutar salida por verdadero
+						Run(line+2,line_sino-1); // ejecutar salida por verdadero
 					} else {
 						if (line_sino!=-1) {
 							line = line_sino;
 							_pos(line);
 							_sub(line,"El resultado es Falso, se sigue por la rama del SiNo");
-							Ejecutar(line+1,line_finsi-1); // ejecutar salida por falso
+							Run(line+1,line_finsi-1); // ejecutar salida por falso
 						} else {
 							_sub(line,"El resultado es Falso, no se hace nada");
 						}
@@ -335,7 +335,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 					int line_finmientras = inst_impl.fin;
 					while (condition_is_true) {
 						_sub(line,"La condición es Verdadera, se iniciará una iteración.");
-						Ejecutar(line+1,line_finmientras-1);
+						Run(line+1,line_finmientras-1);
 						_pos(line);
 						_sub(line,string("Se evalúa nuevamente la condición: ")+condicion);
 						condition_is_true = Evaluar(condicion,vt_logica).GetAsBool();
@@ -359,7 +359,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 				tipo_var tipo;
 				bool should_continue_iterating=true;
 				while (should_continue_iterating) {
-					Ejecutar(line+1,line_hastaque-1);
+					Run(line+1,line_hastaque-1);
 					// evaluar condicion y seguir
 					_pos(line_hastaque);
 					_sub(line_hastaque,string("Se evalúa la condición: ")+condicion);
@@ -373,7 +373,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			
 			// ------------------- PARA --------------------- //
 			case IT_PARA: {
-				auto &inst_impl = getImpl<IT_PARA>(inst);
+				const auto &inst_impl = getImpl<IT_PARA>(inst);
 				_pos(line);
 				const string &contador = inst_impl.contador;
 				memoria->DefinirTipo(contador,vt_numerica);
@@ -415,7 +415,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 					DataValue res_cont = Evaluar(contador,vt_numerica);
 					if ( positivo ? (res_cont.GetAsReal()>res_fin.GetAsReal()) : (res_cont.GetAsReal()<res_fin.GetAsReal()) ) break;
 					_sub(line,"La expresión fue Verdadera, se iniciará una iteración.");
-					Ejecutar(line+1,line_finpara-1);
+					Run(line+1,line_finpara-1);
 					_pos(line);
 					res_cont = Evaluar(contador,vt_numerica); // pueden haber cambiado a para el contador!!!
 					DataValue new_val = DataValue::MakeReal(res_cont.GetAsReal()+res_paso.GetAsReal());
@@ -433,7 +433,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 			
 			// ------------------- PARA CADA --------------------- //
 			case IT_PARACADA: {
-				auto &inst_impl = getImpl<IT_PARACADA>(inst);
+				const auto &inst_impl = getImpl<IT_PARACADA>(inst);
 				bool primer_iteracion=true; _pos(line);
 				const string &identificador = inst_impl.identificador;
 				const string &arreglo = inst_impl.arreglo;
@@ -463,7 +463,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 						ExeError(277,"No coinciden los tipos.");
 					memoria->EscribirValor(identificador,memoria->LeerValor(elemento));
 					// ejecutar la iteracion
-					Ejecutar(line+1,line_finpara-1);
+					Run(line+1,line_finpara-1);
 					// asignar la variable del bucle en el elemento
 					memoria->DefinirTipo(elemento,memoria->LeerTipo(identificador));
 					memoria->EscribirValor(elemento,memoria->LeerValor(identificador));
@@ -532,7 +532,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 					int line_to = i_opcion_correcta+1<inst_impl.opciones.size() 
 						          ? (inst_impl.opciones[i_opcion_correcta+1]-1)
 								  : (line_finsegun-1);
-					Ejecutar(line_from,line_to);
+					Run(line_from,line_to);
 				}
 				
 				line=line_finsegun;

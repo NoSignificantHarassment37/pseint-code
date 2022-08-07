@@ -13,7 +13,7 @@ string IntToStr(int f);
 // *********************** Intercambio ****************************
 
 // Linea que se esta ejecutando actualmente
-Intercambio::Intercambio() {
+Intercambio::Intercambio() : loc(-1,-1) {
 	subtitles_on=false;
 	backtraceLevel=0;
 	debugLevel=0;
@@ -23,9 +23,8 @@ Intercambio::Intercambio() {
 	zocket = ZOCKET_ERROR;
 	port=24377; 
 #endif
-	instNumber=lineNumber=-1;
 	delay=0; do_continue=false; 
-	do_one_step=false; running=false;
+	do_one_step=false;
 }
 Intercambio::~Intercambio() {
 #ifdef USE_ZOCKETS
@@ -124,24 +123,20 @@ void Intercambio::SendPositionToGUI () {
 #ifdef USE_ZOCKETS
 	if (zocket!=ZOCKET_ERROR && (!debugLevel || backtraceLevel<=debugLevel)) { // si estamos depurando, informar la linea y esperar
 		string str;
-		if (instNumber>0) str=string("linea ")+IntToStr(lineNumber)+":"+IntToStr(instNumber)+"\n";
-		else str=string("linea ")+IntToStr(lineNumber)+"\n";
+		if (loc.instruccion>0) str=string("linea ")+IntToStr(loc.linea)+":"+IntToStr(loc.instruccion)+"\n";
+		else str=string("linea ")+IntToStr(loc.linea)+"\n";
 		zocket_escribir(zocket,str.c_str(),str.size());
 	}
 #endif	
 }
 
 void Intercambio::SendIOPositionToTerminal (int argNumber) {
-	cout<<"\033[zp"<<lineNumber<<':'<<instNumber<</*':'<<argNumber<<*/	';';
+	cout<<"\033[zp"<<loc.linea<<':'<<loc.instruccion<</*':'<<argNumber<<*/	';';
 }
 
 void Intercambio::SendErrorPositionToTerminal () {
-	cout<<"\033[ze"<<lineNumber<<':'<<instNumber<<';';
+	cout<<"\033[ze"<<loc.linea<<':'<<loc.instruccion<<';';
 }
-//
-//void Intercambio::SendLoopPositionToTerminal() {
-//	cout<<"\033[zs"<<lineNumber<<':'<<instNumber<<';';
-//}
 
 
 void Intercambio::ChatWithGUI () {
@@ -207,8 +202,8 @@ void Intercambio::ProcInput() {
 }
 #endif
 
-void Intercambio::SetStarted() {
-	running=true;
+void Intercambio::SetStarted(Ejecutar &ej) {
+	ejecutar = &ej;
 	backtraceLevel=0;
 	backtrace.clear();
 }
@@ -223,7 +218,7 @@ void Intercambio::SetFinished(bool interrupted) {
 			zocket_escribir(zocket,"estado interrumpido\n",20);
 	}
 #endif
-	running=false;
+	ejecutar = nullptr;
 }
 
 #ifdef USE_ZOCKETS
@@ -246,11 +241,6 @@ void Intercambio::InitDebug(int _delay) {
 }
 #endif
 
-// Manejo de las lineas del programa en memoria
-int Intercambio::Archivo_Size(){return (int)Archivo.size();}
-void Intercambio::AddLine(string s){Archivo.push_back(s);}
-void Intercambio::AddLine(char *s){Archivo.push_back(s);}
-
 // *****************************************************************
 
 bool Intercambio::EvaluatingForDebug() {
@@ -269,7 +259,7 @@ void Intercambio::SetError(string error) {
 }
 
 void Intercambio::OnFunctionIn(string nom) {
-	backtrace.push_back(FrameInfo(nom,lineNumber,instNumber));
+	backtrace.push_back(FrameInfo(nom,loc));
 	backtraceLevel++;
 #ifdef USE_ZOCKETS
 	if (zocket==ZOCKET_ERROR || backtrace.empty()) return;
@@ -304,8 +294,8 @@ FrameInfo Intercambio::GetFrame(int level) {
 	return backtrace[level];
 }
 
-void Intercambio::SetLineAndInstructionNumber (int _i) {
-	lineNumber=programa[_i].num_linea; 
-	instNumber=programa[_i].num_instruccion; 
+void Intercambio::SetLocation(CodeLocation _loc) {
+	loc.linea = _loc.linea; 
+	loc.instruccion = _loc.instruccion; 
 }
 

@@ -53,26 +53,31 @@ static string Trim(const string &str) {
 }
 
 // pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y quita espacios extras
-static string SynCheckAux1(string &cadena) {
-	string retval;
+std::pair<string,bool> SynCheck::Normalizar(string &cadena) {
+	string rest; bool is_comment = true;
 	// corregir saltos de linea win/linux
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
 	if (cadena.size()>1 && (cadena[cadena.size()-2]==13||cadena[cadena.size()-2]==10) ) cadena[cadena.size()-2]=' ';
-	int len = cadena.size();
 	// primero, todo a mayúsculas y cambio de comillas y paréntesis
-	for (int i=0;i<len;i++) {
+	for (int i=0,len = cadena.size(); i<len; ++i) {
 		char &c=cadena[i];
+		if (c==';' && i+1<len) {
+			is_comment = false;
+			rest = cadena.substr(i+1);
+			cadena.erase(i+1);
+			break;
+		}
 		if (i>0 && c=='/' && cadena[i-1]=='/') { // "remover" comentarios
 			if (preserve_comments) {
 				bool is_inline = false;
 				for(int j=0;j<i-1;j++) 
 					if (cadena[j]!=' '&&cadena[j]!='\t'&&cadena[j]!=';') 
 						{ is_inline=true; break; }
-				retval = cadena.substr(i+1); 
-				while (retval.size() && (retval[0]==' '||retval[0]=='\t')) retval.erase(0,1);
-				if (retval.size()) retval.insert(0,is_inline?string("#comment-inline "):string("#comment "));
+				rest = cadena.substr(i+1); 
+				while (rest.size() && (rest[0]==' '||rest[0]=='\t')) rest.erase(0,1);
+				if (rest.size()) rest.insert(0,is_inline?string("#comment-inline "):string("#comment "));
 			}
-			cadena=cadena.substr(0,i-1); len=i-1; break; 
+			cadena=cadena.substr(0,i-1); break; 
 		}
 		if (c=='\"' || c=='\'') { // saltear cadenas literales normalizando las comillas a '
 			c='\'';
@@ -88,7 +93,7 @@ static string SynCheckAux1(string &cadena) {
 	}
 	// despues, word_operators
 	if (lang[LS_WORD_OPERATORS]) {
-		for (int i=0;i<len;i++) {
+		for (int i=0,len=cadena.size(); i<len; ++i) {
 			char &c = cadena[i];
 			if (c=='\'') { // saltera cadenas literales
 				while (i<len&&cadena[++i]!='\'');
@@ -115,7 +120,7 @@ static string SynCheckAux1(string &cadena) {
 //			if (cadena[i]==')' && i+2<len && EsLetra(cadena[i+1])) { cadena.insert(i+1," "); len++; }
 //		}
 //	}
-	return retval;
+	return std::make_pair(rest,is_comment);
 }
 
 struct coloquial_aux {
@@ -167,14 +172,14 @@ vector<coloquial_aux> &GetColoquialConditions() {
 }
 	
 // reescribir condiciones coloquiales
-static void SynCheckAux2(string &cadena, int &errores) {
+void SynCheck::Condiciones(string &cadena, int &errores) {
 	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	if (!cadena.size() || !lang[LS_COLOQUIAL_CONDITIONS]) return;
 	if (cadena[cadena.size()-1]!=' ') cadena+=" ";
-	int comillas=-1;
+	bool comillas=false;
 	for (int y=0;y<int(cadena.size());y++) {
-		if (cadena[y]=='\'' || cadena[y]=='\"') comillas=-comillas;
-		else if (comillas<0) {
+		if (cadena[y]=='\'' || cadena[y]=='\"') comillas=!comillas;
+		else if (!comillas) {
 			if (y>0&&(cadena[y]==','||/*cadena[y]=='('||*/cadena[y]==';')&&cadena[y-1]!=' ')
 				cadena.insert(y++," ");
 		}
@@ -280,7 +285,7 @@ int is_valid_operator(char act, char next, int &len, what_extra &type) {
 }
 
 // verificar operadores, constantes y parentesis, y borrar los espacios en blanco que sobran entre ellos
-static void SynCheckAux3(const int &x, string &cadena, int &errores,InstructionType instruction_type, int &flag_pyc) {
+void SynCheck::Operadores(const int &x, string &cadena, int &errores, InstructionType instruction_type) {
 	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	bool allow_multiple_expresions=instruction_type!=IT_DEOTROMODO && instruction_type!=IT_ASIGNAR;
 	what w=w_null; what_extra wext=w_other;
@@ -335,8 +340,8 @@ static void SynCheckAux3(const int &x, string &cadena, int &errores,InstructionT
 				w=w_null; wext=w_other;
 				if (act==';') {
 					// todo: ver si realmente puede llegar esto hasta aca, o se corta en otro lado
-					programa.Insert(x+1,cadena.substr(i+1));
-					cadena.erase(i+1); flag_pyc+=1;
+//					programa.Insert(x+1,cadena.substr(i+1));
+					_expects(i+2==csize);
 				}
 			} else if (act==',') {
 				if (w==w_operator) {
@@ -430,22 +435,21 @@ static void FixAcentos(string &s) {
 	}
 }
 
-void InformUnclosedLoops(std::vector<int> &bucles, int &errores) {
+void SynCheck::InformUnclosedLoops(std::vector<int> &bucles, int &errores) {
 	// Controlar Cierre de Bucles
 	while (!bucles.empty())	{
 		InstructionType type = programa[bucles.back()].type;
-		int num_linea = programa[bucles.back()].num_linea;
-		int num_inst = programa[bucles.back()].num_instruccion;
-		if      (type==IT_PARA || type==IT_PARACADA) {SynError (114,"Falta cerrar PARA.",num_linea,num_inst); errores++;}
-		else if (type==IT_REPETIR) {SynError (115,"Falta cerrar REPETIR.",num_linea,num_inst); errores++;}
-		else if (type==IT_MIENTRAS) {SynError (116,"Falta cerrar MIENTRAS.",num_linea,num_inst); errores++;}
-		else if (type==IT_SI || type==IT_SINO) {SynError (117,"Falta cerrar SI.",num_linea,num_inst); errores++;}
-		else if (type==IT_SEGUN) {SynError (118,"Falta cerrar SEGUN.",num_linea,num_inst); errores++;}
+		CodeLocation loc = programa[bucles.back()].loc;
+		if      (type==IT_PARA || type==IT_PARACADA) {SynError (114,"Falta cerrar PARA.",loc); errores++;}
+		else if (type==IT_REPETIR) {SynError (115,"Falta cerrar REPETIR.",loc); errores++;}
+		else if (type==IT_MIENTRAS) {SynError (116,"Falta cerrar MIENTRAS.",loc); errores++;}
+		else if (type==IT_SI || type==IT_SINO) {SynError (117,"Falta cerrar SI.",loc); errores++;}
+		else if (type==IT_SEGUN) {SynError (118,"Falta cerrar SEGUN.",loc); errores++;}
 		else if (type==IT_PROCESO) {
 			if (getImpl<IT_PROCESO>(programa[bucles.back()]).principal)
-				{SynError (119,"Falta cerrar ALGORITMO/PROCESO.",num_linea,num_inst); errores++;}
+				{SynError (119,"Falta cerrar ALGORITMO/PROCESO.",loc); errores++;}
 			else
-				{SynError (119,"Falta cerrar FUNCION/SUBPROCESO.",num_linea,num_inst); errores++;}
+				{SynError (119,"Falta cerrar FUNCION/SUBPROCESO.",loc); errores++;}
 		}
 		bucles.pop_back();
 	}
@@ -475,23 +479,21 @@ bool SirveParaReferencia(const string &s) {
 // ********************* Checkear la Correcta Sintaxis del Archivo **************************
 //-------------------------------------------------------------------------------------------
 
-int SynCheck(int linea_from, int linea_to) {
+int SynCheck::Instrucciones() {
 	
-	programa.SetRefPoint(linea_to);
 	Memoria global_memory(NULL); // para usar al analizar instrucciones fuera de proceso/subprocesos
 	memoria=&global_memory;
 	SynErrores=0; // global, se incrementa en SynError(...)
 	std::vector<int> bucles; // Para controlar los bucles que se abren y cierran... guarda un stack de indices a instrucciones que abren bloques en el arreglo programa
 	int errores=0; // Total de errores , y cant hasta la instrucción anterior
-	int flag_pyc=0, tmp;
 	bool in_process=false;
 	string cadena, str;
 	Funcion *current_func = NULL; // funcion actual, necesito el puntero para setear line_end cuando encuentre el FinProceso/FinSubProceso
 	
 	// Checkear sintaxis y reorganizar el codigo
-	for (int prog_idx=linea_from;prog_idx<programa.GetRefPoint();prog_idx++){
-		Inter.SetLineAndInstructionNumber(prog_idx);
-		cadena=programa[prog_idx];
+	for (int prog_idx=0; prog_idx<programa.GetInstCount(); ++prog_idx){
+		Inter.SetLocation(programa[prog_idx].loc);
+		cadena = programa[prog_idx];
 		int Lerrores=errores;
 		
 		// Ignorar lineas de comentarios
@@ -500,8 +502,6 @@ int SynCheck(int linea_from, int linea_to) {
 //			Instruccion &inst = programa[prog_idx];
 			#define inst programa[prog_idx] // no usar referencia porque al modificar el vector se invalida
 			_expects(inst.type==IT_NULL);
-			
-			int comillas=-1;
 			
 			// puede haber que trimear las cadenas que surgieron de separar lineas con mas de una instrucción
 			int pt1=0,pt2=cadena.size(), l=cadena.size();
@@ -534,10 +534,10 @@ int SynCheck(int linea_from, int linea_to) {
 			if (first_word=="ENTONCES") {
 				if (/*programa[bucles.back()]!=IT_SI || */programa[prog_idx-1]!=IT_SI)
 					{SynError (1,"ENTONCES mal colocado."); errores++;}
-				if (cadena.size()) { programa.Insert(prog_idx+1,cadena); flag_pyc+=1; }
+				if (cadena.size()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_ENTONCES); cadena="";
 			} else if (first_word=="SINO") {
-				if (cadena.size()) { programa.Insert(prog_idx+1,cadena); flag_pyc+=1; }
+				if (cadena.size()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_SINO); cadena="";
 			} else if (first_word=="ESCRIBIR" || (lang[LS_LAZY_SYNTAX] && (first_word=="IMPRIMIR" || first_word=="MOSTRAR" || first_word=="INFORMAR")) ) {
 				inst.setType(IT_ESCRIBIR);
@@ -549,25 +549,24 @@ int SynCheck(int linea_from, int linea_to) {
 				inst.setType(IT_SI);
 				bucles.push_back(prog_idx);
 				// cortar el entonces si esta en la misma linea
-				comillas=-1;
 				if (RightCompareFix(cadena," ENTONCES ")) {
 					cadena.erase(cadena.size()-10,10);
 					programa.Insert(prog_idx+1,"ENTONCES");
-					flag_pyc+=1;
-				} else
+				} else {
+					bool comillas=false;
 					for (int y=0; y<(int)cadena.size()-10;y++) {
-						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=-comillas;
-						if (comillas<1 && MidCompareNC(" ENTONCES ",cadena,y)) {
+						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
+						if ((!comillas) && MidCompareNC(" ENTONCES ",cadena,y)) {
 							str=cadena;
 							cadena.erase(y+1,cadena.size()-y);
 							// borrar los espacios en medio
 							while (cadena[cadena.size()-1]==' ' && cadena.size()!=0) cadena.erase(cadena.size()-1,1);
 							str.erase(0,y+1);
 							programa.Insert(prog_idx+1,str);
-							flag_pyc+=1;
 							break;
 						}
 					}
+				}
 			} else if (first_word=="MIENTRAS"&&(!lang[LS_ALLOW_REPEAT_WHILE]||FirstWord(cadena)!="QUE")) { 
 				inst.setType(IT_MIENTRAS);
 				bucles.push_back(prog_idx);
@@ -576,7 +575,7 @@ int SynCheck(int linea_from, int linea_to) {
 				bucles.push_back(prog_idx);
 			} else if (first_word=="DE" && (LeftCompare(cadena,"OTRO MODO:") || LeftCompare(cadena,"OTRO MODO "))) {
 				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN)  {SynError (321,"DE OTRO MODO mal colocado."); errores++;}
-				cadena.erase(0,10); programa.Insert(prog_idx+1,cadena); flag_pyc+=1;
+				cadena.erase(0,10); programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_DEOTROMODO); cadena="";
 			} else if (first_word=="DIMENSION") {
 				inst.setType(IT_DIMENSION);
@@ -630,15 +629,15 @@ int SynCheck(int linea_from, int linea_to) {
 					if (i<l&& cadena[i]=='=') cadena.replace(i,1,"<-");
 				}
 				// evitar problema de operador incorrecto al poner el signo al numero
-				comillas=-1;
 				// si dice "i desde 1" en lugar de "i<-1" se reemplaza " desde " por "<-"
 				if (lang[LS_LAZY_SYNTAX] && cadena.find("<-",0)==string::npos && cadena.find(" DESDE ")!=string::npos) 
 					cadena.replace(cadena.find(" DESDE "),7,"<-");
 				if (cadena.find("<-",0)!=string::npos) {
+					bool comillas=false;
 					// se agregan parentesis al valor inicial para evitar problemas mas adelante (porque si el valor es negativo, con la flecha de asignacion queda un --)
 					for (int y=cadena.find("<-",0)+3; y<(int)cadena.size();y++) {
-						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=-comillas;
-						if (comillas<1 && (MidCompareNC(" HASTA ",cadena,y) || MidCompareNC(" CON PASO ",cadena,y))) {
+						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
+						if ((!comillas) && (MidCompareNC(" HASTA ",cadena,y) || MidCompareNC(" CON PASO ",cadena,y))) {
 							cadena.insert(y,")");
 							cadena.insert(cadena.find("<-",0)+2,"(");
 							break;
@@ -681,7 +680,7 @@ int SynCheck(int linea_from, int linea_to) {
 							programa.Insert(prog_idx+1,cadena);
 							programa[prog_idx+1].instruccion.erase(0,pos_dp+1);
 							cadena.erase(pos_dp+1,cadena.size()-pos_dp-1);
-							flag_pyc+=1; flag_segun=1;
+							flag_segun=1;
 							if (programa[bucles.back()]!=IT_SEGUN) { SynError (241,"Opción fuera de SEGUN."); errores++; }
 						}
 //					}
@@ -706,17 +705,17 @@ int SynCheck(int linea_from, int linea_to) {
 						if (i+1<l && cadena[i]==':' && cadena[i+1]=='=') {cadena[i]='<';cadena[i+1]='-';}
 						else if (lang[LS_OVERLOAD_EQUAL] && cadena[i]=='=') cadena.replace(i,1,"<-");
 						if (i+1<l&&cadena[i]=='<'&&cadena[i+1]=='-') {
-							comillas=-1;
+							bool comillas=false;
 							for (int y=0; y<(int)cadena.find("<-",0);y++)
-								if(cadena[y]=='\"' || cadena[y]=='\'') comillas=-comillas;
-							if (comillas<1) {
+								if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
+							if (!comillas) {
 								inst.setType(IT_ASIGNAR);
 								// evitar problema de operador incorrecto al poner el signo al numero
 								cadena.insert(i+2,"(");
 								cadena.insert(cadena.size(),") ");
 								for (int y=i+3; y<(int)cadena.size();y++) {
-									if(cadena[y]=='\"' || cadena[y]=='\'') comillas=-comillas;
-									if (comillas<1 && cadena[y]==';') {
+									if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
+									if ((!comillas) && cadena[y]==';') {
 										cadena.insert(y,")");
 										cadena.erase(cadena.size()-2,2);
 										break;
@@ -746,16 +745,16 @@ int SynCheck(int linea_from, int linea_to) {
 			}
 			
 			// reescribir condiciones coloquiales
-			SynCheckAux2(cadena, errores);
-
+			SynCheck::Condiciones(cadena, errores);
+			
 			// verificar operadores
-			SynCheckAux3(prog_idx,cadena,errores,inst.type,flag_pyc);
+			SynCheck::Operadores(prog_idx,cadena,errores,inst.type);
 			
 			// y si hay algo a continuacion del hacer tambien, asi que despues del hacer se corta como si fuera hacer; para que se pueda escribir por ejemplo un mientras en una sola linea
-			comillas=-1; len=cadena.size();
-			for (tmp=0;tmp<len;tmp++) {
-				if (cadena[tmp]=='\'') comillas=-comillas;
-				else if (comillas<0 && tmp+5<len && cadena.substr(tmp,6)=="HACER " /*&& cadena.substr(tmp,6)!="HACER;"*/) {
+			bool comillas=false;
+			for (int tmp=0, len=cadena.size();tmp<len;tmp++) {
+				if (cadena[tmp]=='\'') comillas=!comillas;
+				else if ((!comillas) && tmp+5<len && cadena.substr(tmp,6)=="HACER " /*&& cadena.substr(tmp,6)!="HACER;"*/) {
 					programa.Insert(prog_idx+1,cadena.substr(tmp+5));
 					cadena.erase(tmp+5); break;
 				}
@@ -769,9 +768,7 @@ int SynCheck(int linea_from, int linea_to) {
 				if (inst.type!=IT_ENTONCES && inst.type!=IT_NULL && inst.type!=IT_ERROR) {
 					if (lang[LS_LAZY_SYNTAX]) {
 						programa.Insert(prog_idx,
-										Instruccion("ENTONCES",
-													programa[prog_idx].num_linea,
-													programa[prog_idx].num_instruccion));
+										Instruccion("ENTONCES",programa[prog_idx].loc));
 						programa[prog_idx].setType(IT_ENTONCES);
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
@@ -815,7 +812,7 @@ int SynCheck(int linea_from, int linea_to) {
 				current_func=subprocesos[inst_impl.nombre];
 				current_func->line_start=prog_idx;
 				bucles.push_back(prog_idx);
-				current_func->userline_start=Inter.GetLineNumber();
+				current_func->userline_start=Inter.GetLocation().linea;
 				memoria=current_func->memoria=new Memoria(current_func);
 			}
 			if (!in_process && inst.type!=IT_NULL&&cadena!="") {
@@ -833,7 +830,8 @@ int SynCheck(int linea_from, int linea_to) {
 								tipo_var ret_t = memoria->LeerTipo(current_func->nombres[0]);
 								current_func->tipos[0].set(ret_t);
 							}
-							current_func->userline_end=Inter.GetLineNumber(); current_func=NULL; 
+							current_func->userline_end=Inter.GetLocation().linea;
+							current_func=NULL; 
 						}
 						bucles.pop_back();
 					} else {
@@ -887,7 +885,7 @@ int SynCheck(int linea_from, int linea_to) {
 							if (cadena[i]=='(') parentesis++;
 							if (cadena[i]==')') parentesis--;
 							if (i>0 && i<(int)cadena.size()-1)
-								if (comillas<0 && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
+								if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
 									{SynError (47,"Se esperaba fin de expresión (fin de la instrucción, o coma para separar)."); errores++;}
 							if (parentesis==0 && cadena[i]==',') { // comprobar validez
 								str=cadena;
@@ -971,7 +969,7 @@ int SynCheck(int linea_from, int linea_to) {
 						if (cadena[i]=='(') parentesis++;
 						if (cadena[i]==')') parentesis--;
 						if (i>0 && i<(int)cadena.size()-1)
-							if (comillas<0 && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
+							if ((!comillas) && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
 							{SynError (57,"Se esperaba fin de expresión."); errores++;}
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							str=cadena;
@@ -1262,15 +1260,15 @@ int SynCheck(int linea_from, int linea_to) {
 					inst_impl.variable = str;
 					str=cadena;
 					str.erase(0,str.find("<-",0)+2);
-					comillas=-1; int parentesis=0;
+					bool comillas=false; int parentesis=0;
 					for (int y=0;y<(int)str.size();y++){ // comprobar que se un solo parametro
 						if (str[y]=='(') parentesis++;
 						if (str[y]==')') parentesis--;
-						if (str[y]=='\'') comillas=-comillas;
+						if (str[y]=='\'') comillas=!comillas;
 						if (y>0 && y<(int)str.size()-1)
-							if (comillas<0 && str[y]==' ' && str[y-1]!='&' && str[y-1]!='|'  && str[y+1]!='&'  && str[y+1]!='|')
+							if ((!comillas) && str[y]==' ' && str[y-1]!='&' && str[y-1]!='|'  && str[y+1]!='&'  && str[y+1]!='|')
 							{SynError (87,"Se esperaba fin de expresión."); errores++;}
-						if (comillas<0 && parentesis==1 && str[y]==',')
+						if ((!comillas) && parentesis==1 && str[y]==',')
 						{SynError (88,"Demasiados parámetros."); errores++;}
 					}
 					if (str.size()==3)
@@ -1297,14 +1295,14 @@ int SynCheck(int linea_from, int linea_to) {
 				if (cadena=="")
 					{ SynError (90,"Falta la condición en la estructura Si-Entonces."); errores++; }
 				// comprobar que no halla espacios
-				comillas=-1;
+				bool comillas=false;
 				for (int tmp1=0;tmp1<(int)cadena.size();tmp1++) {
-					if (cadena[tmp1]=='\'') comillas=-comillas;
+					if (cadena[tmp1]=='\'') comillas=!comillas;
 					if (tmp1>0 && tmp1<(int)cadena.size()-1) {
-						// si encuentra un espacio (que no saco SynCheckAux3) es porque habia una instrucción despues del si, faltaba el "ENTONCES"
-						if (comillas<0 && cadena[tmp1]==' ' && cadena[tmp1-1]!='&' && cadena[tmp1-1]!='|'  && cadena[tmp1+1]!='&'  && cadena[tmp1+1]!='|') {
+						// si encuentra un espacio (que no saco SynCheck::Operadores) es porque habia una instrucción despues del si, faltaba el "ENTONCES"
+						if ((!comillas) && cadena[tmp1]==' ' && cadena[tmp1-1]!='&' && cadena[tmp1-1]!='|'  && cadena[tmp1+1]!='&'  && cadena[tmp1+1]!='|') {
 							if (lang[LS_LAZY_SYNTAX]) {
-								programa.Insert(prog_idx+1,cadena.substr(tmp1)); flag_pyc++;
+								programa.Insert(prog_idx+1,cadena.substr(tmp1));
 								cadena.erase(tmp1);
 								break;
 							} else {
@@ -1324,11 +1322,11 @@ int SynCheck(int linea_from, int linea_to) {
 				else {
 					str=cadena; // Comprobar la condición
 					// comprobar que no halla espacios
-					comillas=-1;
+					bool comillas=false;
 					for (int tmp1=0;tmp1<(int)str.size();tmp1++) {
-						if (str[tmp1]=='\'') comillas=-comillas;
+						if (str[tmp1]=='\'') comillas=!comillas;
 						if (tmp1>0 && tmp1<(int)str.size()-1)
-							if (comillas<0 && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|')
+							if ((!comillas) && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|')
 							{SynError (94,"Se esperaba fin de expresión."); errores++;}
 					}
 					if (str[str.size()-1]==';') {
@@ -1354,11 +1352,11 @@ int SynCheck(int linea_from, int linea_to) {
 						string &expresion = getImpl<IT_SEGUN>(inst).expresion = cadena; // Comprobar la condición
 						expresion.erase(expresion.size()-6,6);
 						// comprobar que no halla espacios
-						comillas=-1;
+						bool comillas=false;
 						for (int tmp1=0;tmp1<(int)expresion.size();tmp1++) {
-							if (expresion[tmp1]=='\'') comillas=-comillas;
+							if (expresion[tmp1]=='\'') comillas=!comillas;
 							if (tmp1>0 && tmp1<(int)expresion.size()-1)
-								if (comillas<0 && expresion[tmp1]==' ' && expresion[tmp1-1]!='&' && expresion[tmp1-1]!='|'  && expresion[tmp1+1]!='&'  && expresion[tmp1+1]!='|')
+								if ((!comillas) && expresion[tmp1]==' ' && expresion[tmp1-1]!='&' && expresion[tmp1-1]!='|'  && expresion[tmp1+1]!='&'  && expresion[tmp1+1]!='|')
 								{SynError (98,"Se esperaba fin de expresión."); errores++;}
 						}
 						DataValue res;
@@ -1383,13 +1381,13 @@ int SynCheck(int linea_from, int linea_to) {
 						string &str = inst_impl.condicion = cadena; // Comprobar la condición
 						str.erase(str.size()-6,6);
 						// comprobar que no halla espacios
-						comillas=-1;
+						bool comillas=false;
 						for (int tmp1=0;tmp1<(int)str.size();tmp1++) {
-							if (str[tmp1]=='\'') comillas=-comillas;
+							if (str[tmp1]=='\'') comillas=!comillas;
 							if (tmp1>0 && tmp1<(int)str.size()-1)
-								if (comillas<0 && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|') {
+								if ((!comillas) && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|') {
 									if (lang[LS_LAZY_SYNTAX]) {
-										string aux=str.substr(tmp1); flag_pyc++;
+										string aux=str.substr(tmp1);
 										programa.Insert(prog_idx+1,aux);
 										break;
 									} else {
@@ -1520,7 +1518,6 @@ int SynCheck(int linea_from, int linea_to) {
 				programa.Erase(prog_idx);prog_idx--;
 			} // Borra cadenas vacias
 			
-			if (flag_pyc==0) /*LineNumber++*/; else flag_pyc-=1;
 		}
 	}
 	
@@ -1530,75 +1527,43 @@ int SynCheck(int linea_from, int linea_to) {
 }
 
 int ParseInspection(string &cadena) {
-	SynCheckAux1(cadena); // acomodar caracteres
+	auto ret = SynCheck::Normalizar(cadena); // acomodar caracteres
+	int errores=0;
+	if (!ret.first.empty()) { SynError (271,"No puede haber más de una expresión ni comentarios."); errores++; }
 	if (cadena.size() && cadena[cadena.size()-1]==';') cadena.erase(cadena.size()-1,1);
-	int errores=0, flag_pyc=0;
-	SynCheckAux2(cadena, errores); // word_operators
-	SynCheckAux3(-1,cadena,errores,IT_ASIGNAR,flag_pyc); // verificar operadores
-	if (flag_pyc) { SynError (271,"No puede haber más de una expresión."); errores++; }
-	return errores+flag_pyc;
+	SynCheck::Condiciones(cadena, errores); // word_operators
+	SynCheck::Operadores(-1,cadena,errores,IT_ASIGNAR); // verificar operadores
+	return errores;
 }
 
-int SynCheck() {
+int SynCheck::Run() {
 	programa.PushBack(""); // linea en blanco al final, para que era?
 	programa.Insert(0,""); // linea en blanco al principio, para que era?
 	int errores=0;
 	
-	if (case_map) for(int i=0;i<programa.GetSize();i++) CaseMapFill(programa[i].instruccion);
+	if (case_map) for(int i=0;i<programa.GetLinesCount();i++) CaseMapFill(programa[i].instruccion);
 	
 	// pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y trimear
-	for(int i=0;i<programa.GetSize();i++) {
-		string comment = SynCheckAux1(programa[i].instruccion);
-		if (preserve_comments && comment.size()) { programa.Insert(i,comment); i++; }
+	for(int i=0;i<programa.GetLinesCount();i++) {
+		auto ret = SynCheck::Normalizar(programa[i].instruccion);
+		if (ret.first.empty()) continue;
+		if (ret.second) {
+			if (preserve_comments && ret.first.size()) { programa.Insert(i,ret.first); i++; }
+		} else {
+			programa.Insert(i+1,ret.first);
+		}
 	}
 	
-	// parsear primero las funciones/subprocesos (j=0), luego el proceso (j=1)
-//	bool have_proceso=false;
-//	for(int j=0;j<2;j++) {
-//		bool era_proceso=false;
-//		for(int i0=1,i=0;i<programa.GetSize();i++) {
-//			string &s=programa[i].instruccion;
-//			if (i==programa.GetSize()-1 || // para que tome el último proceso/funcion
-//				s=="FUNCION" || LeftCompare(s,"FUNCION ") || 
-//				s=="FUNCIÓN" || LeftCompare(s,"FUNCIÓN ") || 
-//				s=="PROCESO" || LeftCompare(s,"PROCESO ") || 
-//				s=="SUBPROCESO" || LeftCompare(s,"SUBPROCESO ")) {
-//					bool es_proceso=(s=="PROCESO" || LeftCompare(s,"PROCESO "));
-//					if (j==1 && es_proceso) {
-//						if (have_proceso) { Inter.SetLineAndInstructionNumber(i); SynError (272,"Solo puede haber un Proceso."); errores++;}
-//						have_proceso=true;
-//					}
-//					if (i0!=i && era_proceso==(j==1)) {
-//						int i1=i;
-//						errores+=SynCheck(i0,i1);
-//						i=programa.GetRefPoint(); // lo setea el SynCheck, es porque va a agregar y sacar lineas, entonces i ya no será i
-//						
-//						if (era_proceso) { // los cambios de lineas pueden afectar a funciones ya registradas en la pasada anterior
-//							map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
-//							while (it1!=it2) { 
-//								if (!it1->second->func && it1->second->line_start>=i1) 
-//									it1->second->line_start+=i-i1; 
-//								++it1; 
-//							} 
-//						}
-//						
-//					}
-//					i0=i; era_proceso=es_proceso;
-//				}
-//		}
-//	}
-//	if (!have_proceso) { Inter.SetLineAndInstructionNumber(1); SynError (273,"Debe haber un Proceso."); errores++;}
-	
 	bool have_proceso=false;
-	for(int i=0;i<programa.GetSize();i++) {
+	for(int i=0;i<programa.GetLinesCount();i++) {
 		string &s=programa[i].instruccion;
 		string fw=FirstWord(s); FixAcentos(fw);
 		if (fw=="FUNCION"||fw=="PROCESO"||fw=="SUBPROCESO"||fw=="ALGORITMO"||fw=="SUBALGORITMO") {
-				Inter.SetLineAndInstructionNumber(i);
+				Inter.SetLocation(programa[i].loc);
 				bool es_proceso=(fw=="PROCESO"||fw=="ALGORITMO");
 				if (s==fw) s+=" ";
 				Funcion *func=ParsearCabeceraDeSubProceso(s.substr(fw.size()+1),es_proceso,errores);
-				func->userline_start=Inter.GetLineNumber();
+				func->userline_start=Inter.GetLocation().linea;
 				subprocesos[func->id]=func;
 				if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
 					if (have_proceso) { SynError (272,"Solo puede haber un Proceso."); errores++;}
@@ -1608,10 +1573,10 @@ int SynCheck() {
 					{ SynError (309,"Este perfil no admite SubProcesos."); errores++;}
 			}
 	}
-	errores=SynCheck(0,programa.GetSize());
+	errores=SynCheck::Instrucciones();
 	
-	if (!have_proceso) { Inter.SetLineAndInstructionNumber(0); SynError (273,"Debe haber un Proceso."); errores++;}  
-	else Inter.SetLineAndInstructionNumber(EsFuncion(main_process_name,true)->line_start);
+	if (!have_proceso) { Inter.SetLocation({1,1}); SynError(273,"Debe haber un Proceso."); errores++;}  
+	else Inter.SetLocation({EsFuncion(main_process_name,true)->line_start,1});
 	
 	return errores;
 }

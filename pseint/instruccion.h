@@ -6,6 +6,7 @@
 #include <variant>
 #include "debug.h"
 #include "DataValue.h"
+#include "Code.h"
 
 enum InstructionType {
 	IT_NULL, IT_ERROR, IT_PROCESO, IT_FINPROCESO,
@@ -16,18 +17,12 @@ enum InstructionType {
 	IT_PARA, IT_PARACADA, IT_FINPARA
 };
 
-struct InstruccionLoc {
-	int linea, inst;
-	InstruccionLoc(int _linea, int _inst):linea(_linea),inst(_inst) {}
-};
-
 struct Instruccion {
 	InstructionType type;
 	std::string instruccion;
-	int num_linea;
-	int num_instruccion;
-	Instruccion(std::string _instruccion, int _num_linea=-1, int _num_instruccion=-1)
-		:type(IT_NULL),instruccion(_instruccion),num_linea(_num_linea),num_instruccion(_num_instruccion){}
+	CodeLocation loc;
+	Instruccion(std::string _instruccion, CodeLocation _loc)
+		:type(IT_NULL),instruccion(_instruccion),loc(_loc){}
 //	Instruccion(InstructionType _type, int _num_linea=-1, int _num_instruccion=-1)
 //		:type(_type),instruccion(""),num_linea(_num_linea),num_instruccion(_num_instruccion){}
 	operator std::string() { return instruccion; }

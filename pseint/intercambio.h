@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include "Code.h"
+#include "debug.h"
 using namespace std;
 
 #ifdef USE_ZOCKETS
@@ -16,15 +18,15 @@ using namespace std;
 	#define Sleep(x) usleep((x)*1000)
 #endif
 
+class Ejecutar;
 
 // *********************** Intercambio ****************************
 
 // estructura auxiliar para guardar datos del backtrace (llamadas a funciones)
 struct FrameInfo {
 	string func_name;
-	int line;
-	int instr;
-	FrameInfo(string name, int l, int i):func_name(name),line(l),instr(i){}
+	CodeLocation loc;
+	FrameInfo(string name, CodeLocation _loc):func_name(name),loc(_loc){}
 };
 
 class Intercambio {
@@ -33,9 +35,8 @@ class Intercambio {
 	int debugLevel; // solo interesa depurar si debugLevel<=backtraceLevel (si es 0 depura todo)
 	vector<FrameInfo> backtrace;
 	
-	bool running;
-	int instNumber;          // Numero de linea que se está ejecutando (base 1)
-	int lineNumber;          // Numero de linea que se está ejecutando (base 1)
+	Ejecutar *ejecutar = nullptr;
+	CodeLocation loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
 	vector <string> Archivo; // Archivo original
 	vector <string> Errores; // Descripcion de los errores encontrados
 	vector <int> Lineas;     // Numeros de lines correspondientes a los errores	
@@ -73,7 +74,7 @@ public:
 	void InitDebug(int _delay); // si _delay!=0 inicializa la ejecución paso a paso enviando el hello y esperando la primer instruccion
 	void SetPort(int p);
 #endif
-	void SetLineAndInstructionNumber(int _i); // define cual es la instruccion que se va a ejecutar a continuacion
+	void SetLocation(CodeLocation loc); // define cual es la instruccion que se va a ejecutar a continuacion
 	void SendPositionToGUI(); // avisa a la gui en que instruccion va
 	void SendIOPositionToTerminal(int argNumber); // avisa a la terminal en que instruccion va
 //	void SendLoopPositionToTerminal(); // avisa a la terminal en que instruccion va
@@ -81,16 +82,12 @@ public:
 	void ChatWithGUI(); // espera respuesta de la gui para avanzar
 	void SendSubtitle(string _str); // envia el texto para el subtitulo a la gui
 	
-	void SetStarted();
+	void SetStarted(Ejecutar &ej);
 	void SetFinished(bool interrupted=false);
-	int GetLineNumber() const { return lineNumber; }
-	int GetInstNumber() const { return instNumber; }
-	bool Running() const { return running; }
-	
-	// Manejo de las lineas del programa en memoria
-	int Archivo_Size();
-	void AddLine(string s);
-	void AddLine(char *s);
+	CodeLocation GetLocation() const { return loc; }
+//	int GetLineNumber() const { return lineNumber; }
+//	int GetInstNumber() const { return instNumber; }
+	bool IsRunning() const { return ejecutar!=nullptr; }
 	
 	// Manejo de errores
 	int Errores_Size();
@@ -107,12 +104,13 @@ public:
 	int GetBacktraceLevel();
 	FrameInfo GetFrame(int level);
 	
+	Ejecutar &GetEjecutar() { _expects(ejecutar!=nullptr); return *ejecutar; }
 };
 
-#define _sub_msg(i,s) { Inter.SetLineAndInstructionNumber(i); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); } }
+#define _sub_msg(i,s) { Inter.SetLocation(programa[i].loc); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); } }
 #define _sub_wait() { if (Inter.subtitles_on) Inter.ChatWithGUI(); }
-#define _sub(i,s) { Inter.SetLineAndInstructionNumber(i); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); Inter.ChatWithGUI(); } }
-#define _pos(i) { Inter.SetLineAndInstructionNumber(i); if (!Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.ChatWithGUI(); } }
+#define _sub(i,s) { Inter.SetLocation(programa[i].loc); if ( Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); Inter.ChatWithGUI(); } }
+#define _pos(i)   { Inter.SetLocation(programa[i].loc); if (!Inter.subtitles_on) { Inter.SendPositionToGUI();                        Inter.ChatWithGUI(); } }
 #define _sub_raise() { if (Inter.subtitles_on && for_pseint_terminal) { cout<<"\033[zr"; } }
 
 extern Intercambio Inter;        // clase para enviar informacion de depuración al editor

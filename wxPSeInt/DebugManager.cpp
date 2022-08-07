@@ -1,9 +1,9 @@
+#include <iostream>
 #include "DebugManager.h"
 #include "mxSource.h"
 #include "mxMainWindow.h"
 #include "mxProcess.h"
 #include "mxDesktopTestGrid.h"
-#include <iostream>
 #include "mxEvaluateDialog.h"
 #include "ConfigManager.h"
 #include "mxDebugWindow.h"

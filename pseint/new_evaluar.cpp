@@ -13,8 +13,8 @@
 using namespace std;
 
 void WriteError(int num, string s) { 
-	if (Inter.Running()) ExeError(num,s);
-	else                 SynError(num,s);
+	if (Inter.IsRunning()) ExeError(num,s);
+	else                   SynError(num,s);
 }
 
 bool PalabraReservada(const string &str) {
@@ -291,7 +291,7 @@ DataValue EvaluarFuncion(const Funcion *func, const string &argumentos, const ti
 		ret = func->func(args.values);
 #ifndef _FOR_PSEXPORT
 	} else { // subprocesos del usuario
-		if (Inter.Running()) {
+		if (Inter.IsRunning()) {
 			Memoria *caller_memoria=memoria;
 			memoria=new Memoria(func);
 			tipo_var tipo_arg;
@@ -299,13 +299,13 @@ DataValue EvaluarFuncion(const Funcion *func, const string &argumentos, const ti
 				if (args.pasajes[i]==PP_VALOR) { // por valor
 					memoria->EscribirValor(func->nombres[i+1],args.values[i]);
 					memoria->DefinirTipo(func->nombres[i+1],args.values[i].type);
-					if (lang[LS_FORCE_DEFINE_VARS] && Inter.Running()) memoria->DefinirTipo(func->nombres[i+1],args.values[i].type,args.values[i].type.rounded); // para que no genere error con force_var_definition, porque no se deja redefinir argumentos dentro del subproceso
+					if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning()) memoria->DefinirTipo(func->nombres[i+1],args.values[i].type,args.values[i].type.rounded); // para que no genere error con force_var_definition, porque no se deja redefinir argumentos dentro del subproceso
 				} else { // por referencia
 					memoria->AgregarAlias(func->nombres[i+1],args.values[i].GetAsString(),caller_memoria);
 				}
 			}
 //			Inter.OnFunctionIn(); // ahora se encarga Ejecutar
-			Ejecutar(func->line_start);
+			Inter.GetEjecutar().Run(func->line_start);
 //			Inter.OnFunctionOut(); // ahora se encarga Ejecutar
 			if (func->nombres[0].size()) {
 				ret = memoria->LeerValor(func->nombres[0]);
@@ -343,7 +343,7 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 			if (int(pm)>p2) pm=string::npos;
 			if (pm==string::npos) { // si es una variable comun
 				string nombre = expresion.substr(p1,p2-p1+1);
-				if (!Inter.Running() && (PalabraReservada(nombre) || nombre==main_process_name)) {
+				if (!Inter.IsRunning() && (PalabraReservada(nombre) || nombre==main_process_name)) {
 					WriteError(285,string("Identificador no válido (")+nombre+")");
 					ev_return(DataValue::DVError());
 				}
@@ -362,11 +362,11 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 					ev_return(DataValue::DVError());
 				}
 				DataValue res;
-				if (lang[LS_FORCE_DEFINE_VARS] && Inter.Running() && !memoria->EstaDefinida(nombre)) {
+				if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
 					WriteError(210,string("Variable no definida (")+nombre+")");
 					ev_return(DataValue::DVError());
 				}
-				if ((lang[LS_FORCE_INIT_VARS] || Inter.EvaluatingForDebug()) && Inter.Running() && !memoria->EstaInicializada(nombre)) {
+				if ((lang[LS_FORCE_INIT_VARS] || Inter.EvaluatingForDebug()) && Inter.IsRunning() && !memoria->EstaInicializada(nombre)) {
 					WriteError(215,string("Variable no inicializada (")+nombre+")");
 					ev_return(DataValue::DVError());
 				}
@@ -383,13 +383,13 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 						WriteError(287,string("Identificador no válido (")+nombre+")");
 						ev_return(DataValue::DVError());
 					}
-					if (lang[LS_FORCE_DEFINE_VARS] && Inter.Running() && !memoria->EstaDefinida(nombre)) {
+					if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
 						WriteError(209,string("Variable no definida (")+nombre+")");
 						ev_return(DataValue::DVError());
 					}
 					string aux=expresion.substr(p1,p2-p1+1);
 					if (CheckDims(aux)) {
-						if (lang[LS_FORCE_INIT_VARS] && Inter.Running() && !memoria->EstaInicializada(aux)) {
+						if (lang[LS_FORCE_INIT_VARS] && Inter.IsRunning() && !memoria->EstaInicializada(aux)) {
 							WriteError(288,string("Posición no inicializada (")+aux+")");
 							ev_return(DataValue::DVError());
 						}
@@ -427,7 +427,7 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 				ev_return(DataValue::DVError());
 			}
 			DataValue s1 = Evaluar(expresion,p1a,p1b,vt_logica);
-			if (Inter.Running()) {
+			if (Inter.IsRunning()) {
 				if (op=='|' && s1.GetAsBool()) ev_return(DataValue::MakeLogic(true));
 				if (op=='&' && !s1.GetAsBool()) ev_return(DataValue::MakeLogic(false));
 			}
@@ -604,7 +604,7 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 				if (o2==0) {
 					/// @todo: ver si tiene sentido.... lo mismo que arriba
 					DataValue retval = DataValue::MakeReal(0);
-					if (Inter.Running()) {
+					if (Inter.IsRunning()) {
 						WriteError(296,"Division por cero");
 						retval.type=vt_error;
 					}
@@ -617,7 +617,7 @@ DataValue Evaluar(const string &expresion, int &p1, int &p2, const tipo_var &for
 				if (floor(o2)==0) {
 					/// @todo: ver.... lo mismo que antes
 					DataValue retval = DataValue::MakeReal(0);
-					if (Inter.Running()) {
+					if (Inter.IsRunning()) {
 						WriteError(316,"El segundo operando para el operador MOD no puede ser cero");
 						retval.type = vt_error;
 					}
@@ -666,7 +666,7 @@ bool CheckDims(string &str) {
 	string nombre=str.substr(0,pp);
 	const int *adims=memoria->LeerDims(str);
 	if (!adims) {
-		if (!Inter.Running() && memoria->EsArgumento(nombre)) return true; // si es una funcion, no sabemos si lo que van a pasar sera o no arreglo
+		if (!Inter.IsRunning() && memoria->EsArgumento(nombre)) return true; // si es una funcion, no sabemos si lo que van a pasar sera o no arreglo
 #ifdef _FOR_PSEXPORT
 		// cuando una expresion con un arreglo se utiliza desde un subproceso, la dimension del mismo
 		// no esta en el subproceso y entonces no se sabe, pero es neceria para exportar, por ejemplo
@@ -679,7 +679,7 @@ bool CheckDims(string &str) {
 		WriteError(202,string("El identificador ")+str.substr(0,pp)+(" no corresponde a un arreglo o subproceso")); /// @todo: ver que hacer cuando se llama desde psexport, porque genera errores falsos
 		return false;
 	}
-	if (!Inter.Running()) {
+	if (!Inter.IsRunning()) {
 		
 		// esto es para cuando esta checkeando sintaxis antes de ejecutar
 		// en este caso no debe verificar si las expresiones dan en los rangos 

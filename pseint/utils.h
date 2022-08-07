@@ -21,8 +21,8 @@ void ExeError(int num,string s, bool use_syn_if_not_running);
 // ------------------------------------------------------------
 //    Informa un error de syntaxis antes de la ejecucion
 // ------------------------------------------------------------
-void SynError(int num,string s, InstruccionLoc il) ;
-void SynError(int num,string s, int line=-1, int inst=-1) ;
+void SynError(int num,string s, CodeLocation il) ;
+void SynError(int num,string s) ;
 
 // ------------------------------------------------------------
 //    Comprueba que sea un identificador correcto y unico

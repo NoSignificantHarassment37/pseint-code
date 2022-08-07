@@ -1,17 +1,11 @@
-     // -------------------------------------- //
-     //           PSeudo Inerprete             //
-     //      http://pseint.sourceforge.net     //
-     // -------------------------------------- //
-
+#include <csignal>
 #include "version.h"
 #include "zcurlib.h"
 #include "common.h"
 #include "intercambio.h"
 #include "new_memoria.h"
-
 #include "global.h"
 #include "utils.h"
-#include <csignal>
 #include "new_evaluar.h"
 #include "SynCheck.h"
 #include "Ejecutar.h"
@@ -26,22 +20,22 @@ void on_signal(int s) {
 	exit(s);
 }
 
-void checksum(Programa &p) {
-	if (p.GetSize()==3) {
-		string &s=programa[1].instruccion;
+void checksum(Programa &prog) {
+	if (prog.GetLinesCount()==3) {
+		string &s=prog[1].instruccion;
 		int n=0,p=1;
 		for(unsigned int i=0;i<s.size();i++) { 
 			n+=s[i]; p=(p*s[i])%1000000;
 		}
 		if (n==839 && p==102912) { // daba 730880, por que cambio???
-			programa[1].instruccion[9]-=11;
-			programa[1].instruccion[10]+=10;
-			programa[1].instruccion[11]-=7;
-			programa[1].instruccion.insert(12,",\"!\"");
+			prog[1].instruccion[9]-=11;
+			prog[1].instruccion[10]+=10;
+			prog[1].instruccion[11]-=7;
+			prog[1].instruccion.insert(12,",\"!\"");
 		}
-	} else if (p.GetSize()==4) {
-		string &s1=programa[1].instruccion;
-		string &s2=programa[2].instruccion;
+	} else if (prog.GetLinesCount()==4) {
+		string &s1=prog[1].instruccion;
+		string &s2=prog[2].instruccion;
 		int n1=0,n2=0,p1=1,p2=1;
 		for(unsigned int i=0;i<s1.size();i++) { 
 			n1+=s1[i]; p1=(p1*s1[i])%1000000;
@@ -124,7 +118,6 @@ int main(int argc, char* argv[]) {
 				ignore_logic_errors = for_draw = true;
 				run=false;
 			} else if (str=="--export") {
-//				InitCaseMap();
 				for_export = for_draw = true;
 				run=false;
 			} else if (str=="--easteregg") {
@@ -204,6 +197,8 @@ int main(int argc, char* argv[]) {
 	LoadFunciones();
 	if (forced_seed==-1) srand(time(NULL)); else srand(forced_seed);
 	
+	Programa programa;
+	
 	if (real_time_syntax) {
 		while (cin) {
 //			memoria->HardReset();
@@ -217,7 +212,7 @@ int main(int argc, char* argv[]) {
 				if (line=="<!{[END_OF_INPUT]}!>") break;
 				programa.PushBack(line);
 			}
-			SynCheck();
+			SynCheck(programa).Run();
 			cout<<"<!{[END_OF_OUTPUT]}!>"<<endl;
 			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
 			while (it1!=it2) {
@@ -236,27 +231,18 @@ int main(int argc, char* argv[]) {
 			}
 			cout<<"<!{[END_OF_VARS]}!>"<<endl;
 			if (lcount) {
-				int n=programa.GetInstSize();
+				int n=programa.GetInstCount();
 				int *bk=new int[lcount], *st=new int[n+1], stn=0;
 				for(int i=0;i<lcount;i++) bk[i]=-1;
 				for(int i=0;i<n;i++) { 
 					Instruccion &in=programa[i];
-					if (
-						LeftCompare(in.instruccion,"SI ") ||
-						LeftCompare(in.instruccion,"PARA ") ||
-						LeftCompare(in.instruccion,"PARACADA ") ||
-						LeftCompare(in.instruccion,"MIENTRAS ") ||
-						LeftCompare(in.instruccion,"SEGUN ") ||
-						in.instruccion=="REPETIR")
-							st[stn++]=in.num_linea;
-					else if (stn&& (
-						in.instruccion=="FINSI" ||
-						in.instruccion=="FINMIENTRAS" ||
-						in.instruccion=="FINSEGUN" ||
-						in.instruccion=="FINPARA" ||
-						LeftCompare(in.instruccion,"HASTA QUE ")||
-						LeftCompare(in.instruccion,"MIENTRAS QUE ")))
-							bk[st[--stn]]=in.num_linea;
+					if (in==IT_SI || in==IT_PARA || in==IT_PARACADA ||
+						in==IT_MIENTRAS || in==IT_SEGUN || in==IT_REPETIR)
+							st[stn++]=in.loc.linea;
+					else if (stn&& (in==IT_FINSI || in==IT_FINMIENTRAS || 
+									in==IT_FINSEGUN || in==IT_FINPARA ||
+									in==IT_HASTAQUE))
+							bk[st[--stn]]=in.loc.linea;
 				}
 				for(int i=0;i<lcount;i++) { 
 					if (bk[i]!=-1) cout<<i<<" "<<bk[i]<<endl;
@@ -285,18 +271,13 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 	
-	if (user && check) {
-		show_user_info("Leyendo archivo y comprobando sintaxis...");
-	}
-	string buffer;
-	while (getline(archivo,buffer)) {
+	if (user && check) show_user_info("Leyendo archivo y comprobando sintaxis...");
+	for(string buffer;getline(archivo,buffer);)
 		programa.PushBack(buffer);
-		Inter.AddLine(buffer);
-	}
 	archivo.close();
 
 	// comprobar sintaxis y ejecutar
-	errores=SynCheck();
+	errores=SynCheck(programa).Run();
 	Inter.InitDebug(delay);
 	
 	if (for_pseint_terminal) { cout<<"\033[zt"<<main_process_name<<"\n"; }
@@ -307,14 +288,14 @@ int main(int argc, char* argv[]) {
 		if (for_draw) {
 			if (case_map) CaseMapPurge();
 			ofstream dibujo(fil_args[1]);
-			for (int i=0;i<programa.GetSize();i++) {
+			for (int i=0;i<programa.GetLinesCount();i++) {
 				if (!for_export && programa[i].type==IT_ASIGNAR) { 
 					// sacar los parentesis adicionales
 					int p = programa[i].instruccion.find("<-");
 					programa[i].instruccion.erase(p+2,1);
 					programa[i].instruccion.erase(programa[i].instruccion.size()-2,1);
 					// unir varias asignaciones en una sola linea si asi estaban originalmente y esto va para psdraw
-					while (i+1<programa.GetSize() && programa[i+1].type==IT_ASIGNAR && programa[i].num_linea==programa[i+1].num_linea) 
+					while (i+1<programa.GetLinesCount() && programa[i+1].type==IT_ASIGNAR && programa[i].loc.linea==programa[i+1].loc.linea) 
 					{
 						++i;
 						// sacar los parentesis adicionales
@@ -329,7 +310,7 @@ int main(int argc, char* argv[]) {
 				if (case_map && (!preserve_comments || !LeftCompare(programa[i].instruccion,"#")))
 					CaseMapApply(programa[i].instruccion,!for_export);
 				if (write_positions) 
-					dibujo<<"#pos "<<programa[i].num_linea<<":"<<programa[i].num_instruccion<<endl;
+					dibujo<<"#pos "<<programa[i].loc.linea<<":"<<programa[i].loc.instruccion<<endl;
 #ifdef _DEBUG
 				cerr<<programa[i].instruccion<<endl;
 #endif
@@ -344,11 +325,12 @@ int main(int argc, char* argv[]) {
 			if (user) show_user_info("*** Ejecución Iniciada. ***");
 			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
 			while (it1!=it2) (it1++)->second->memoria->FakeReset();
-			Inter.SetStarted();
 			checksum(programa);
+			Ejecutar ejecutar(programa);
+			Inter.SetStarted(ejecutar);
 			const Funcion *main_func=EsFuncion(main_process_name,true);
 			memoria=main_func->memoria;
-			Ejecutar(main_func->line_start);
+			ejecutar.Run(main_func->line_start);
 			Inter.SetFinished();
 			if (ExeInfoOn) ExeInfo<<"*** Ejecucion Finalizada. ***";
 			if (user) show_user_info("*** Ejecución Finalizada. ***");
