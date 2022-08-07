@@ -28,8 +28,8 @@ struct Instruccion {
 	int num_instruccion;
 	Instruccion(std::string _instruccion, int _num_linea=-1, int _num_instruccion=-1)
 		:type(IT_NULL),instruccion(_instruccion),num_linea(_num_linea),num_instruccion(_num_instruccion){}
-	Instruccion(InstructionType _type, int _num_linea=-1, int _num_instruccion=-1)
-		:type(_type),instruccion(""),num_linea(_num_linea),num_instruccion(_num_instruccion){}
+//	Instruccion(InstructionType _type, int _num_linea=-1, int _num_instruccion=-1)
+//		:type(_type),instruccion(""),num_linea(_num_linea),num_instruccion(_num_instruccion){}
 	operator std::string() { return instruccion; }
 	bool operator==(InstructionType t) const { return type==t; }
 	bool operator!=(InstructionType t) const { return type!=t; }
@@ -40,6 +40,7 @@ struct Instruccion {
 	struct IProceso {
 		std::string nombre;
 		bool principal;
+		int fin = -1;
 	};
 	
 	struct IFinProceso {
@@ -62,10 +63,12 @@ struct Instruccion {
 	
 	struct ISi {
 		std::string condicion;
+		int sino = -1, fin = -1;
 	};
 
 	struct IMientras {
 		std::string condicion;
+		int fin = -1;
 	};
 	
 	struct IHastaQue {
@@ -80,18 +83,27 @@ struct Instruccion {
 	
 	struct IPara {
 		std::string contador, val_ini, paso, val_fin;
+		int fin = -1;
 	};
 	
 	struct IParaCada {
 		std::string identificador, arreglo;
+		int fin = -1;
+	};
+	
+	struct IRepetir {
+		int fin = -1;
 	};
 	
 	struct ISegun {
 		std::string expresion;
+		std::vector<int> opciones;
+		int fin = -1;
 	};
 	
 	struct IOpcion {
 		std::vector<std::string> expresiones;
+		int siguiente;
 	};
 	
 	struct IEsperar {
@@ -109,7 +121,7 @@ struct Instruccion {
 	};
 	
 	std::variant<INull,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,IDimension,IDefinir,IEsperar,IInvocar,
-				 ISi,ISegun,IOpcion,IHastaQue,IPara,IParaCada,IMientras> impl;
+				 ISi,ISegun,IOpcion,IHastaQue,IPara,IParaCada,IMientras,IRepetir> impl;
 	void setType(InstructionType t) {
 		type = t;
 		switch(type) {
@@ -129,6 +141,7 @@ struct Instruccion {
 		case IT_PROCESO:    impl = IProceso();    break;
 		case IT_FINPROCESO: impl = IFinProceso(); break;
 		case IT_INVOCAR:    impl = IInvocar();    break;
+		case IT_REPETIR:    impl = IRepetir();    break;
 		default: ; // las demas instrucciones por ahora no tienen info adicional
 		}
 	}
@@ -157,6 +170,7 @@ template<> struct InstImplHelper<IT_ESPERAR>   { static auto& get(Instruccion &i
 template<> struct InstImplHelper<IT_PROCESO>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IProceso>   (inst.impl); } };
 template<> struct InstImplHelper<IT_FINPROCESO>{ static auto& get(Instruccion &inst) { return std::get<Instruccion::IFinProceso>(inst.impl); } };
 template<> struct InstImplHelper<IT_INVOCAR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IInvocar>   (inst.impl); } };
+template<> struct InstImplHelper<IT_REPETIR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IRepetir>   (inst.impl); } };
 template<int IT_ALGO> auto &getImpl(Instruccion &inst) { _expects(inst.type==IT_ALGO); return InstImplHelper<IT_ALGO>::get(inst); }
 
 #endif

@@ -40,9 +40,9 @@ public:
 //	Instruccion GetLoc(int x, string s) { 
 //		return Instruccion(s,v[x].num_linea,v[x].num_instruccion);
 //	}
-	Instruccion GetLoc(int x, InstructionType t) { 
-		return Instruccion(t,v[x].num_linea,v[x].num_instruccion);
-	}
+//	Instruccion GetLoc(int x, InstructionType t) { 
+//		return Instruccion(t,v[x].num_linea,v[x].num_instruccion);
+//	}
 	void HardReset() { 
 		v.clear(); cant_lines=0;
 	}

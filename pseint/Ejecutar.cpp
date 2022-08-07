@@ -295,15 +295,10 @@ void Ejecutar(int LineStart, int LineEnd) {
 				tipo_var tipo;
 				bool condition_is_true = Evaluar(inst_impl.condicion,vt_logica).GetAsBool();
 				if (tipo!=vt_error) {
-					// Buscar hasta donde llega el bucle
-					int anidamiento=0, line_sino=-1,line_finsi=line+1; 
-					while (!(anidamiento==0 && programa[line_finsi]==IT_FINSI)) {
-						// Saltear bucles anidados
-						if (anidamiento==0 && programa[line_finsi]==IT_SINO) line_sino=line_finsi; 
-						else if (programa[line_finsi]==IT_SI) anidamiento++;
-						else if (programa[line_finsi]==IT_FINSI) anidamiento--;
-						line_finsi++;
-					}
+					// hasta donde llega el bucle
+					int line_sino=inst_impl.sino, line_finsi=inst_impl.fin; 
+					_expects(line_sino==-1 or programa[line_sino]==IT_SINO);
+					_expects(line_finsi!=-1 and programa[line_finsi]==IT_FINSI);
 					// ejecutar lo que corresponda
 					if (condition_is_true) {
 						_sub(line+1,"El resultado es Verdadero, se sigue por la rama del Entonces");
@@ -331,18 +326,13 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ---------------- MIENTRAS ------------------ //
 			case IT_MIENTRAS: {
 				_pos(line);
-				const string &condicion = getImpl<IT_MIENTRAS>(inst).condicion;
+				const auto &inst_impl = getImpl<IT_MIENTRAS>(inst);
+				const string &condicion = inst_impl.condicion;
 				_sub(line,string("Se evalúa la condición para Mientras: ")+condicion);
 				tipo_var tipo;
 				bool condition_is_true = Evaluar(condicion,vt_logica).GetAsBool();
 				if (tipo!=vt_error) {
-					int line_finmientras = line+1, anidamiento=0; // Buscar hasta donde llega el bucle
-					while (!(anidamiento==0 && programa[line_finmientras]==IT_FINMIENTRAS)) {
-						// Saltear bucles anidados
-						if (programa[line_finmientras]==IT_MIENTRAS) anidamiento++;
-						else if (programa[line_finmientras]==IT_FINMIENTRAS) anidamiento--;
-						line_finmientras++;
-					}
+					int line_finmientras = inst_impl.fin;
 					while (condition_is_true) {
 						_sub(line,"La condición es Verdadera, se iniciará una iteración.");
 						Ejecutar(line+1,line_finmientras-1);
@@ -359,16 +349,12 @@ void Ejecutar(int LineStart, int LineEnd) {
 			// ---------------- REPETIR HASTA QUE ------------------ //
 			case IT_REPETIR: {
 				_pos(line);
-				int line_hastaque=line+1, anidamiento=0; // Buscar hasta donde llega el bucle
-				while (!(anidamiento==0 && (programa[line_hastaque]==IT_HASTAQUE))) {
-					// Saltear bucles anidados
-					if (programa[line_hastaque]==IT_REPETIR) anidamiento++;
-					else if (programa[line_hastaque]==IT_HASTAQUE) anidamiento--;
-					line_hastaque++;
-				}
+				const auto &inst_impl = getImpl<IT_REPETIR>(inst);
+				int line_hastaque = inst_impl.fin;
 				// cortar condicion de cierre
-				const string &condicion = getImpl<IT_HASTAQUE>(programa[line_hastaque]).condicion;
-				bool valor_verdad = getImpl<IT_HASTAQUE>(programa[line_hastaque]).mientras_que;
+				const auto &hasta_impl = getImpl<IT_HASTAQUE>(programa[line_hastaque]);
+				const string &condicion = hasta_impl.condicion;
+				bool valor_verdad = hasta_impl.mientras_que;
 				_sub(line,"Se ejecutarán las acciones contenidas en la estructura Repetir");
 				tipo_var tipo;
 				bool should_continue_iterating=true;
@@ -418,14 +404,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 					positivo = res_paso.GetAsReal()>=0;
 				}
 				
-				// Buscar hasta donde llega el bucle
-				int line_finpara=line+1, anidamiento=0;
-				while (!(anidamiento==0 && programa[line_finpara]==IT_FINPARA)) {
-					// Saltear bucles anidados
-					if (programa[line_finpara]==IT_PARA||programa[line_finpara]==IT_PARACADA) anidamiento++;
-					else if (programa[line_finpara]==IT_FINPARA) anidamiento--;
-					line_finpara++;
-				}
+				int line_finpara = inst_impl.fin;
 				
 				_sub(line,string("Se inicializar el contador ")+contador+" en "+res_ini.GetForUser());
 				memoria->EscribirValor(contador,res_ini); // inicializa el contador
@@ -459,13 +438,7 @@ void Ejecutar(int LineStart, int LineEnd) {
 				const string &identificador = inst_impl.identificador;
 				const string &arreglo = inst_impl.arreglo;
 				
-				int line_finpara=line+1, anidamiento=0; // Buscar hasta donde llega el bucle
-				while (!(anidamiento==0 && programa[line_finpara]==IT_FINPARA)) {
-					// Saltear bucles anidados
-					if (programa[line_finpara]==IT_PARA||programa[line_finpara]==IT_PARACADA) anidamiento++;
-					else if (programa[line_finpara]==IT_FINPARA) anidamiento--;
-					line_finpara++;
-				}
+				int line_finpara = inst_impl.fin;
 				
 				const int *dims=memoria->LeerDims(arreglo);
 				if (!dims) ExeError(276,"La variable ("+arreglo+") no es un arreglo.");
@@ -504,7 +477,8 @@ void Ejecutar(int LineStart, int LineEnd) {
 			
 			// ------------------- SEGUN --------------------- //
 			case IT_SEGUN: {
-				const string &expr_control = getImpl<IT_SEGUN>(inst).expresion; // Cortar la variable (sacar SEGUN y HACER)
+				const auto &inst_impl = getImpl<IT_SEGUN>(inst);
+				const string &expr_control = inst_impl.expresion;
 				tipo_var tipo_master=vt_caracter_o_numerica;
 				_pos(line);
 				_sub(line,string("Se evalúa la expresion: ")+expr_control);
@@ -516,52 +490,51 @@ void Ejecutar(int LineStart, int LineEnd) {
 						ExeError(206,"La expresión del SEGUN debe ser numerica.");
 				}
 				_sub(line,string("El resultado es: ")+val_control.GetForUser());
-				int line_finsegun=line+1, anidamiento=0; // Buscar hasta donde llega el bucle
-				while (!(anidamiento==0 && programa[line_finsegun].type==IT_FINSEGUN)) {
-					// Saltear bucles anidados
-					if (programa[line_finsegun]==IT_SEGUN) anidamiento++;
-					else if (programa[line_finsegun]==IT_FINSEGUN) anidamiento--;
-					line_finsegun++;
-				}
-				int line_opcion=line; bool encontrado=false; anidamiento=0;
-				while (!encontrado && ++line_opcion<line_finsegun) {
-					InstructionType instruction_type=programa[line_opcion].type;
-					if (instruction_type==IT_SEGUN) anidamiento++;
-					else if (instruction_type==IT_FINSEGUN) anidamiento--;
-					else if ((instruction_type==IT_OPCION||instruction_type==IT_DEOTROMODO) && anidamiento==0) {
-						if (instruction_type==IT_DEOTROMODO) { 
+				int line_finsegun=inst_impl.fin; 
+				
+				// analizar las opciones y comparar
+				int i_opcion_correcta = -1, i_de_otro_modo = -1; // guardo el indice en opciones y no la linea, porque eso dice donde empieza, y el siguiente en opciones sería donde termina
+				for(size_t i=0;i_opcion_correcta==-1 && i<inst_impl.opciones.size();++i) {
+					int line_opcion = inst_impl.opciones[i];
+					if (programa[line_opcion]==IT_OPCION) {
+						const auto &posibles_valores = getImpl<IT_OPCION>(programa[line_opcion]).expresiones;
+						for(const std::string &expr_opcion : posibles_valores) {
 							_pos(line_opcion);
-							_sub(line_opcion,"Se ingresará en la opción De Otro Modo");
-							encontrado=true; break;
-						}
-						else {
-							const auto &posibles_valores = getImpl<IT_OPCION>(programa[line_opcion]).expresiones;
-							for(const std::string &expr_opcion : posibles_valores) {
-								_pos(line_opcion);
-								_sub(line_opcion,string("Se evalúa la opcion: ")+expr_opcion);
-								DataValue val_opcion = Evaluar(expr_opcion,tipo_master);
-								if (!val_opcion.CanBeReal()&&(lang[LS_INTEGER_ONLY_SWITCH]||!val_opcion.CanBeString())) ExeError(127,"No coinciden los tipos.");
-								// evaluar la condicion (se pone como estaban y no los resultados de la evaluaciones de antes porque sino las variables indefinida pueden no tomar el valor que corresponde
-								if (Evaluar(string("(")+expr_control+")=("+expr_opcion+")").GetAsBool()) {
-									_sub(line_opcion,"El resultado coincide, se ingresará en esta opción.");
-									encontrado=true; break;
-								} else {
-									_sub(line_opcion,string("El resultado no coincide: ")+val_opcion.GetForUser());
-								}
+							_sub(line_opcion,string("Se evalúa la opcion: ")+expr_opcion);
+							DataValue val_opcion = Evaluar(expr_opcion,tipo_master);
+							if (!val_opcion.CanBeReal()&&(lang[LS_INTEGER_ONLY_SWITCH]||!val_opcion.CanBeString())) ExeError(127,"No coinciden los tipos.");
+							// evaluar la condicion (se pone como estaban y no los resultados de la evaluaciones de antes porque sino las variables indefinida pueden no tomar el valor que corresponde
+							if (Evaluar(string("(")+expr_control+")=("+expr_opcion+")").GetAsBool()) {
+								_sub(line_opcion,"El resultado coincide, se ingresará en esta opción.");
+								i_opcion_correcta = i; break;
+							} else {
+								_sub(line_opcion,string("El resultado no coincide: ")+val_opcion.GetForUser());
 							}
 						}
+					} else {
+						_expects(programa[line_opcion]==IT_DEOTROMODO);
+						i_de_otro_modo = i;
 					}
 				}
-				if (encontrado) { // si coincide, buscar el final del bucle
-					int line_finopcion=line_opcion+1; anidamiento=0; // Buscar hasta donde llega ese caso
-					while (!(anidamiento==0 && ((programa[line_finopcion]==IT_FINSEGUN) || (programa[line_finopcion]==IT_OPCION||programa[line_finopcion]==IT_DEOTROMODO)) )) {
-						// Saltear bucles anidados
-						if (programa[line_finopcion]==IT_SEGUN) anidamiento++;
-						else if (programa[line_finopcion]==IT_FINSEGUN) anidamiento--;
-						line_finopcion++;
+				
+				if (i_opcion_correcta==-1) {
+					if (i_de_otro_modo!=-1) {
+						i_opcion_correcta = i_de_otro_modo;
+						int line_dom = inst_impl.opciones[i_de_otro_modo];
+						_pos(line_dom);
+						_sub(line_dom,"Se ingresará en la opción De Otro Modo");
 					}
-					Ejecutar(line_opcion+1,line_finopcion-1); 
 				}
+				if (i_opcion_correcta==-1) {
+					_sub(line_finsegun,string("Ninguna de las opciones coincide. No se hace nada."));	
+				} else {
+					int line_from = inst_impl.opciones[i_opcion_correcta]+1;
+					int line_to = i_opcion_correcta+1<inst_impl.opciones.size() 
+						          ? (inst_impl.opciones[i_opcion_correcta+1]-1)
+								  : (line_finsegun-1);
+					Ejecutar(line_from,line_to);
+				}
+				
 				line=line_finsegun;
 				_pos(line);
 				_sub(line,"Se sale de la estructura Segun.	");
