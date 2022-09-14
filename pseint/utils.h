@@ -3,9 +3,11 @@
 
 #include <string>
 #include "new_memoria.h"
-#include "new_programa.h"
+#include "Programa.hpp"
 #include "global.h"
 using namespace std;
+
+class RunTime;
 
 void show_user_info(string msg);
 void show_user_info(string msg1, int num, string msg2);
@@ -15,21 +17,21 @@ void show_user_info(string msg1, int num, string msg2);
 // ------------------------------------------------------------
 //    Informa un error en tiempo de ejecucion
 // ------------------------------------------------------------
-void ExeError(int num,string s) ;
-void ExeError(int num,string s, bool use_syn_if_not_running);
+void ExeError_impl(int num,string s) ;
+void ExeError_impl(int num,string s, bool use_syn_if_not_running);
 
 // ------------------------------------------------------------
 //    Informa un error de syntaxis antes de la ejecucion
 // ------------------------------------------------------------
-void SynError(int num,string s, CodeLocation il) ;
-void SynError(int num,string s) ;
+void SynError_impl(int num,string s, CodeLocation il) ;
+void SynError_impl(int num,string s) ;
 
 // ------------------------------------------------------------
 //    Comprueba que sea un identificador correcto y unico
 //    A diferencia del anterior, no tiene en cuenta las
 //  funciones predefinidas.
 // ------------------------------------------------------------
-bool CheckVariable(string str, int errcode=-1) ;
+bool CheckVariable(RunTime &rt, string str, int errcode=-1) ;
 
 
 // *********************** Funciones Auxiliares **************************
@@ -105,7 +107,7 @@ inline bool EsLetra(const char &_c, bool incluir_numeros=false) {
 string NextToken(string &cadena, int &p);
 
 
-Funcion *ParsearCabeceraDeSubProceso(string cadena, bool es_proceso, int &errores);
+Funcion *ParsearCabeceraDeSubProceso(RunTime &rt, string cadena, bool es_proceso);
 string ExtraerNombreDeSubProceso(string cadena);
 
 string FirstWord(const string &s);

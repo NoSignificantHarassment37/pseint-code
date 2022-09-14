@@ -1,5 +1,5 @@
 #include "new_memoria.h"
-#include "new_funciones.h"
+#include "Funciones.hpp"
 
 Memoria *memoria;
 bool Memoria::EsArgumento (const string &nom) const {

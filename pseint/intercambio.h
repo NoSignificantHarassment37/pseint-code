@@ -5,6 +5,7 @@
 #include <vector>
 #include "Code.h"
 #include "debug.h"
+#include "RunTime.hpp"
 using namespace std;
 
 #ifdef USE_ZOCKETS
@@ -35,7 +36,8 @@ class Intercambio {
 	int debugLevel; // solo interesa depurar si debugLevel<=backtraceLevel (si es 0 depura todo)
 	vector<FrameInfo> backtrace;
 	
-	Ejecutar *ejecutar = nullptr;
+	RunTime *rt= nullptr;
+	bool running = false;
 	CodeLocation loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
 	vector <string> Archivo; // Archivo original
 	vector <string> Errores; // Descripcion de los errores encontrados
@@ -82,12 +84,12 @@ public:
 	void ChatWithGUI(); // espera respuesta de la gui para avanzar
 	void SendSubtitle(string _str); // envia el texto para el subtitulo a la gui
 	
-	void SetStarted(Ejecutar &ej);
+	void SetStarted();
 	void SetFinished(bool interrupted=false);
 	CodeLocation GetLocation() const { return loc; }
 //	int GetLineNumber() const { return lineNumber; }
 //	int GetInstNumber() const { return instNumber; }
-	bool IsRunning() const { return ejecutar!=nullptr; }
+	bool IsRunning() const { return running; }
 	
 	// Manejo de errores
 	int Errores_Size();
@@ -104,7 +106,6 @@ public:
 	int GetBacktraceLevel();
 	FrameInfo GetFrame(int level);
 	
-	Ejecutar &GetEjecutar() { _expects(ejecutar!=nullptr); return *ejecutar; }
 };
 
 #define _sub_msg(i,s) { Inter.SetLocation(programa[i].loc); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); } }

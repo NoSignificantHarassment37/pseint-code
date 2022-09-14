@@ -1,14 +1,16 @@
-#include "SynCheck.h"
-#include "global.h"
 #include <deque>
 #include <string>
+#include "SynCheck.hpp"
+#include "RunTime.hpp"
+#include "global.h"
 #include "utils.h"
-#include "new_evaluar.h"
+#include "Evaluar.hpp"
 #include "intercambio.h"
-#include "new_programa.h"
-#include "new_funciones.h"
+#include "Programa.hpp"
+#include "Funciones.hpp"
 #include "case_map.h"
 #include "debug.h"
+#include "ErrorHandler.hpp"
 using namespace std;
 
 // ULTIMO NRO DE ERROR UTILIZADO: 323
@@ -53,7 +55,7 @@ static string Trim(const string &str) {
 }
 
 // pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y quita espacios extras
-std::pair<string,bool> SynCheck::Normalizar(string &cadena) {
+std::pair<string,bool> Normalizar(string &cadena) {
 	string rest; bool is_comment = true;
 	// corregir saltos de linea win/linux
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
@@ -172,7 +174,8 @@ vector<coloquial_aux> &GetColoquialConditions() {
 }
 	
 // reescribir condiciones coloquiales
-void SynCheck::Condiciones(string &cadena, int &errores) {
+void Condiciones(RunTime &rt, string &cadena) {
+	ErrorHandler &err_handler = rt.err;
 	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	if (!cadena.size() || !lang[LS_COLOQUIAL_CONDITIONS]) return;
 	if (cadena[cadena.size()-1]!=' ') cadena+=" ";
@@ -220,7 +223,7 @@ void SynCheck::Condiciones(string &cadena, int &errores) {
 			int y2=yold-1; while (y2>y && cadena[y2]==' ') y2--;
 			
 			pre=cadena.substr(y+1,y2-y);
-			if (pre.empty()) { SynError(317,string("Falta operando (antes de la condición coloquial ")+col.cond+")."); errores++; }
+			if (pre.empty()) err_handler.SyntaxError(317,string("Falta operando (antes de la condición coloquial ")+col.cond+").");
 			if (col.pre.size()) cadena.insert(y+1,col.pre);
 			if (negate) { cadena.insert(y+1,"~"); yold++; }
 			y=yold+col.pre.size();
@@ -239,9 +242,9 @@ void SynCheck::Condiciones(string &cadena, int &errores) {
 			}
 			while (y>yold && cadena[y-1]==' ') y--;
 			if (col.binary) {
-				if (y0>=y) { SynError(318,string("Falta operando (después de la condición coloquial ")+col.cond+")."); errores++; }
+				if (y0>=y) err_handler.SyntaxError(318,string("Falta operando (después de la condición coloquial ")+col.cond+").");
 			} else {
-				if (y0<y) { SynError(319,string("No corresponde operando (después de la condición coloquial ")+col.cond+")."); errores++; }
+				if (y0<y) err_handler.SyntaxError(319,string("No corresponde operando (después de la condición coloquial ")+col.cond+").");
 			}
 			string post=col.post;
 			size_t n=post.find("<PRE>");
@@ -285,7 +288,8 @@ int is_valid_operator(char act, char next, int &len, what_extra &type) {
 }
 
 // verificar operadores, constantes y parentesis, y borrar los espacios en blanco que sobran entre ellos
-void SynCheck::Operadores(const int &x, string &cadena, int &errores, InstructionType instruction_type) {
+void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instruction_type) {
+	ErrorHandler &err_handler = rt.err;
 	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	bool allow_multiple_expresions=instruction_type!=IT_DEOTROMODO && instruction_type!=IT_ASIGNAR;
 	what w=w_null; what_extra wext=w_other;
@@ -293,7 +297,7 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 	for (int i=0;i<(csize=(int)cadena.size());i++) {
 		char act=cadena[i]; 
 		if (act=='\'') {
-			if (!comillas && w==w_operand) { SynError (304,"Falta operador (antes de la cadena de caracteres)."); errores++; }
+			if (!comillas && w==w_operand) err_handler.SyntaxError(304,"Falta operador (antes de la cadena de caracteres).");
 			else if (comillas) { w=w_operand; wext=w_string; }
 			comillas=!comillas;
 		} else if (!comillas) {
@@ -305,14 +309,14 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 						int j=i+2; while (EsLetra(cadena[j],true)) j++;
 						const string word=cadena.substr(i+1,j-i-1);
 						if (PalabraReservada(word) && word!=VERDADERO && word!=FALSO) 
-							{SynError (237,"Falta operando (antes de "+cadena.substr(i+1,j-i-1)+")."); errores++; } // hola+ ;
+							err_handler.SyntaxError(237,"Falta operando (antes de "+cadena.substr(i+1,j-i-1)+")."); // hola+ ;
 						else { cadena.erase(i,1); i--; }
 					} else if ((next>='0'&&next<='9') || next=='.' || next=='\'' || next=='(' || next==':' || next==';') {
 						cadena.erase(i,1); i--;
 					} else {
 						what_extra type; int len; int ret=is_valid_operator(cadena[i+1],i+2<csize?cadena[i+2]:' ',len,type);
 						if (ret!=w_unary_op&&ret!=w_ambiguos_op) 
-							{ SynError (224,"Falta operando (despues de "+string(1,cadena[i-1])+")."); errores++; }
+							err_handler.SyntaxError(224,"Falta operando (despues de "+string(1,cadena[i-1])+").");
 						else { cadena.erase(i,1); i--; }
 					}
 				} else if (w==w_operand) {
@@ -324,7 +328,7 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 							w=w_null;
 //							cadena.erase(i,1); i--;
 						} else {
-							SynError (225,"Falta operador o coma entre operandos."); errores++;
+							err_handler.SyntaxError(225,"Falta operador o coma entre operandos.");
 						}
 					} else {
 						cadena.erase(i,1); i--;
@@ -333,10 +337,9 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 					cadena.erase(i,1); i--;
 				}
 			} else if (act==';' || act==':') {
-				if (act==':' && instruction_type!=IT_OPCION) {SynError (226,"Operador no válido (:)."); errores++;}
-				else if (w==w_operator) {
-					SynError (227,"Falta operando (antes de "+string(1,act)+")."); errores++;
-				}
+				if (act==':' && instruction_type!=IT_OPCION) err_handler.SyntaxError(226,"Operador no válido (:).");
+				else if (w==w_operator) 
+					err_handler.SyntaxError(227,"Falta operando (antes de "+string(1,act)+").");
 				w=w_null; wext=w_other;
 				if (act==';') {
 					// todo: ver si realmente puede llegar esto hasta aca, o se corta en otro lado
@@ -344,39 +347,37 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 					_expects(i+2==csize);
 				}
 			} else if (act==',') {
-				if (w==w_operator) {
-					SynError (228,"Falta operador."); errores++;
-				}
-				else if (w==w_null && wext==w_comma) {SynError (3,"Parámetro nulo."); errores++; } // 35+;
+				if (w==w_operator) err_handler.SyntaxError(228,"Falta operador.");
+				else if (w==w_null && wext==w_comma) err_handler.SyntaxError(3,"Parámetro nulo."); // 35+;
 				w=w_null; wext=w_comma;
 			
 			} else if (act=='(') {
-				if (w==w_operand && wext!=w_id) {SynError (229,"Falta operador."); errores++; } // 123(21
+				if (w==w_operand && wext!=w_id) err_handler.SyntaxError(229,"Falta operador."); // 123(21
 				w=w_null; wext=w_other; parentesis++;
 			
 			} else if (act==')') {
-				if (w==w_operator) {SynError (230,"Falta operando (antes de ')')."); errores++; }
+				if (w==w_operator) err_handler.SyntaxError(230,"Falta operando (antes de ')').");
 				w=w_operand; wext=w_expr; parentesis--;
 			
 			} else if (act>='0'&&act<='9') {
 				if (w!=w_operand) { w=w_operand; wext=w_number_int; }
-				else if (wext==w_string) { SynError (305,"Falta operador (despues de la cadena de caracteres)."); errores++; }
-				else if (wext==w_expr) { SynError (239,"Falta operador (despues de ')')."); errores++; }
+				else if (wext==w_string) err_handler.SyntaxError(305,"Falta operador (despues de la cadena de caracteres).");
+				else if (wext==w_expr) err_handler.SyntaxError(239,"Falta operador (despues de ')').");
 			
 			} else if (act=='.') {
 				if (w!=w_operand) { w=w_operand; wext=w_number_dec; }
 				else if (wext!=w_number_int) {
-					if (!ignore_logic_errors) { SynError (231,"Constante numérica no válida."); errores++; }
+					if (!ignore_logic_errors) err_handler.SyntaxError(231,"Constante numérica no válida.");
 				} else wext=w_number_dec;
 			
 			} else if (EsLetra(act)) {
 				if (w==w_operand && wext!=w_id) {
 					if (wext==w_string)
-						{ SynError (233,"Falta operando (después de cadena de texto)."); errores++; }
+						err_handler.SyntaxError(233,"Falta operando (después de cadena de texto).");
 					else if (wext==w_expr)
-						{ SynError (307,"Falta operando (posiblemente después de ')')."); errores++; }
+						err_handler.SyntaxError(307,"Falta operando (posiblemente después de ')').");
 					else
-						if (!ignore_logic_errors) { SynError (238,"Constante numérica no válida."); errores++; }
+						if (!ignore_logic_errors) err_handler.SyntaxError(238,"Constante numérica no válida.");
 				}
 				w=w_operand; wext=w_id;
 			
@@ -386,26 +387,25 @@ void SynCheck::Operadores(const int &x, string &cadena, int &errores, Instructio
 				int ret=is_valid_operator(act,next,len,op_type);
 				if (ret!=w_no_op) {
 					if (ret==w_binary_op) {
-						if (w!=w_operand) { SynError (234,"Falta operando (antes de "+cadena.substr(i,len)+")."); errores++; }
+						if (w!=w_operand) err_handler.SyntaxError(234,"Falta operando (antes de "+cadena.substr(i,len)+").");
 						i+=len-1;
 					} else {
-						if (w==w_operator && wext==w_aritmetic_op) { SynError (235,"Falta operando (antes de "+cadena.substr(i,len)+")."); errores++; }
+						if (w==w_operator && wext==w_aritmetic_op) err_handler.SyntaxError(235,"Falta operando (antes de "+cadena.substr(i,len)+").");
 					}
 					w=w_operator; wext=op_type;
 				} else {
-					if (i==0 or (act!=cadena[i-1])) { // si encuentra algo como "???" que marque un solo ?
-						SynError (68,string("Caracter no válido (")+string(1,act)+")."); errores++;
-					}
+					if (i==0 or (act!=cadena[i-1])) // si encuentra algo como "???" que marque un solo ?
+						err_handler.SyntaxError(68,string("Caracter no válido (")+string(1,act)+").");
 					w = w_operand; // fuerzo a operando para que preserve espacios despues de esto (casos como "mientras ??? hacer", que no pegue ??? con hacer porque eso generar un error adicional "falta hacer").
 				}
 			}
 		}
 	}
-	if (w==w_operator) { SynError (236,"Falta operando al final de la expresión"); errores++; }
+	if (w==w_operator) err_handler.SyntaxError(236,"Falta operando al final de la expresión");
 	// Posibles errores encontrados
-	if (parentesis<0) { SynError (35,"Se cerraron parentesis o corchetes demás."); errores++; }
-	if (parentesis>0) { SynError (36,"Falta cerrar parentesis o corchete."); errores++; }
-	if (comillas) { SynError (37,"Falta cerrar comillas."); errores++; }
+	if (parentesis<0) err_handler.SyntaxError(35,"Se cerraron parentesis o corchetes demás.");
+	if (parentesis>0) err_handler.SyntaxError(36,"Falta cerrar parentesis o corchete.");
+	if (comillas) err_handler.SyntaxError(37,"Falta cerrar comillas.");
 }
 
 static bool RightCompareFix(string &s, string e) {
@@ -435,33 +435,35 @@ static void FixAcentos(string &s) {
 	}
 }
 
-void SynCheck::InformUnclosedLoops(std::vector<int> &bucles, int &errores) {
+void InformUnclosedLoops(RunTime &rt, std::vector<int> &bucles) {
+	ErrorHandler &err_handler = rt.err;
+	Programa &programa = rt.prog;
 	// Controlar Cierre de Bucles
 	while (!bucles.empty())	{
 		InstructionType type = programa[bucles.back()].type;
 		CodeLocation loc = programa[bucles.back()].loc;
-		if      (type==IT_PARA || type==IT_PARACADA) {SynError (114,"Falta cerrar PARA.",loc); errores++;}
-		else if (type==IT_REPETIR) {SynError (115,"Falta cerrar REPETIR.",loc); errores++;}
-		else if (type==IT_MIENTRAS) {SynError (116,"Falta cerrar MIENTRAS.",loc); errores++;}
-		else if (type==IT_SI || type==IT_SINO) {SynError (117,"Falta cerrar SI.",loc); errores++;}
-		else if (type==IT_SEGUN) {SynError (118,"Falta cerrar SEGUN.",loc); errores++;}
+		if      (type==IT_PARA || type==IT_PARACADA) err_handler.SyntaxError(114,"Falta cerrar PARA.",loc);
+		else if (type==IT_REPETIR) err_handler.SyntaxError(115,"Falta cerrar REPETIR.",loc);
+		else if (type==IT_MIENTRAS) err_handler.SyntaxError(116,"Falta cerrar MIENTRAS.",loc);
+		else if (type==IT_SI || type==IT_SINO) err_handler.SyntaxError(117,"Falta cerrar SI.",loc);
+		else if (type==IT_SEGUN) err_handler.SyntaxError(118,"Falta cerrar SEGUN.",loc);
 		else if (type==IT_PROCESO) {
 			if (getImpl<IT_PROCESO>(programa[bucles.back()]).principal)
-				{SynError (119,"Falta cerrar ALGORITMO/PROCESO.",loc); errores++;}
+				err_handler.SyntaxError(119,"Falta cerrar ALGORITMO/PROCESO.",loc);
 			else
-				{SynError (119,"Falta cerrar FUNCION/SUBPROCESO.",loc); errores++;}
+				err_handler.SyntaxError(119,"Falta cerrar FUNCION/SUBPROCESO.",loc);
 		}
 		bucles.pop_back();
 	}
 }
 
-bool SirveParaReferencia(const string &s) {
+bool SirveParaReferencia(RunTime &rt, const string &s) {
 	int p=0, l=s.size(), parentesis=0;
 	bool in_name=true; // si estamos en la primer parte (nombre) o segunda (indices si es un arreglo)
 	while (p<l) {
 		if (s[p]=='(') {
 			if (in_name) {
-				if (!CheckVariable(s.substr(0,p))||EsFuncion(s.substr(0,p))) return false;
+				if (!CheckVariable(rt,s.substr(0,p))||EsFuncion(s.substr(0,p))) return false;
 				in_name=false;
 			}
 			parentesis++;
@@ -471,7 +473,7 @@ bool SirveParaReferencia(const string &s) {
 		p++;
 		
 	}
-	if (in_name && (!CheckVariable(s)||EsFuncion(s)) ) return false;
+	if (in_name && (!CheckVariable(rt,s)||EsFuncion(s)) ) return false;
 	return true;
 }
 
@@ -479,13 +481,14 @@ bool SirveParaReferencia(const string &s) {
 // ********************* Checkear la Correcta Sintaxis del Archivo **************************
 //-------------------------------------------------------------------------------------------
 
-int SynCheck::Instrucciones() {
+void Instrucciones(RunTime &rt) {
+	
+	Programa &programa = rt.prog;
+	ErrorHandler &err_handler = rt.err;
 	
 	Memoria global_memory(NULL); // para usar al analizar instrucciones fuera de proceso/subprocesos
 	memoria=&global_memory;
-	SynErrores=0; // global, se incrementa en SynError(...)
 	std::vector<int> bucles; // Para controlar los bucles que se abren y cierran... guarda un stack de indices a instrucciones que abren bloques en el arreglo programa
-	int errores=0; // Total de errores , y cant hasta la instrucción anterior
 	bool in_process=false;
 	string cadena, str;
 	Funcion *current_func = NULL; // funcion actual, necesito el puntero para setear line_end cuando encuentre el FinProceso/FinSubProceso
@@ -494,9 +497,11 @@ int SynCheck::Instrucciones() {
 	for (int prog_idx=0; prog_idx<programa.GetInstCount(); ++prog_idx){
 		Inter.SetLocation(programa[prog_idx].loc);
 		cadena = programa[prog_idx];
-		int Lerrores=errores;
+		auto this_instruction_is_ok = 
+			[prev_count=err_handler.GetErrorsCount(),&err_handler](){
+				return prev_count==err_handler.GetErrorsCount();
+			};
 		
-		// Ignorar lineas de comentarios
 		{
 			
 //			Instruccion &inst = programa[prog_idx];
@@ -533,7 +538,7 @@ int SynCheck::Instrucciones() {
 			// si se identifica la instrucción, se quita del string cadena y se guarda en el string instrucción
 			if (first_word=="ENTONCES") {
 				if (/*programa[bucles.back()]!=IT_SI || */programa[prog_idx-1]!=IT_SI)
-					{SynError (1,"ENTONCES mal colocado."); errores++;}
+					err_handler.SyntaxError(1,"ENTONCES mal colocado.");
 				if (cadena.size()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_ENTONCES); cadena="";
 			} else if (first_word=="SINO") {
@@ -574,7 +579,7 @@ int SynCheck::Instrucciones() {
 				inst.setType(IT_SEGUN);
 				bucles.push_back(prog_idx);
 			} else if (first_word=="DE" && (LeftCompare(cadena,"OTRO MODO:") || LeftCompare(cadena,"OTRO MODO "))) {
-				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN)  {SynError (321,"DE OTRO MODO mal colocado."); errores++;}
+				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,"DE OTRO MODO mal colocado.");
 				cadena.erase(0,10); programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_DEOTROMODO); cadena="";
 			} else if (first_word=="DIMENSION") {
@@ -646,10 +651,10 @@ int SynCheck::Instrucciones() {
 				}
 			} else if (first_word=="FINPROCESO"||first_word=="FINALGORITMO") {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = true;
-				if (!ignore_logic_errors&&cadena==";") { SynError (315,"FINPROCESO/FINALGORITMO no lleva punto y coma."); errores++; }
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,"FINPROCESO/FINALGORITMO no lleva punto y coma.");
 			} else if (first_word=="FINFUNCION"||first_word=="FINSUBPROCESO"||first_word=="FINSUBALGORITMO") {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = false;
-				if (!ignore_logic_errors&&cadena==";") { SynError (315,"FINSUBPROCESO/FINFUNCION no lleva punto y coma."); errores++; }
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,"FINSUBPROCESO/FINFUNCION no lleva punto y coma.");
 			} else if (first_word=="REPETIR" || (lang[LS_LAZY_SYNTAX] && first_word=="HACER")) {
 				inst.setType(IT_REPETIR); bucles.push_back(prog_idx);
 			} else if (first_word=="DEFINIR") {
@@ -681,7 +686,7 @@ int SynCheck::Instrucciones() {
 							programa[prog_idx+1].instruccion.erase(0,pos_dp+1);
 							cadena.erase(pos_dp+1,cadena.size()-pos_dp-1);
 							flag_segun=1;
-							if (programa[bucles.back()]!=IT_SEGUN) { SynError (241,"Opción fuera de SEGUN."); errores++; }
+							if (programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(241,"Opción fuera de SEGUN.");
 						}
 //					}
 				}
@@ -745,10 +750,10 @@ int SynCheck::Instrucciones() {
 			}
 			
 			// reescribir condiciones coloquiales
-			SynCheck::Condiciones(cadena, errores);
+			Condiciones(rt,cadena);
 			
 			// verificar operadores
-			SynCheck::Operadores(prog_idx,cadena,errores,inst.type);
+			Operadores(rt,prog_idx,cadena,inst.type);
 			
 			// y si hay algo a continuacion del hacer tambien, asi que despues del hacer se corta como si fuera hacer; para que se pueda escribir por ejemplo un mientras en una sola linea
 			bool comillas=false;
@@ -760,8 +765,8 @@ int SynCheck::Instrucciones() {
 				}
 			}
 			
-			if (cadena.size()&&cadena[cadena.size()-1]==',')
-				{ SynError (31,"Parametro nulo."); errores++; }
+			if (cadena.size()&&cadena[cadena.size()-1]==',') 
+				err_handler.SyntaxError(31,"Parametro nulo.");
 			while (cadena[0]==';' && cadena.size()>1) cadena.erase(0,1); // para que caso esta esto?
 			// Controlar que el si siempre tenga un entonces
 			if (prog_idx&&programa[prog_idx-1]==IT_SI)
@@ -773,12 +778,12 @@ int SynCheck::Instrucciones() {
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
 					} else 
-						{SynError (32,"Se esperaba ENTONCES"); errores++;}
+						err_handler.SyntaxError(32,"Se esperaba ENTONCES");
 				}
 			// si entro en segun comprobar que haya condición
 			if (!bucles.empty()) {
 				if (programa[bucles.back()]==IT_SEGUN && programa[prog_idx-1]==IT_SEGUN && cadena!="") {
-					if (inst.type!=IT_OPCION) { SynError (33,"Se esperaba <opcion>:."); errores++; }
+					if (inst.type!=IT_OPCION) err_handler.SyntaxError(33,"Se esperaba <opcion>:.");
 				}
 			}
 			
@@ -790,7 +795,7 @@ int SynCheck::Instrucciones() {
 			if (lleva_pyc) {
 				if (cadena.empty() or cadena[cadena.size()-1]!=';') {
 					if (lang[LS_FORCE_SEMICOLON])
-						{ SynError (38,"Falta punto y coma."); errores++; }
+						err_handler.SyntaxError(38,"Falta punto y coma.");
 					cadena=cadena+';';
 				}
 			}
@@ -806,7 +811,7 @@ int SynCheck::Instrucciones() {
 			// En esta parte, según cada instrucción se verifican si los argumentos están bien. Los argumentos quedaron solos en cadena, la instrucción ya fué cortada.
 			if (inst.type==IT_PROCESO) {
 				auto &inst_impl = getImpl<IT_PROCESO>(inst);
-				if (in_process) InformUnclosedLoops(bucles,errores); 
+				if (in_process) InformUnclosedLoops(rt,bucles);
 				in_process=true;
 				inst_impl.nombre = ExtraerNombreDeSubProceso(cadena);
 				current_func=subprocesos[inst_impl.nombre];
@@ -816,7 +821,7 @@ int SynCheck::Instrucciones() {
 				memoria=current_func->memoria=new Memoria(current_func);
 			}
 			if (!in_process && inst.type!=IT_NULL&&cadena!="") {
-				SynError (43,lang[LS_ENABLE_USER_FUNCTIONS]?"Instrucción fuera de proceso/subproceso.":"Instrucción fuera de proceso."); errores++;
+				err_handler.SyntaxError(43,lang[LS_ENABLE_USER_FUNCTIONS]?"Instrucción fuera de proceso/subproceso.":"Instrucción fuera de proceso.");
 			}
 			if (inst.type==IT_FINPROCESO) {
 				auto &inst_impl = getImpl<IT_FINPROCESO>(inst);
@@ -838,11 +843,11 @@ int SynCheck::Instrucciones() {
 						auto &inst_front = programa[bucles.front()];
 						if (inst_front==IT_PROCESO and inst_impl.principal==getImpl<IT_PROCESO>(inst_front).principal) {
 							bucles.erase(bucles.begin());
-							InformUnclosedLoops(bucles,errores);
+							InformUnclosedLoops(rt,bucles);
 						}
 					}
 				} else {
-					SynError (308,sub?"FINSUBPROCESO mal colocado.":"FINPROCESO mal colocado."); errores++;
+					err_handler.SyntaxError(308,sub?"FINSUBPROCESO mal colocado.":"FINPROCESO mal colocado.");
 				}
 				memoria=&global_memory;
 			}
@@ -850,11 +855,11 @@ int SynCheck::Instrucciones() {
 			// Controlar correcta y completa sintaxis de cada instruccion
 			if (inst.type==IT_DEFINIR) {  // ------------ DEFINIR -----------//
 				auto &inst_impl = getImpl<IT_DEFINIR>(inst);
-				if (cadena=="" || cadena==";") {SynError (44,"Faltan parámetros."); errores++;}
+				if (cadena=="" || cadena==";") err_handler.SyntaxError(44,"Faltan parámetros.");
 				else {
 					if (cadena[cadena.size()-1]!=';') {
 						cadena=cadena+";";
-						if (!ignore_logic_errors) { SynError (45,"Falta punto y coma."); errores++; }
+						if (!ignore_logic_errors) err_handler.SyntaxError(45,"Falta punto y coma.");
 					}
 					// extraer la ultima palabra (deberia ser el tipo) y normalizarla
 					string def_tipo; 
@@ -875,7 +880,7 @@ int SynCheck::Instrucciones() {
 					else if (def_tipo=="LOGICO"||def_tipo=="LOGICOS"||def_tipo=="LOGICAS"||def_tipo=="LOGICA")
 						inst_impl.tipo = vt_logica;
 					else if (!ignore_logic_errors) 
-						{ SynError (46,"Falta tipo de dato o tipo no válido."); errores++;}
+						err_handler.SyntaxError(46,"Falta tipo de dato o tipo no válido.");
 					
 					if (pos_tipo!=string::npos) {
 						cadena[pos_tipo-5]=',';
@@ -886,20 +891,19 @@ int SynCheck::Instrucciones() {
 							if (cadena[i]==')') parentesis--;
 							if (i>0 && i<(int)cadena.size()-1)
 								if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-									{SynError (47,"Se esperaba fin de expresión (fin de la instrucción, o coma para separar)."); errores++;}
+									err_handler.SyntaxError(47,"Se esperaba fin de expresión (fin de la instrucción, o coma para separar).");
 							if (parentesis==0 && cadena[i]==',') { // comprobar validez
 								str=cadena;
 								str.erase(i,str.size()-i);
 								str.erase(0,i0);
 								if (str.find("(",0)==string::npos) {
-									if (!CheckVariable(str,48)) errores++;
-									else {
-										if (memoria->EsArgumento(str) && !ignore_logic_errors) { SynError (222,"No debe redefinir el tipo de un argumento."); errores++; }
+									if (CheckVariable(rt,str,48)) {
+										if (memoria->EsArgumento(str) && !ignore_logic_errors) err_handler.SyntaxError(222,"No debe redefinir el tipo de un argumento.");
 										memoria->DefinirTipo(str,inst_impl.tipo);
 									}
 								} else {
 									str.erase(str.find("(",0),str.size()-str.find("(",0));
-									if (!ignore_logic_errors) { SynError (212,string("No debe utilizar subindices (")+str+")."); errores++; }
+									if (!ignore_logic_errors) err_handler.SyntaxError(212,string("No debe utilizar subindices (")+str+").");
 								}
 								inst_impl.variables.push_back(str);
 								i0=i+1;
@@ -911,7 +915,7 @@ int SynCheck::Instrucciones() {
 			}
 			if (inst.type==IT_ESCRIBIR) {  // ------------ ESCRIBIR -----------//
 				auto &inst_impl = getImpl<IT_ESCRIBIR>(inst);
-				if (cadena=="" || cadena==";") {SynError (53,"Faltan parámetros."); errores++;}
+				if (cadena=="" || cadena==";") err_handler.SyntaxError(53,"Faltan parámetros.");
 				else {
 					if (cadena[cadena.size()-1]==';')
 						cadena[cadena.size()-1]=',';
@@ -927,11 +931,11 @@ int SynCheck::Instrucciones() {
 						if (i>0 && i<(int)cadena.size()-1) {
 							if (lang[LS_LAZY_SYNTAX] && cadena[i]==' ') cadena[i]=',';
 							if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-								{SynError (54,"Se esperaba fin de expresión."); errores++;}
+								err_handler.SyntaxError(54,"Se esperaba fin de expresión.");
 						}
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							str=cadena.substr(last_i,i-last_i);
-							if (Lerrores==errores) EvaluarSC(str);
+							if (this_instruction_is_ok()) EvaluarSC(rt,str);
 							last_i=i+1;
 							inst_impl.expressiones.push_back(str);
 						}
@@ -940,7 +944,7 @@ int SynCheck::Instrucciones() {
 				}
 			}
 			if (inst.type==IT_ESPERAR){  // ------------ ESCRIBIR -----------//
-				if (cadena=="" || cadena==";") {SynError (217,"Faltan parámetros."); errores++;}
+				if (cadena=="" || cadena==";") err_handler.SyntaxError(217,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_ESPERAR>(inst);
 					string &tiempo = inst_impl.tiempo = cadena;
@@ -949,15 +953,16 @@ int SynCheck::Instrucciones() {
 					else if (RightCompare(tiempo," SEGUNDO;"))      { tiempo.erase(tiempo.size()-9);  factor = 1000; }
 					else if (RightCompare(tiempo," MILISEGUNDOS;")) { tiempo.erase(tiempo.size()-14); factor = 1;    }
 					else if (RightCompare(tiempo," MILISEGUNDO;"))  { tiempo.erase(tiempo.size()-13); factor = 1;    }
-					else if (!ignore_logic_errors) {SynError (218,"Falta unidad o unidad desconocida."); errores++;}
-					DataValue res = EvaluarSC(tiempo,vt_numerica);
-					if (!res.CanBeReal()) {SynError (219,"La longitud del intervalo debe ser numérica."); errores++;} else {
-						for (int tmp1=0;tmp1<(int)tiempo.size();tmp1++) if (tiempo[tmp1]==' ') {SynError (240,"Se esperaba una sola expresión."); errores++;}
+					else if (!ignore_logic_errors) err_handler.SyntaxError(218,"Falta unidad o unidad desconocida.");
+					DataValue res = EvaluarSC(rt,tiempo,vt_numerica);
+					if (!res.CanBeReal()) err_handler.SyntaxError(219,"La longitud del intervalo debe ser numérica."); 
+					else {
+						for (int tmp1=0;tmp1<(int)tiempo.size();tmp1++) if (tiempo[tmp1]==' ') err_handler.SyntaxError(240,"Se esperaba una sola expresión.");
 					}
 				}
 			}
 			if (inst.type==IT_DIMENSION){  // ------------ DIMENSION -----------//
-				if (cadena=="" || cadena==";") {SynError (56,"Faltan parámetros."); errores++;}
+				if (cadena=="" || cadena==";") err_handler.SyntaxError(56,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_DIMENSION>(inst);
 					if (cadena[cadena.size()-1]==';')
@@ -970,20 +975,20 @@ int SynCheck::Instrucciones() {
 						if (cadena[i]==')') parentesis--;
 						if (i>0 && i<(int)cadena.size()-1)
 							if ((!comillas) && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-							{SynError (57,"Se esperaba fin de expresión."); errores++;}
+								err_handler.SyntaxError(57,"Se esperaba fin de expresión.");
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							str=cadena;
 							str.erase(i,str.size()-i);
 							str.erase(0,i0);
 							if (str.find("(",0)==string::npos){ 
-								if (!ignore_logic_errors) { SynError (58,"Faltan subindices."); errores++; }
-								if (!CheckVariable(str,59)) errores++;
-								else if (!memoria->EstaDefinida(str)) memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
+								if (!ignore_logic_errors) err_handler.SyntaxError(58,"Faltan subindices.");
+								if (CheckVariable(rt,str,59) and (not memoria->EstaDefinida(str)))
+									memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
 							} else {
 								string aname;
 								str.erase(str.find("(",0),str.size()-str.find("(",0));
-								if (!CheckVariable(str,60)) errores++;
-								if (memoria->EsArgumento(str) && !ignore_logic_errors) { SynError (223,"No debe redimensionar un argumento."); errores++; }
+								CheckVariable(rt,str,60);
+								if (memoria->EsArgumento(str) && !ignore_logic_errors) err_handler.SyntaxError(223,"No debe redimensionar un argumento.");
 								else aname=str; // para que aparezca en la lista de variables
 								str=cadena;
 								str.erase(i,str.size()-i);
@@ -1013,17 +1018,16 @@ int SynCheck::Instrucciones() {
 								while (str.find(",",0)!=string::npos){
 									str2=str;
 									str2.erase(str.find(",",0),str.size()-str.find(",",0));
-									if (str2=="")
-										{SynError (61,"Parametro nulo."); errores++;}
-									if (Lerrores==errores) res = EvaluarSC(str2,vt_numerica);
+									if (str2=="") err_handler.SyntaxError(61,"Parametro nulo.");
+									if (this_instruction_is_ok()) res = EvaluarSC(rt,str2,vt_numerica);
 									if (res.IsOk()&&!res.CanBeReal()) {
-										{SynError (62,"No coinciden los tipos."); errores++;}
+										err_handler.SyntaxError(62,"No coinciden los tipos.");
 										dims[idims]=-1;
 									} else {
 										if (!IsNumericConstant(str2)) {
 											dims[idims]=-1;
 											if (!lang[LS_ALLOW_DINAMYC_DIMENSIONS])
-												{SynError (153,"Las dimensiones deben ser constantes."); errores++;}
+												err_handler.SyntaxError(153,"Las dimensiones deben ser constantes.");
 										} else {
 											dims[idims]=res.GetAsInt();
 										}
@@ -1041,7 +1045,7 @@ int SynCheck::Instrucciones() {
 			}
 			if (inst.type==IT_LEER){  // ------------ LEER -----------//
 				auto &inst_impl = getImpl<IT_LEER>(inst);
-				if (cadena=="" || cadena==";") { SynError (63,"Faltan parámetros."); errores++; }
+				if (cadena=="" || cadena==";") err_handler.SyntaxError(63,"Faltan parámetros.");
 				else {
 					if (cadena[cadena.size()-1]==';')
 						cadena[cadena.size()-1]=',';
@@ -1059,24 +1063,23 @@ int SynCheck::Instrucciones() {
 						if (i>0 && i<cadena.size()-1) {
 							if (lang[LS_LAZY_SYNTAX] && cadena[i]==' ') cadena[i]=',';
 							if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-								{SynError (64,"Se esperaba fin de expresión."); errores++;}
+								err_handler.SyntaxError(64,"Se esperaba fin de expresión.");
 						}
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							string var_name = cadena.substr(expr_start,i-expr_start);
 							inst_impl.variables.push_back(var_name);
 							if (var_name.find("(",0)==string::npos) {
-								if (!CheckVariable(var_name,65)) errores++;
-								else {
+								if (CheckVariable(rt,var_name,65)) {
 									if (!memoria->EstaDefinida(var_name)) memoria->DefinirTipo(var_name,vt_desconocido); // para que aparezca en la lista de variables
-									if (memoria->LeerDims(var_name) && !ignore_logic_errors) SynError(255,"Faltan subindices para el arreglo ("+var_name+").");
+									if (memoria->LeerDims(var_name) && !ignore_logic_errors) err_handler.SyntaxError(255,"Faltan subindices para el arreglo ("+var_name+").");
 								}
 							} else if (!memoria->EsArgumento(var_name.substr(0,var_name.find('(',0)))) {
 								bool name_ok=true;
 								string aname=var_name.substr(0,var_name.find("(",0));
-								if (!CheckVariable(aname,66)) { errores++; name_ok=false; }
+								if (!CheckVariable(rt,aname,66)) { name_ok=false; }
 								else if (!memoria->EstaDefinida(aname)) memoria->DefinirTipo(aname,vt_desconocido); // para que aparezca en la lista de variables
 								if (!memoria->LeerDims(aname) && !ignore_logic_errors) { 
-									SynError(256,"La variable ("+aname+") no es un arreglo."); name_ok=false;
+									err_handler.SyntaxError(256,"La variable ("+aname+") no es un arreglo."); name_ok=false;
 								}
 								var_name=cadena;
 								var_name.erase(i,var_name.size()-i);
@@ -1092,17 +1095,17 @@ int SynCheck::Instrucciones() {
 								while (var_name.find(",",0)!=string::npos){
 									str2=var_name;
 									str2.erase(var_name.find(",",0),var_name.size()-var_name.find(",",0));
-									// if (str2=="") {SynError (67,"Parametro nulo."); errores++;}
+									// if (str2=="") err_handler.SyntaxError(67,"Parametro nulo.");
 									DataValue res;
-									if (Lerrores==errores) res = EvaluarSC(str2,vt_numerica);
+									if (this_instruction_is_ok()) res = EvaluarSC(rt,str2,vt_numerica);
 									if (res.IsOk()&&!res.CanBeReal())
-										{SynError (154,"No coinciden los tipos."); errores++;}
+										err_handler.SyntaxError(154,"No coinciden los tipos.");
 									var_name.erase(0,str2.size()+1);
 									ca++;
 								}
 								if (name_ok && memoria->LeerDims(aname)[0]!=ca && !ignore_logic_errors) {
-									SynError(257,string("Cantidad de indices incorrecta para el arreglo (")+aname+(")"));
-									return false;
+									err_handler.SyntaxError(257,string("Cantidad de indices incorrecta para el arreglo (")+aname+(")"));
+									return;
 								}
 							}
 							expr_start=i+1;
@@ -1115,34 +1118,34 @@ int SynCheck::Instrucciones() {
 				auto &inst_impl = getImpl<IT_PARA>(inst);
 				
 				string &contador = inst_impl.contador = cadena;
-				if (contador.find(" ",0)==string::npos) {SynError (70,"Faltan parámetros."); errores++;}
+				if (contador.find(" ",0)==string::npos) err_handler.SyntaxError(70,"Faltan parámetros.");
 				if (!RightCompareFix(contador," HACER")) {
 					if (lang[LS_LAZY_SYNTAX]) { contador+=" HACER"; cadena+=" HACER";}
-					else {SynError (71,"Falta HACER."); errores++;}
+					else err_handler.SyntaxError(71,"Falta HACER.");
 				}
 				if (RightCompareFix(contador," HACER")) { // comprobar asignacion
 					contador.erase(contador.find(" ",0),contador.size()-contador.find(" ",0));
 					if (contador.find("<-",0)==string::npos) // Comprobar asignacion
-						{SynError (72,"Se esperaba asignacion."); errores++;}
+						err_handler.SyntaxError(72,"Se esperaba asignacion.");
 					else
 						if (RightCompare(contador,"<-HASTA") || RightCompare(contador,"<-CON PASO") || LeftCompare(contador,"<-"))
-							{SynError (73,"Asignacion incompleta."); errores++;}
+							err_handler.SyntaxError(73,"Asignacion incompleta.");
 						else {
 							contador.erase(contador.find("<-",0),contador.size()-contador.find("<-",0));
-							if (!CheckVariable(contador,74)) errores++; else {
+							if (CheckVariable(rt,contador,74)) {
 								memoria->DefinirTipo(contador,vt_numerica); // para que aparezca en la lista de variables
 								DataValue res;
-								if (Lerrores==errores) DataValue res = EvaluarSC(contador,vt_numerica);
+								if (this_instruction_is_ok()) DataValue res = EvaluarSC(rt,contador,vt_numerica);
 								if (res.IsOk()&&!res.CanBeReal())
-									{SynError (76,"No coinciden los tipos."); errores++;}
+									err_handler.SyntaxError(76,"No coinciden los tipos.");
 								
 								string &val_ini = inst_impl.val_ini = cadena;
 								val_ini.erase(0,val_ini.find("<-")+2);
 								val_ini.erase(val_ini.find(" "),val_ini.size()-val_ini.find(" ",0));
 								inst_impl.val_ini = val_ini;
-								if (Lerrores==errores) res = EvaluarSC(val_ini,vt_numerica);
+								if (this_instruction_is_ok()) res = EvaluarSC(rt,val_ini,vt_numerica);
 								if (res.IsOk()&&!res.CanBeReal())
-									{SynError (77,"No coinciden los tipos."); errores++;}
+									err_handler.SyntaxError(77,"No coinciden los tipos.");
 								else { // comprobar hasta y variable final
 									
 									str=cadena;
@@ -1159,22 +1162,19 @@ int SynCheck::Instrucciones() {
 										}
 									}
 									if (!LeftCompare(str," HASTA ")) {
-										if (LeftCompare(str," CON PASO ")) { 
-											SynError (216,"CON PASO va despues de HASTA."); errores++;
-										} else {
-											SynError (78,"Falta HASTA."); errores++;
-										}
-									} else if (LeftCompare(str," HASTA HACER"))
-										{SynError (79,"Falta el valor final del PARA."); errores++;}
-									else {
+										if (LeftCompare(str," CON PASO ")) err_handler.SyntaxError(216,"CON PASO va despues de HASTA.");
+										else err_handler.SyntaxError(78,"Falta HASTA.");
+									} else if (LeftCompare(str," HASTA HACER")) {
+										err_handler.SyntaxError(79,"Falta el valor final del PARA.");
+									} else {
 										str.erase(0,7); str.erase(str.size()-6,6);
 										auto pos_esp = str.find(" ",0);
 										bool hay_paso = pos_esp!=string::npos;
 										if (hay_paso) str.erase(pos_esp,str.size()-pos_esp);
 										inst_impl.val_fin = str;
 										DataValue res;
-										if (Lerrores==errores) res = EvaluarSC(inst_impl.val_fin,vt_numerica);
-										if (res.IsOk()&&!res.CanBeReal()) {SynError (81,"No coinciden los tipos."); errores++;}
+										if (this_instruction_is_ok()) res = EvaluarSC(rt,inst_impl.val_fin,vt_numerica);
+										if (res.IsOk()&&!res.CanBeReal()) err_handler.SyntaxError(81,"No coinciden los tipos.");
 										if (hay_paso) {
 											str=cadena; // comprobar con paso
 											str.erase(0,str.find("HASTA",6)+6);
@@ -1182,14 +1182,14 @@ int SynCheck::Instrucciones() {
 											str.erase(str.size()-6,6);
 											if (!LeftCompare(str,"CON PASO ")) {
 												if (str=="CON PASO")
-													{SynError (258,"Falta el valor del paso."); errores++;}
+													err_handler.SyntaxError(258,"Falta el valor del paso.");
 												else
-													{SynError (82,"Se esparaba CON PASO o fin de instrucción."); errores++;}
+													err_handler.SyntaxError(82,"Se esparaba CON PASO o fin de instrucción.");
 											} else {
 												str.erase(0,9);
 												inst_impl.paso = str;
-												DataValue res = EvaluarSC(str,vt_numerica);
-												if (res.IsOk()&&!res.CanBeReal()) {SynError (84,"No coinciden los tipos."); errores++;}
+												DataValue res = EvaluarSC(rt,str,vt_numerica);
+												if (res.IsOk()&&!res.CanBeReal()) err_handler.SyntaxError(84,"No coinciden los tipos.");
 											}
 										}
 									}
@@ -1203,20 +1203,20 @@ int SynCheck::Instrucciones() {
 				auto &inst_impl = getImpl<IT_PARACADA>(inst);
 				str=cadena; // cortar instrucción
 				if (str.find(" ",0)==string::npos)
-				{SynError (70,"Faltan parámetros."); errores++;}
+					err_handler.SyntaxError(70,"Faltan parámetros.");
 				if (!RightCompareFix(str," HACER")) {
 					if (lang[LS_LAZY_SYNTAX]) { str+=" HACER"; cadena+=" HACER";}
-					else {SynError (71,"Falta HACER."); str+=" HACER"; errores++;}
+					else err_handler.SyntaxError(71,"Falta HACER."); str+=" HACER";
 				}
 				if (RightCompareFix(str," HACER")) {
 					int i=0; while (str[i]!=' ') i++;
 					inst_impl.identificador = str.substr(0,i);
-					if (!CheckVariable(inst_impl.identificador,259)) errores++;
+					CheckVariable(rt,inst_impl.identificador,259);
 					if (str.substr(i,4)==" EN " or str.substr(i,4)==" DE ") {
 						inst_impl.arreglo = str.substr(i+4,str.size()-i-10);
-						if (!CheckVariable(inst_impl.arreglo,261)) errores++;
+						CheckVariable(rt,inst_impl.arreglo,261);
 					} else {
-						SynError (260,"Se esperaba DE o EN."); errores++;
+						err_handler.SyntaxError(260,"Se esperaba DE o EN.");
 					} 
 				}
 			}
@@ -1239,10 +1239,10 @@ int SynCheck::Instrucciones() {
 				int i=0, p;
 				while ((p=PSeudoFind(cadena,',',i))!=-1) {
 					inst_impl.expresiones.push_back(cadena.substr(i,p-i));
-					DataValue res = EvaluarSC(inst_impl.expresiones.back(),
+					DataValue res = EvaluarSC(rt,inst_impl.expresiones.back(),
 											  lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
 					if (res.IsOk() && !res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) {
-						SynError (203,"Las opciones deben ser de tipo numérico."); errores++;
+						err_handler.SyntaxError(203,"Las opciones deben ser de tipo numérico.");
 					}
 					i=p+1;
 				}
@@ -1254,9 +1254,9 @@ int SynCheck::Instrucciones() {
 				str=cadena;
 				str.erase(str.find("<-",0),str.size()-str.find("<-",0));
 				if (str.size()==0)
-				{SynError (85,"Asignación incompleta."); errores++;}
+					err_handler.SyntaxError(85,"Asignación incompleta.");
 				else {
-					if (!CheckVariable(str,86)) errores++;
+					CheckVariable(rt,str,86);
 					inst_impl.variable = str;
 					str=cadena;
 					str.erase(0,str.find("<-",0)+2);
@@ -1267,21 +1267,21 @@ int SynCheck::Instrucciones() {
 						if (str[y]=='\'') comillas=!comillas;
 						if (y>0 && y<(int)str.size()-1)
 							if ((!comillas) && str[y]==' ' && str[y-1]!='&' && str[y-1]!='|'  && str[y+1]!='&'  && str[y+1]!='|')
-							{SynError (87,"Se esperaba fin de expresión."); errores++;}
+								err_handler.SyntaxError(87,"Se esperaba fin de expresión.");
 						if ((!comillas) && parentesis==1 && str[y]==',')
-						{SynError (88,"Demasiados parámetros."); errores++;}
+							err_handler.SyntaxError(88,"Demasiados parámetros.");
 					}
 					if (str.size()==3)
-					{SynError (89,"Asignación incompleta."); errores++;}
+						err_handler.SyntaxError(89,"Asignación incompleta.");
 					else {
 						str.erase(str.size()-1,1);
 						inst_impl.valor = str;
 						tipo_var tipo_left = memoria->LeerTipo(inst_impl.variable);
 						tipo_left.rounded = false; // no transferir a la expresión
 						DataValue res;
-						if (Lerrores==errores) res = EvaluarSC(str,tipo_left.is_ok()?tipo_left:vt_desconocido);
+						if (this_instruction_is_ok()) res = EvaluarSC(rt,str,tipo_left.is_ok()?tipo_left:vt_desconocido);
 						if (res.IsOk()&&!res.type.can_be(tipo_left)) {
-							SynError(125,"No coinciden los tipos."); errores++; 
+							err_handler.SyntaxError(125,"No coinciden los tipos.");
 							if (!memoria->EstaDefinida(str)) memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
 						}
 						else {
@@ -1293,33 +1293,34 @@ int SynCheck::Instrucciones() {
 			}
 			if (inst.type==IT_SI){  // ------------ SI -----------//
 				if (cadena=="")
-					{ SynError (90,"Falta la condición en la estructura Si-Entonces."); errores++; }
+					err_handler.SyntaxError(90,"Falta la condición en la estructura Si-Entonces.");
 				// comprobar que no halla espacios
 				bool comillas=false;
 				for (int tmp1=0;tmp1<(int)cadena.size();tmp1++) {
 					if (cadena[tmp1]=='\'') comillas=!comillas;
 					if (tmp1>0 && tmp1<(int)cadena.size()-1) {
-						// si encuentra un espacio (que no saco SynCheck::Operadores) es porque habia una instrucción despues del si, faltaba el "ENTONCES"
+						// si encuentra un espacio (que no saco Operadores) es porque habia una instrucción despues del si, faltaba el "ENTONCES"
 						if ((!comillas) && cadena[tmp1]==' ' && cadena[tmp1-1]!='&' && cadena[tmp1-1]!='|'  && cadena[tmp1+1]!='&'  && cadena[tmp1+1]!='|') {
 							if (lang[LS_LAZY_SYNTAX]) {
 								programa.Insert(prog_idx+1,cadena.substr(tmp1));
 								cadena.erase(tmp1);
 								break;
 							} else {
-								SynError (91,"Se esperaba ENTONCES o fin de expresión."); errores++;
+								err_handler.SyntaxError(91,"Se esperaba ENTONCES o fin de expresión.");
 							}
 						}
 					}
 				}
 				DataValue res;
-				if (Lerrores==errores) res = EvaluarSC(cadena,vt_logica);
-				if (res.IsOk()&&!res.CanBeLogic()) { SynError (92,"No coinciden los tipos."); errores++; }
+				if (this_instruction_is_ok()) res = EvaluarSC(rt,cadena,vt_logica);
+				if (res.IsOk()&&!res.CanBeLogic()) err_handler.SyntaxError(92,"No coinciden los tipos.");
 				getImpl<IT_SI>(inst).condicion = cadena;
 			}
 			if (inst.type==IT_HASTAQUE){  // ------------ HASTA QUE -----------//
-				if (cadena==""||cadena==";") // cual era la segunda cadena??? (decir cadena==""||cadena=="", puse el ; por instinto)
-					{ SynError (93,"Falta la condición en la estructura Repetir."); errores++; cadena+=" "; }
-				else {
+				if (cadena==""||cadena==";") { // cual era la segunda cadena??? (decir cadena==""||cadena=="", puse el ; por instinto)
+					 err_handler.SyntaxError(93,"Falta la condición en la estructura Repetir."); 
+					 cadena+=" ";
+				} else {
 					str=cadena; // Comprobar la condición
 					// comprobar que no halla espacios
 					bool comillas=false;
@@ -1327,26 +1328,26 @@ int SynCheck::Instrucciones() {
 						if (str[tmp1]=='\'') comillas=!comillas;
 						if (tmp1>0 && tmp1<(int)str.size()-1)
 							if ((!comillas) && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|')
-							{SynError (94,"Se esperaba fin de expresión."); errores++;}
+								err_handler.SyntaxError(94,"Se esperaba fin de expresión.");
 					}
 					if (str[str.size()-1]==';') {
 						str=str.substr(0,str.size()-1);
 						cadena=cadena.substr(0,cadena.size()-1);
 					}
 					DataValue res;
-					if (Lerrores==errores) res = EvaluarSC(str,vt_logica);
-					if (res.IsOk()&&!res.CanBeLogic()) { SynError (95,"No coinciden los tipos."); errores++; }
+					if (this_instruction_is_ok()) res = EvaluarSC(rt,str,vt_logica);
+					if (res.IsOk()&&!res.CanBeLogic()) err_handler.SyntaxError(95,"No coinciden los tipos.");
 					getImpl<IT_HASTAQUE>(inst).condicion = str;
 				}
 			}
 			if (inst.type==IT_SEGUN){  // ------------ SEGUN -----------//
 //				last_was_segun=true;
 				if (cadena=="HACER" || cadena=="")
-				{ SynError (96,"Falta la variable/expresión de control en la estructura Segun."); errores++; }
+					err_handler.SyntaxError(96,"Falta la variable/expresión de control en la estructura Segun.");
 				else {
 					if (!RightCompareFix(cadena," HACER")) {
 						if (lang[LS_LAZY_SYNTAX]) cadena+=" HACER";
-						else { SynError (97,"Falta HACER."); errores++; }
+						else err_handler.SyntaxError(97,"Falta HACER.");
 					}
 					if (RightCompareFix(cadena," HACER")) {
 						string &expresion = getImpl<IT_SEGUN>(inst).expresion = cadena; // Comprobar la condición
@@ -1357,25 +1358,25 @@ int SynCheck::Instrucciones() {
 							if (expresion[tmp1]=='\'') comillas=!comillas;
 							if (tmp1>0 && tmp1<(int)expresion.size()-1)
 								if ((!comillas) && expresion[tmp1]==' ' && expresion[tmp1-1]!='&' && expresion[tmp1-1]!='|'  && expresion[tmp1+1]!='&'  && expresion[tmp1+1]!='|')
-								{SynError (98,"Se esperaba fin de expresión."); errores++;}
+									err_handler.SyntaxError(98,"Se esperaba fin de expresión.");
 						}
 						DataValue res;
-						if (Lerrores==errores) res = EvaluarSC(expresion,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
-						if (res.IsOk()&&!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) { SynError (100,"No coinciden los tipos."); errores++; }
+						if (this_instruction_is_ok()) res = EvaluarSC(rt,expresion,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
+						if (res.IsOk()&&!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) err_handler.SyntaxError(100,"No coinciden los tipos.");
 					}
 				}
 			}
 			if (inst.type==IT_MIENTRAS) { // ------------ MIENTRAS -----------//
 				auto &inst_impl = getImpl<IT_MIENTRAS>(inst);
-				if (cadena==""||cadena=="HACER") { SynError (101,"Falta la condición en la estructura Mientras."); errores++; }
+				if (cadena==""||cadena=="HACER") err_handler.SyntaxError(101,"Falta la condición en la estructura Mientras.");
 				else {
 					if (RightCompare(cadena,";")) {
-						if (!ignore_logic_errors) { SynError (262,"MIENTRAS no lleva punto y coma luego de la condición."); errores++; }
+						if (!ignore_logic_errors) err_handler.SyntaxError(262,"MIENTRAS no lleva punto y coma luego de la condición.");
 						cadena.erase(cadena.size()-1,1);
 					}
 					if (!RightCompareFix(cadena," HACER")) {
 						if (lang[LS_LAZY_SYNTAX]) cadena+=" HACER";
-						else { SynError (102,"Falta HACER."); errores++; }
+						else err_handler.SyntaxError(102,"Falta HACER.");
 					}
 					if (RightCompareFix(cadena," HACER")) {
 						string &str = inst_impl.condicion = cadena; // Comprobar la condición
@@ -1390,23 +1391,22 @@ int SynCheck::Instrucciones() {
 										string aux=str.substr(tmp1);
 										programa.Insert(prog_idx+1,aux);
 										break;
-									} else {
-										SynError (103,"Se esperaba fin de expresión."); errores++;
-									}
+									} else
+										err_handler.SyntaxError(103,"Se esperaba fin de expresión.");
 								}
 						}
-						if (Lerrores==errores) {
-							DataValue res = EvaluarSC(str,vt_logica);
-							if (res.IsOk()&&!res.CanBeLogic()) { SynError (104,"No coinciden los tipos."); errores++; }
+						if (this_instruction_is_ok()) {
+							DataValue res = EvaluarSC(rt,str,vt_logica);
+							if (res.IsOk()&&!res.CanBeLogic()) err_handler.SyntaxError(104,"No coinciden los tipos.");
 						}
 					}
 				}
 			}
 			if (inst.type==IT_SINO) {
-				if (bucles.empty() || programa[bucles.back()]!=IT_SI)  {SynError (2,"SINO mal colocado."); errores++;}
+				if (bucles.empty() || programa[bucles.back()]!=IT_SI) err_handler.SyntaxError(2,"SINO mal colocado.");
 				else {
 					auto &si_impl = getImpl<IT_SI>(programa[bucles.back()]);
-					if (si_impl.sino!=-1) {SynError (322,"No puede haber más de un SINO."); errores++;}
+					if (si_impl.sino!=-1) err_handler.SyntaxError(322,"No puede haber más de un SINO.");
 					else si_impl.sino = prog_idx;	
 				}
 			}
@@ -1417,15 +1417,15 @@ int SynCheck::Instrucciones() {
 			{
 				if (fin_algo && cadena==";") cadena="";
 				else if (!cadena.empty() && cadena!=";") {
-					SynError (105,"La instrucción no debe tener parámetros."); errores++;
+					err_handler.SyntaxError(105,"La instrucción no debe tener parámetros.");
 					cadena="";
 				}
 			}
 			if (inst.type==IT_ERROR && cadena!="" && cadena!=";") {
 				if (LeftCompare(cadena,"FIN "))
-					{SynError (99,"Instrucción no válida."); errores++;}
+					err_handler.SyntaxError(99,"Instrucción no válida.");
 				else
-						{SynError (106,"Instrucción no válida."); errores++;}
+					err_handler.SyntaxError(106,"Instrucción no válida.");
 			}
 			// llama directa a un subproceso
 			if (inst.type==IT_INVOCAR) {
@@ -1434,13 +1434,13 @@ int SynCheck::Instrucciones() {
 				const string &fname = inst_impl.nombre = NextToken(cadena,p);
 				const Funcion *func=EsFuncion(fname);
 				string &args = inst_impl.args = cadena.substr(p);
-				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) {SynError (310,string("La función retorna un valor, debe ser parte de una expresión (")+fname+")."); errores++;}
+				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) err_handler.SyntaxError(310,string("La función retorna un valor, debe ser parte de una expresión (")+fname+").");
 				if (args==";") args="();"; // para que siempre aparezcan las llaves y se eviten así problemas
 				if (args=="();") {
-					if (func->cant_arg!=0 && !ignore_logic_errors) {SynError (264,string("Se esperaban argumentos para el subproceso (")+fname+")."); errores++;}
+					if (func->cant_arg!=0 && !ignore_logic_errors) err_handler.SyntaxError(264,string("Se esperaban argumentos para el subproceso (")+fname+").");
 				} else if (func->cant_arg==0) {
-					if (args!="();" && !ignore_logic_errors) {SynError (265,string("El subproceso (")+fname+") no debe recibir argumentos."); errores++;}
-				} else if (args[0]!='(' && !ignore_logic_errors) {SynError (266,"Los argumentos para invocar a un subproceso deben ir entre paréntesis."); errores++;}
+					if (args!="();" && !ignore_logic_errors) err_handler.SyntaxError(265,string("El subproceso (")+fname+") no debe recibir argumentos.");
+				} else if (args[0]!='(' && !ignore_logic_errors) err_handler.SyntaxError(266,"Los argumentos para invocar a un subproceso deben ir entre paréntesis.");
 				else { // entonces tiene argumentos, y requiere argumentos, ver que la cantidad esté bien
 					int args_last_pos=BuscarComa(args,1,args.length()-1,')');
 					if (args_last_pos!=-1) { // si faltaban cerrar parentesis, el error salto antes
@@ -1450,15 +1450,16 @@ int SynCheck::Instrucciones() {
 							if (pos_coma==-1) pos_coma=args_last_pos;
 							if (cant_args<func->cant_arg) {
 								string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
-								if (not SirveParaReferencia(arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
-									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) { SynError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")")); errores++; }
-									else EvaluarSC(arg_actual,func->tipos[cant_args+1]);
+								if (not SirveParaReferencia(rt,arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
+									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) err_handler.SyntaxError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")"));
+									else EvaluarSC(rt,arg_actual,func->tipos[cant_args+1]);
 								}
 							}
 							cant_args++; last_pos_coma=pos_coma;
 						} while (pos_coma!=args_last_pos);
-						if (cant_args!=func->cant_arg && !ignore_logic_errors) { SynError(268,string("Cantidad de argumentos incorrecta para el subproceso (")+fname+(")")); errores++; }
-						else if (args_last_pos!=int(args.length())-2) {SynError (269,"Se esperaba fin de instrucción."); errores++;} // el -2 de la condición es por el punto y coma
+						if (cant_args!=func->cant_arg && !ignore_logic_errors) 
+							err_handler.SyntaxError(268,string("Cantidad de argumentos incorrecta para el subproceso (")+fname+(")"));
+						else if (args_last_pos!=int(args.length())-2) err_handler.SyntaxError(269,"Se esperaba fin de instrucción."); // el -2 de la condición es por el punto y coma
 					}
 				}
 				args.erase(args.size()-1);
@@ -1468,8 +1469,8 @@ int SynCheck::Instrucciones() {
 				if (!bucles.empty() && programa[bucles.back()]==IT_SEGUN) {
 					getImpl<IT_SEGUN>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
-				} else {
-					SynError (107,"FINSEGUN mal colocado."); errores++;}
+				} else
+					err_handler.SyntaxError(107,"FINSEGUN mal colocado.");
 			}
 			if (inst.type==IT_FINPARA) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_PARA||programa[bucles.back()]==IT_PARACADA)) {
@@ -1478,22 +1479,22 @@ int SynCheck::Instrucciones() {
 					else 
 						getImpl<IT_PARACADA>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
-				} else {
-					SynError (108,"FINPARA mal colocado."); errores++;}
+				} else
+					err_handler.SyntaxError(108,"FINPARA mal colocado.");
 			}
 			if (inst.type==IT_FINMIENTRAS) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_MIENTRAS)) {
 					getImpl<IT_MIENTRAS>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
-				} else {
-					SynError (109,"FINMIENTRAS mal colocado."); errores++;}
+				} else
+					err_handler.SyntaxError(109,"FINMIENTRAS mal colocado.");
 			}
 			if (inst.type==IT_FINSI) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_SI)) {
 					getImpl<IT_SI>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
-				} else {
-					SynError (110,"FINSI mal colocado."); errores++;}
+				} else
+					err_handler.SyntaxError(110,"FINSI mal colocado.");
 			}
 			if (inst.type==IT_HASTAQUE) {
 				if (!bucles.empty() && programa[bucles.back()]==IT_REPETIR) {
@@ -1501,16 +1502,15 @@ int SynCheck::Instrucciones() {
 					bucles.pop_back();
 				} else {
 					if (getImpl<IT_HASTAQUE>(inst).mientras_que)
-						SynError (270,"MIENTRAS QUE mal colocado."); 
+						err_handler.SyntaxError(270,"MIENTRAS QUE mal colocado."); 
 					else
-						SynError (111,"HASTA QUE mal colocado."); 
-					errores++;
+						err_handler.SyntaxError(111,"HASTA QUE mal colocado."); 
 				}
 			}
 			if ( (prog_idx>0 && inst.type==IT_SINO && programa[prog_idx-1]==IT_SI)
 				|| (prog_idx>0 && inst.type==IT_SINO && programa[prog_idx-1]==IT_ENTONCES) )
 			{
-				if (!ignore_logic_errors) { SynError (113,"Debe haber acciones en la salida por verdadero."); errores++;}
+				if (!ignore_logic_errors) err_handler.SyntaxError(113,"Debe haber acciones en la salida por verdadero.");
 			}
 			
 			programa[prog_idx].type = inst.type;
@@ -1521,31 +1521,31 @@ int SynCheck::Instrucciones() {
 		}
 	}
 	
-	InformUnclosedLoops(bucles,errores);
+	InformUnclosedLoops(rt,bucles);
 	
-	return SynErrores;
 }
 
-int ParseInspection(string &cadena) {
-	auto ret = SynCheck::Normalizar(cadena); // acomodar caracteres
-	int errores=0;
-	if (!ret.first.empty()) { SynError (271,"No puede haber más de una expresión ni comentarios."); errores++; }
+bool ParseInspection(RunTime &rt, string &cadena) {
+	auto ret = Normalizar(cadena); // acomodar caracteres
+	if (!ret.first.empty()) rt.err.SyntaxError(271,"No puede haber más de una expresión ni comentarios.");
 	if (cadena.size() && cadena[cadena.size()-1]==';') cadena.erase(cadena.size()-1,1);
-	SynCheck::Condiciones(cadena, errores); // word_operators
-	SynCheck::Operadores(-1,cadena,errores,IT_ASIGNAR); // verificar operadores
-	return errores;
+	Condiciones(rt,cadena); // word_operators
+	Operadores(rt,-1,cadena,IT_ASIGNAR); // verificar operadores
+	return rt.err.IsOk();
 }
 
-int SynCheck::Run() {
+bool SynCheck(RunTime &rt) {
+	Programa &programa = rt.prog;
+	ErrorHandler &err_handler = rt.err;
+	
 	programa.PushBack(""); // linea en blanco al final, para que era?
 	programa.Insert(0,""); // linea en blanco al principio, para que era?
-	int errores=0;
 	
 	if (case_map) for(int i=0;i<programa.GetLinesCount();i++) CaseMapFill(programa[i].instruccion);
 	
 	// pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y trimear
 	for(int i=0;i<programa.GetLinesCount();i++) {
-		auto ret = SynCheck::Normalizar(programa[i].instruccion);
+		auto ret = Normalizar(programa[i].instruccion);
 		if (ret.first.empty()) continue;
 		if (ret.second) {
 			if (preserve_comments && ret.first.size()) { programa.Insert(i,ret.first); i++; }
@@ -1562,21 +1562,21 @@ int SynCheck::Run() {
 				Inter.SetLocation(programa[i].loc);
 				bool es_proceso=(fw=="PROCESO"||fw=="ALGORITMO");
 				if (s==fw) s+=" ";
-				Funcion *func=ParsearCabeceraDeSubProceso(s.substr(fw.size()+1),es_proceso,errores);
+				Funcion *func = ParsearCabeceraDeSubProceso(rt,s.substr(fw.size()+1),es_proceso);
 				func->userline_start=Inter.GetLocation().linea;
 				subprocesos[func->id]=func;
 				if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
-					if (have_proceso) { SynError (272,"Solo puede haber un Proceso."); errores++;}
+					if (have_proceso) err_handler.SyntaxError(272,"Solo puede haber un Proceso.");
 					main_process_name=func->id;
 					have_proceso=true;
 				} else if (!lang[LS_ENABLE_USER_FUNCTIONS])
-					{ SynError (309,"Este perfil no admite SubProcesos."); errores++;}
+					err_handler.SyntaxError(309,"Este perfil no admite SubProcesos.");
 			}
 	}
-	errores=SynCheck::Instrucciones();
+	Instrucciones(rt);
 	
-	if (!have_proceso) { Inter.SetLocation({1,1}); SynError(273,"Debe haber un Proceso."); errores++;}  
+	if (!have_proceso) { Inter.SetLocation({1,1}); err_handler.SyntaxError(273,"Debe haber un Proceso."); }  
 	else Inter.SetLocation({EsFuncion(main_process_name,true)->line_start,1});
 	
-	return errores;
+	return err_handler.IsOk();
 }

@@ -1,11 +1,12 @@
 #include "global.h"
 #include "common.h"
-#include "new_evaluar.h"
+#include "Evaluar.hpp"
 #include "intercambio.h"
 #include "new_memoria.h"
 #include "utils.h"
 #include "zcurlib.h"
-#include "new_funciones.h"
+#include "Funciones.hpp"
+#include "RunTime.hpp"
 
 void show_user_info(string msg) {
 	if (fix_win_charset) fixwincharset(msg);
@@ -24,15 +25,10 @@ void show_user_info(string msg1, int num, string msg2) {
 
 // ***************** Control de Errores y Depuración **********************
 
-void ExeError(int num,string s, bool use_syn_if_not_running) { 
-	if (Inter.IsRunning()) ExeError(num,s);
-	else if (use_syn_if_not_running) SynError(num,s);
-	
-}
 // ------------------------------------------------------------
 //    Informa un error en tiempo de ejecucion
 // ------------------------------------------------------------
-void ExeError(int num,string s) { 
+void ExeError_impl(int num, string s) { 
 	if (Inter.EvaluatingForDebug()) {
 		Inter.SetError(string("<<")+s+">>");
 	} else {
@@ -69,17 +65,16 @@ void ExeError(int num,string s) {
 // ------------------------------------------------------------
 //    Informa un error de syntaxis antes de la ejecucion
 // ------------------------------------------------------------
-void SynError(int num,string s) { 
-	SynError(num,s,Inter.GetLocation());
+void SynError_impl(int num,string s) { 
+	SynError_impl(num,s,Inter.GetLocation());
 }
 
-void SynError(int num,string s, CodeLocation loc) { 
+void SynError_impl(int num,string s, CodeLocation loc) { 
 #ifdef _FOR_PSEXPORT
 	return;
 #endif
 	if (raw_errors) {
 		cout<<"=== Line "<<loc.linea<<": SynError "<<num<<endl;
-		SynErrores++;
 		return;
 	}
 	if (Inter.EvaluatingForDebug()) {
@@ -95,8 +90,6 @@ void SynError(int num,string s, CodeLocation loc) {
 			if (loc.instruccion>0) ExeInfo<<" (inst "<<loc.instruccion<<")";
 			ExeInfo<<": ERROR "<<num<<": "<<s<<endl;
 		}
-//		Inter.AddError(s,line);
-		SynErrores++;
 	}
 }
 
@@ -106,10 +99,10 @@ void SynError(int num,string s, CodeLocation loc) {
 //    A diferencia del anterior, no tiene en cuenta las
 //  funciones predefinidas.
 // ------------------------------------------------------------
-bool CheckVariable(string str, int errcode) { 
+bool CheckVariable(RunTime &rt, string str, int errcode) { 
 	size_t pi=str.find("(",0);
 	if (pi!=string::npos && str[str.size()-1]==')') {
-		CheckDims(str);
+		CheckDims(rt,str);
 		str.erase(pi,str.size()-pi); // si es arreglo corta los subindices
 	}
 	bool ret=true;
@@ -130,7 +123,7 @@ bool CheckVariable(string str, int errcode) {
 		ret=false;
 	else if (lang[LS_ENABLE_USER_FUNCTIONS] && (str=="FINSUBPROCESO" || str=="SUBPROCESO" ||str=="FINFUNCION" || str=="FUNCION" ||str=="FINFUNCIÓN" || str=="FUNCIÓN") )
 		ret=false;
-	if (!ret && errcode!=-1) SynError (errcode,string("Identificador no válido (")+str+")."); 
+	if (!ret && errcode!=-1) rt.err.SyntaxError(errcode,string("Identificador no válido (")+str+")."); 
 	return ret;
 }
 
@@ -371,66 +364,64 @@ string NextToken(string &cadena, int &p) {
 
 // arma el objeto Funcion analizando la cabecera (cadena, que viene sin la palbra PROCESO/SUBPROCESO)
 // pero no lo registra en el mapa de subprocesos
-Funcion *ParsearCabeceraDeSubProceso(string cadena, bool es_proceso, int &errores) {
+Funcion *ParsearCabeceraDeSubProceso(RunTime &rt, string cadena, bool es_proceso) {
+	ErrorHandler &err_handler = rt.err;
 	
 	Funcion *the_func=new Funcion(0); 
 	
 	// parsear nombre y valor de retorno
 	int p=0 ;string fname=NextToken(cadena,p); string tok=NextToken(cadena,p); // extraer el nombre y el "=" si esta
 	if (tok=="="||tok=="<-") { // si estaba el igual, lo que se extrajo es el valor de retorno
-		if (es_proceso) { SynError (242,"El proceso principal no puede retornar ningun valor."); errores++; }
+		if (es_proceso) err_handler.SyntaxError(242,"El proceso principal no puede retornar ningun valor.");
 		the_func->nombres[0]=fname; fname=NextToken(cadena,p); tok=NextToken(cadena,p); 
-		if (!CheckVariable(the_func->nombres[0])) errores++;
+		CheckVariable(rt,the_func->nombres[0]);
 	} else {
 		the_func->tipos[0]=vt_error; // para que cuando la quieran usar en una expresión salte un error, porque evaluar no verifica si se devuelve algo porque se use desde Ejecutar parala instrucción INVOCAR
 	}//...en tok2 deberia quedar siempre el parentesis si hay argumentos, o en nada si termina sin argumentos
 	if (fname=="") { 
-		SynError (40,es_proceso?"Falta nombre de proceso.":"Falta nombre de subproceso."); errores++; 
+		err_handler.SyntaxError(40,es_proceso?"Falta nombre de proceso.":"Falta nombre de subproceso."); 
 		static int untitled_functions_count=0; // para numerar las funciones sin nombre
 		fname=string("<sin_nombre>")+IntToStr(++untitled_functions_count);
 	}
 	else if (EsFuncion(fname)) { 
-		errores++; SynError (243,string("Ya existe otro proceso/subproceso con el mismo nombre(")+fname+")."); errores++;
+		err_handler.SyntaxError(243,string("Ya existe otro proceso/subproceso con el mismo nombre(")+fname+").");
 	}
-	else if (!CheckVariable(fname)) { 
-		CheckVariable(fname);
-		errores++; SynError (244,string("El nombre del proceso/subproceso(")+fname+") no es válido."); errores++;
+	else if (!CheckVariable(rt,fname)) { 
+		CheckVariable(rt,fname);
+		err_handler.SyntaxError(244,string("El nombre del proceso/subproceso(")+fname+") no es válido.");
 	}
 	// argumentos
 	if (tok=="(") {
-		if (es_proceso) { SynError (246,"El proceso principal no puede recibir argumentos."); errores++; }
+		if (es_proceso) err_handler.SyntaxError(246,"El proceso principal no puede recibir argumentos.");
 		bool closed=false;
 		tok=NextToken(cadena,p);
 		while (tok!="") {
 			if (tok==")") { closed=true; break; }
 			else if (tok==",") { 
-				SynError (247,"Falta nombre de argumento."); errores++;
+				err_handler.SyntaxError(247,"Falta nombre de argumento.");
 				tok=NextToken(cadena,p);
 			} else {
-				if (!CheckVariable(tok)) errores++;
+				CheckVariable(rt,tok);
 				the_func->AddArg(tok);
 				tok=NextToken(cadena,p);
 				if (tok=="POR") {
 					tok=NextToken(cadena,p);
-					if (tok!="REFERENCIA"&&tok!="COPIA"&&tok!="VALOR") {
-						SynError (248,"Tipo de pasaje inválido, se esperaba Referencia, Copia o Valor."); errores++;
-					} else the_func->SetLastPasaje(tok=="REFERENCIA"?PP_REFERENCIA:PP_VALOR);
+					if (tok!="REFERENCIA"&&tok!="COPIA"&&tok!="VALOR")
+						err_handler.SyntaxError(248,"Tipo de pasaje inválido, se esperaba Referencia, Copia o Valor.");
+					else the_func->SetLastPasaje(tok=="REFERENCIA"?PP_REFERENCIA:PP_VALOR);
 					tok=NextToken(cadena,p);
-				} else if (tok!="," && tok!=")" && tok!="") { 
-					SynError (249,"Se esperaba coma(,) o parentesis ())."); errores++;
-				} 
+				} else if (tok!="," && tok!=")" && tok!="")
+					err_handler.SyntaxError(249,"Se esperaba coma(,) o parentesis ()).");
 				if (tok==",") { tok=NextToken(cadena,p); }
 			}
 		}
-		if (!closed) {
-			{ SynError (250,"Falta cerrar lista de argumentos."); errores++; }
-		} else if (NextToken(cadena,p).size()) {
-			{ SynError (251,"Se esperaba fin de linea."); errores++; }
-		}
+		if (not closed) err_handler.SyntaxError(250,"Falta cerrar lista de argumentos.");
+		else if (NextToken(cadena,p).size()) err_handler.SyntaxError(251,"Se esperaba fin de linea.");
 	} else if (tok!="") { // si no habia argumentos no tiene que haber nada
-		if (es_proceso) { SynError (252,"Se esperaba el fin de linea."); errores++; } else {
-			if (the_func->nombres[0].size()) { SynError (253,"Se esperaba la lista de argumentos, o el fin de linea."); errores++; }
-			else { SynError (254,"Se esperaba la lista de argumentos, el signo de asignación, o el fin de linea."); errores++; }
+		if (es_proceso) err_handler.SyntaxError(252,"Se esperaba el fin de linea."); 
+		else {
+			if (the_func->nombres[0].size()) err_handler.SyntaxError(253,"Se esperaba la lista de argumentos, o el fin de linea.");
+			else err_handler.SyntaxError(254,"Se esperaba la lista de argumentos, el signo de asignación, o el fin de linea.");
 		}
 	}
 	the_func->id=fname;

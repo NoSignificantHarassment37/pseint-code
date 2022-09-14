@@ -1,9 +1,9 @@
 #include "intercambio.h"
-#include "common.h"
-#include "new_evaluar.h"
-#include "utils.h"
-#include "SynCheck.h"
 #include <cstdlib>
+#include "common.h"
+#include "Evaluar.hpp"
+#include "utils.h"
+#include "SynCheck.hpp"
 using namespace std;
 
 Intercambio Inter;
@@ -80,9 +80,9 @@ void Intercambio::ProcData(string order) {
 		str+= order.substr(8,(++key_end)-8);  // agregar clave en la respuesta 
 		int pos_tipo = str.size(); str+="x "; // agregar espacio para el tipo
 		string exp = order.substr(key_end); // cortar expresion
-		ParseInspection(exp); // reformatear
+		ParseInspection(*rt,exp); // reformatear
 		if (!is_evaluation_error) // si parecia corrcta
-			res = Evaluar(exp); // evaluar
+			res = Evaluar(*rt,exp); // evaluar
 		if (is_evaluation_error) // si no se pude evaluar
 			str+=evaluation_error+"\n"; // responder con error
 		else { // si se pudo evaluar
@@ -95,7 +95,7 @@ void Intercambio::ProcData(string order) {
 		string exp = order.substr(12);
 		evaluating_for_debug=true;
 		is_evaluation_error=false;
-		ParseInspection(exp);
+		ParseInspection(*rt,exp);
 		if (is_evaluation_error) {
 			autoevaluaciones_valid.push_back(false);
 			autoevaluaciones.push_back(evaluation_error);
@@ -147,7 +147,7 @@ void Intercambio::ChatWithGUI () {
 			if (autoevaluaciones_valid[i]) {
 				stringstream autoevaluacion;
 				is_evaluation_error = false;
-				DataValue res = Evaluar(autoevaluaciones[i]);
+				DataValue res = Evaluar(*rt,autoevaluaciones[i]);
 				if (is_evaluation_error)
 					autoevaluacion<<"autoevaluacion "<<i+1<<' '<<evaluation_error<<'\n';
 				else {
@@ -202,8 +202,8 @@ void Intercambio::ProcInput() {
 }
 #endif
 
-void Intercambio::SetStarted(Ejecutar &ej) {
-	ejecutar = &ej;
+void Intercambio::SetStarted() {
+	running = true;
 	backtraceLevel=0;
 	backtrace.clear();
 }
@@ -218,7 +218,7 @@ void Intercambio::SetFinished(bool interrupted) {
 			zocket_escribir(zocket,"estado interrumpido\n",20);
 	}
 #endif
-	ejecutar = nullptr;
+	running = false;
 }
 
 #ifdef USE_ZOCKETS

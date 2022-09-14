@@ -5,14 +5,12 @@
 #include <fstream>
 #include <queue>
 #include "LangSettings.h"
-using namespace std;
 
 // *********************** Variables Globales ****************************
-extern queue <string> predef_input;
-extern ofstream ExeInfo; // Archivo de Inforamacion de Ejecucion para el entorno
+extern std::queue<std::string> predef_input;
+extern std::ofstream ExeInfo; // Archivo de Informacion de Ejecucion para el entorno
 extern bool ExeInfoOn;
 extern bool wait_key;
-extern int SynErrores; // Contador para errores de Sintaxis
 extern LangSettings lang;
 extern bool colored_output;
 extern bool for_test; // no hacer nada con las instrucciones EsperarTecla y LimpiarPantalla para no arruinar la automatización de los tests (tambien usado en psexport para no poner comentarios ni lineas en blanco)

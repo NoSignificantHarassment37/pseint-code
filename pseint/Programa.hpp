@@ -1,12 +1,11 @@
-#ifndef NEW_PROGRAMA_H
-#define NEW_PROGRAMA_H
+#ifndef PROGRAMA_HPP
+#define PROGRAMA_HPP
 #include <string>
 #include <vector>
-#include "instruccion.h"
-#include "intercambio.h"
+#include "Instruccion.hpp"
 
 class Programa {
-	vector<Instruccion> v;
+	std::vector<Instruccion> v;
 	int cant_lines;
 public:
 	Programa():cant_lines(0) {}
@@ -16,14 +15,14 @@ public:
 	const Instruccion &operator[](int i) const { 
 		return v[i];
 	}
-	void Insert(int pos,const string &inst, CodeLocation loc) { 
+	void Insert(int pos,const std::string &inst, CodeLocation loc) { 
 		cant_lines++;
 		v.insert(v.begin()+pos,Instruccion(inst,loc));
 	}
-	void Insert(int pos,const string &inst) {
+	void Insert(int pos,const std::string &inst) {
 		Insert(pos,inst,{pos?v[pos-1].loc.linea:-1,pos?v[pos-1].loc.instruccion+1:-1});
 	}
-	void PushBack(string inst) { 
+	void PushBack(std::string inst) { 
 		v.push_back(Instruccion(inst,{++cant_lines,1}));
 	}
 	void Erase(int i) { 

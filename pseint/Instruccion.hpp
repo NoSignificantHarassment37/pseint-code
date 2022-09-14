@@ -1,5 +1,5 @@
-#ifndef INSTRUCCION_H
-#define INSTRUCCION_H
+#ifndef INSTRUCCION_HPP
+#define INSTRUCCION_HPP
 
 #include <string>
 #include <vector>

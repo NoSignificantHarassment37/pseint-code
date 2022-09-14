@@ -2,13 +2,13 @@
 #define LANGSETTINGS_H
 
 #include <string>
+#include <cstdlib>
 #ifdef FOR_WXPSEINT
 #	include <wx/string.h>
 #	include "../wxPSeInt/string_conversions.h"
 #endif
 
 #define LS_VERSION 20210407
-#include <cstdlib>
 
 enum LS_INIT_ENUM {
 	LS_INIT,

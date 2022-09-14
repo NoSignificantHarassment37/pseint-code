@@ -6,12 +6,14 @@
 #include "new_memoria.h"
 #include "global.h"
 #include "utils.h"
-#include "new_evaluar.h"
-#include "SynCheck.h"
-#include "Ejecutar.h"
-#include "new_funciones.h"
-#include "new_programa.h"
+#include "Evaluar.hpp"
+#include "SynCheck.hpp"
+#include "Ejecutar.hpp"
+#include "Funciones.hpp"
+#include "Programa.hpp"
+#include "ErrorHandler.hpp"
 #include "case_map.h"
+#include "RunTime.hpp"
 using namespace std;
 
 void on_signal(int s) {
@@ -67,9 +69,11 @@ int main(int argc, char* argv[]) {
 	signal(15,on_signal);
 
 	_handle_version_query("PSeInt",0);
-
+	
 	lang.Reset();
 	
+	RunTime rt;
+
 	bool 
 		check=true, // checkear syntaxis?
 		run=true, // ejecutar?
@@ -193,11 +197,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	// inicializaciones varias
-	int errores;
 	LoadFunciones();
 	if (forced_seed==-1) srand(time(NULL)); else srand(forced_seed);
 	
-	Programa programa;
+	Programa &programa = rt.prog;
+	ErrorHandler &err_handler = rt.err;
 	
 	if (real_time_syntax) {
 		while (cin) {
@@ -212,7 +216,7 @@ int main(int argc, char* argv[]) {
 				if (line=="<!{[END_OF_INPUT]}!>") break;
 				programa.PushBack(line);
 			}
-			SynCheck(programa).Run();
+			SynCheck(rt);
 			cout<<"<!{[END_OF_OUTPUT]}!>"<<endl;
 			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
 			while (it1!=it2) {
@@ -277,13 +281,13 @@ int main(int argc, char* argv[]) {
 	archivo.close();
 
 	// comprobar sintaxis y ejecutar
-	errores=SynCheck(programa).Run();
+	SynCheck(rt);
 	Inter.InitDebug(delay);
 	
 	if (for_pseint_terminal) { cout<<"\033[zt"<<main_process_name<<"\n"; }
 
 	//ejecutar
-	if (errores==0) {
+	if (err_handler.IsOk()) {
 	// salida para diagrama
 		if (for_draw) {
 			if (case_map) CaseMapPurge();
@@ -326,17 +330,17 @@ int main(int argc, char* argv[]) {
 			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
 			while (it1!=it2) (it1++)->second->memoria->FakeReset();
 			checksum(programa);
-			Ejecutar ejecutar(programa);
-			Inter.SetStarted(ejecutar);
+			Inter.SetStarted();
 			const Funcion *main_func=EsFuncion(main_process_name,true);
 			memoria=main_func->memoria;
-			ejecutar.Run(main_func->line_start);
+			Ejecutar(rt,main_func->line_start);
 			Inter.SetFinished();
 			if (ExeInfoOn) ExeInfo<<"*** Ejecucion Finalizada. ***";
 			if (user) show_user_info("*** Ejecución Finalizada. ***");
 		}
 	} else {
 		if (user) cout<<endl;
+		int errores = rt.err.GetErrorsCount();
 		if (errores==1) {
 			if (ExeInfoOn) if (user) ExeInfo<<"*** Se encontro 1 error. ***";
 			if (user) show_user_info("*** Se encontró 1 error. ***");

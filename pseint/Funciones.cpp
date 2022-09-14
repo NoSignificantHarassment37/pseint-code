@@ -1,9 +1,9 @@
-
-#include "new_funciones.h"
-#include "utils.h"
-#include "intercambio.h"
 #include <cmath>
 #include <cstdlib>
+#include "Funciones.hpp"
+#include "ErrorHandler.hpp"
+#include "utils.h"
+#include "intercambio.h"
 #include "global.h"
 #include "DataValue.h"
 using namespace std;
@@ -32,82 +32,82 @@ const Funcion* EsFuncion(const string &nombre, bool include_main_process) {
 	return ret;
 }
 
-DataValue func_rc(DataValue *arg) {
+DataValue func_rc(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	if (x<0) {
-		ExeError(147,"Raiz cuadrada de número negativo.",false);
+		err_handler.ErrorIfRunning(147,"Raiz cuadrada de número negativo.");
 		return DataValue::MakeEmpty(vt_numerica);
 	} 
 	return DataValue::MakeReal(sqrt(x));
 }
-DataValue func_abs(DataValue *arg) {
+DataValue func_abs(ErrorHandler &err_handler, DataValue *arg) {
 	double d = arg[0].GetAsReal();
 	return DataValue::MakeReal( d<0 ? -d : d );
 }
 
-DataValue func_ln(DataValue *arg) {
+DataValue func_ln(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	if (x<=0) {
-		ExeError(148,"Logaritmo de 0 o negativo.",false);
+		err_handler.ErrorIfRunning(148,"Logaritmo de 0 o negativo.");
 		return DataValue::MakeEmpty(vt_numerica);
 	}
 	return DataValue::MakeReal(log(x));
 }
-DataValue func_exp(DataValue *arg) {
+DataValue func_exp(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(exp(arg[0].GetAsReal()));
 }
 
-DataValue func_sen(DataValue *arg) {
+DataValue func_sen(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(sin(arg[0].GetAsReal()));
 }
 
-DataValue func_asen(DataValue *arg) {
+DataValue func_asen(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	if (x<-1||x>+1) {
-		ExeError(312,"Argumento inválido para la función ASEN (debe estar en [-1;+1]).",false);
+		err_handler.ErrorIfRunning(312,"Argumento inválido para la función ASEN (debe estar en [-1;+1]).");
 		return DataValue::MakeEmpty(vt_numerica);
 	}
 	return DataValue::MakeReal(asin(x));
 }
 
-DataValue func_acos(DataValue *arg) {
+DataValue func_acos(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	if (x<-1||x>+1) {
-		ExeError(312,"Argumento inválido para la función ACOS (debe estar en [-1;+1]).",false);
+		err_handler.ErrorIfRunning(312,"Argumento inválido para la función ACOS (debe estar en [-1;+1]).");
 		return DataValue::MakeEmpty(vt_numerica);
 	}
 	return DataValue::MakeReal(acos(x));
 }
 
-DataValue func_cos(DataValue *arg) {
+DataValue func_cos(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(cos(arg[0].GetAsReal()));
 }
 
-DataValue func_tan(DataValue *arg) {
+DataValue func_tan(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(tan(arg[0].GetAsReal()));
 }
 
-DataValue func_atan(DataValue *arg) {
+DataValue func_atan(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(atan(arg[0].GetAsReal()));
 }
 
-DataValue func_azar(DataValue *arg) {
+DataValue func_azar(ErrorHandler &err_handler, DataValue *arg) {
 	int x = arg[0].GetAsInt();
 	if (x<=0) {
-		ExeError(306,"Azar de 0 o negativo.",false);
+		err_handler.ErrorIfRunning(306,"Azar de 0 o negativo.");
 		return DataValue::MakeEmpty(vt_numerica_entera);
 	} else
 		return DataValue::MakeInt(rand()%x);
 }
 
-DataValue func_aleatorio(DataValue *arg) {
+DataValue func_aleatorio(ErrorHandler &err_handler, DataValue *arg) {
 	int a = arg[0].GetAsInt();
 	int b = arg[1].GetAsInt();
 	if (b<a) { int x=a; a=b; b=x; }
 	return DataValue::MakeInt(a+rand() % (b-a+1));
 }
 
-DataValue func_trunc(DataValue *arg) {
+DataValue func_trunc(ErrorHandler &err_handler, DataValue *arg) {
 	double dbl = arg[0].GetAsReal();
 	int i = int(dbl);
 	// intentar compensar algunos errores numéricos... que al menos parezca el 
@@ -118,16 +118,16 @@ DataValue func_trunc(DataValue *arg) {
 	return DataValue::MakeInt(i);
 }
 
-DataValue func_redon(DataValue *arg) {
+DataValue func_redon(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	return DataValue::MakeInt(int(x+(x<0?-.5:+.5)));
 }
 
-DataValue func_longitud(DataValue *arg) {
+DataValue func_longitud(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeInt(arg[0].GetAsString().size());
 }
 
-DataValue func_mayusculas(DataValue *arg) {
+DataValue func_mayusculas(ErrorHandler &err_handler, DataValue *arg) {
 	string s = arg[0].GetAsString(); size_t l = s.size();
 	for(size_t i=0;i<l;i++) { 
 		if (s[i]>='a'&&s[i]<='z') s[i]+='A'-'a';
@@ -142,7 +142,7 @@ DataValue func_mayusculas(DataValue *arg) {
 	return DataValue::MakeString(s);
 }
 
-DataValue func_minusculas(DataValue *arg) {
+DataValue func_minusculas(ErrorHandler &err_handler, DataValue *arg) {
 	string s = arg[0].GetAsString(); size_t l = s.length();
 	for(size_t i=0;i<l;i++) { 
 		if (s[i]>='A'&&s[i]<='Z') s[i]+='a'-'A';
@@ -157,7 +157,7 @@ DataValue func_minusculas(DataValue *arg) {
 	return DataValue::MakeString(s);
 }
 
-DataValue func_subcadena(DataValue *arg) {
+DataValue func_subcadena(ErrorHandler &err_handler, DataValue *arg) {
 	string s = arg[0].GetAsString(); int l=s.length(), f=arg[1].GetAsInt(), t=arg[2].GetAsInt();
 	if (!lang[LS_BASE_ZERO_ARRAYS]) { f--; t--; }
 	if (t>l-1) t=l-1; 
@@ -166,11 +166,11 @@ DataValue func_subcadena(DataValue *arg) {
 	return DataValue::MakeString(s.substr(f,t-f+1));
 }
 
-DataValue func_concatenar(DataValue *arg) {
+DataValue func_concatenar(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeString(arg[0].GetAsString()+arg[1].GetAsString());
 }
 
-DataValue func_atof(DataValue *arg) {
+DataValue func_atof(ErrorHandler &err_handler, DataValue *arg) {
 	// verificar formato
 	string s = arg[0].GetAsString();
 	bool punto=false; int j=0;
@@ -179,7 +179,7 @@ DataValue func_atof(DataValue *arg) {
 		if (!punto && s[i]=='.')
 			punto=true;
 		else if (s[i]<'0'||s[i]>'9') {
-			ExeError(311,string("La cadena (\"")+s+"\") no representa un número.",true);
+			err_handler.ErrorIfRunning(311,string("La cadena (\"")+s+"\") no representa un número.");
 			return DataValue::MakeEmpty(vt_numerica);
 		}
 	}
@@ -187,14 +187,14 @@ DataValue func_atof(DataValue *arg) {
 	return DataValue::MakeReal(s);
 }
 
-DataValue func_ftoa(DataValue *arg) {
+DataValue func_ftoa(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeString(arg[0].GetForUser()); // la conversión es para que redondee
 }
 
-DataValue func_pi(DataValue *arg) {
+DataValue func_pi(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(3.141592653589793238462643383279502884197169399375105820974944592);
 }
-DataValue func_euler(DataValue *arg) {
+DataValue func_euler(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(2.7182818284590452353602874713527);
 }
 

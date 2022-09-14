@@ -1,6 +1,6 @@
 #include "case_map.h"
 #include "utils.h"
-#include "new_funciones.h"
+#include "Funciones.hpp"
 
 map<string,string> *case_map=NULL;
 
