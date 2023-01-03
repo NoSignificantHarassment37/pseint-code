@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "new_memoria.h"
 #include "zcurlib.h"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "Evaluar.hpp"
 using namespace std;
 
@@ -65,7 +65,7 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 				const auto &inst_impl = getImpl<IT_INVOCAR>(inst);
 				tipo_var tipo=vt_desconocido;
 				_sub(line,string("Se va a invocar al subproceso")+inst_impl.nombre);
-				EvaluarFuncion(rt,EsFuncion(inst_impl.nombre),inst_impl.args,tipo,false);
+				EvaluarFuncion(rt,inst_impl.nombre,inst_impl.args,tipo,false);
 			} break;
 
 			// ----------- ESCRIBIR ------------ //
@@ -73,8 +73,8 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 				_pos(line);
 				const auto &inst_impl = getImpl<IT_ESCRIBIR>(inst);
 				// Separar parametros
-				for(size_t i_expr=0;i_expr<inst_impl.expressiones.size();++i_expr) {
-					const string &expression = inst_impl.expressiones[i_expr];
+				for(size_t i_expr=0;i_expr<inst_impl.expresiones.size();++i_expr) {
+					const string &expression = inst_impl.expresiones[i_expr];
 					if (colored_output) setForeColor(COLOR_OUTPUT);
 					if (with_io_references) Inter.SendIOPositionToTerminal(i_expr+1);
 					_sub(line,string("Se evalúa la expresion: ")+expression);

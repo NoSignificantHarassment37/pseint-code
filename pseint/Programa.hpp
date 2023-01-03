@@ -6,9 +6,8 @@
 
 class Programa {
 	std::vector<Instruccion> v;
-	int cant_lines;
 public:
-	Programa():cant_lines(0) {}
+	Programa() = default;
 	Instruccion &operator[](int i) { 
 		return v[i];
 	}
@@ -16,28 +15,32 @@ public:
 		return v[i];
 	}
 	void Insert(int pos,const std::string &inst, CodeLocation loc) { 
-		cant_lines++;
+//		cant_lines++;
 		v.insert(v.begin()+pos,Instruccion(inst,loc));
 	}
 	void Insert(int pos,const std::string &inst) {
 		Insert(pos,inst,{pos?v[pos-1].loc.linea:-1,pos?v[pos-1].loc.instruccion+1:-1});
 	}
+	void PushBack(const Instruccion &inst) {
+		v.push_back(inst);
+	}
 	void PushBack(std::string inst) { 
-		v.push_back(Instruccion(inst,{++cant_lines,1}));
+		v.push_back(Instruccion(inst,{int(v.size())+1,1}));
 	}
 	void Erase(int i) { 
-//		if (ref_point>=i) ref_point--; 
-		v.erase(v.begin()+i); cant_lines--;
-	}
-	int GetLinesCount() const { 
-		return cant_lines;
+		v.erase(v.begin()+i);
 	}
 	int GetInstCount() const { 
 		return v.size();
 	}
 	void HardReset() { 
-		v.clear(); cant_lines=0;
+		v.clear();
 	}
+	
+	auto begin() { return v.begin(); }
+	auto end() { return v.end(); }
+	auto begin() const { return v.begin(); }
+	auto end() const { return v.end(); }
 };
 
 #endif

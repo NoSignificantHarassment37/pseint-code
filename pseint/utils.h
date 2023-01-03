@@ -5,6 +5,7 @@
 #include "new_memoria.h"
 #include "Programa.hpp"
 #include "global.h"
+#include <memory>
 using namespace std;
 
 class RunTime;
@@ -104,11 +105,13 @@ inline bool EsLetra(const char &_c, bool incluir_numeros=false) {
 }
 
 // "extrae" una palabra, una constante, o un operador, desde la pos p, no modifica la cadena, sino que avanza el indice p
-string NextToken(string &cadena, int &p);
+std::string NextToken(const std::string &cadena, int &p);
 
 
-Funcion *ParsearCabeceraDeSubProceso(RunTime &rt, string cadena, bool es_proceso);
-string ExtraerNombreDeSubProceso(string cadena);
+struct FuncStrings { std::string ret_id, nombre, args; };
+FuncStrings SepararCabeceraDeSubProceso(string cadena);
+std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const std::string &cadena, bool es_proceso);
+std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings &parts, bool es_proceso);
 
 string FirstWord(const string &s);
 

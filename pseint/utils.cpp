@@ -5,7 +5,7 @@
 #include "new_memoria.h"
 #include "utils.h"
 #include "zcurlib.h"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "RunTime.hpp"
 
 void show_user_info(string msg) {
@@ -113,7 +113,7 @@ bool CheckVariable(RunTime &rt, string str, int errcode) {
 			ret=false;
 	}
 	// Comprobar que no sea palabra reservada
-	if (EsFuncion(str,true)) 
+	if (rt.funcs.IsFunction(str)) 
 		ret=false;
 	else if (str=="LEER" || str=="ESCRIBIR" || str=="MIENTRAS" || str=="HACER" || str=="SEGUN" || str=="VERDADERO" || str=="FALSO" || str=="PARA")
 		ret=false;
@@ -340,7 +340,7 @@ void fixwincharset(string &s, bool reverse) {
 	}
 }
 
-string NextToken(string &cadena, int &p) {
+std::string NextToken(const std::string &cadena, int &p) {
 	int l=cadena.size();
 	while (p<l && (cadena[p]==' ' || cadena[p]=='\t')) p++;
 	if (p==l) return "";
@@ -364,78 +364,93 @@ string NextToken(string &cadena, int &p) {
 
 // arma el objeto Funcion analizando la cabecera (cadena, que viene sin la palbra PROCESO/SUBPROCESO)
 // pero no lo registra en el mapa de subprocesos
-Funcion *ParsearCabeceraDeSubProceso(RunTime &rt, string cadena, bool es_proceso) {
+
+std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const std::string &cadena, bool es_proceso) {
+	return MakeFuncionForSubproceso(rt,SepararCabeceraDeSubProceso(cadena),es_proceso);
+}
+
+std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings &parts, bool es_proceso) {
 	ErrorHandler &err_handler = rt.err;
 	
-	Funcion *the_func=new Funcion(0); 
+	auto the_func = std::make_unique<Funcion>(0); 
 	
 	// parsear nombre y valor de retorno
-	int p=0 ;string fname=NextToken(cadena,p); string tok=NextToken(cadena,p); // extraer el nombre y el "=" si esta
-	if (tok=="="||tok=="<-") { // si estaba el igual, lo que se extrajo es el valor de retorno
-		if (es_proceso) err_handler.SyntaxError(242,"El proceso principal no puede retornar ningun valor.");
-		the_func->nombres[0]=fname; fname=NextToken(cadena,p); tok=NextToken(cadena,p); 
-		CheckVariable(rt,the_func->nombres[0]);
-	} else {
+	if (parts.ret_id.empty()) {
 		the_func->tipos[0]=vt_error; // para que cuando la quieran usar en una expresión salte un error, porque evaluar no verifica si se devuelve algo porque se use desde Ejecutar parala instrucción INVOCAR
-	}//...en tok2 deberia quedar siempre el parentesis si hay argumentos, o en nada si termina sin argumentos
-	if (fname=="") { 
+	} else {
+		if (es_proceso) err_handler.SyntaxError(242,"El proceso principal no puede retornar ningun valor.");
+		the_func->nombres[0] = parts.ret_id;
+		CheckVariable(rt,the_func->nombres[0]);
+	}
+	if (parts.nombre.empty()) { 
 		err_handler.SyntaxError(40,es_proceso?"Falta nombre de proceso.":"Falta nombre de subproceso."); 
 		static int untitled_functions_count=0; // para numerar las funciones sin nombre
-		fname=string("<sin_nombre>")+IntToStr(++untitled_functions_count);
-	}
-	else if (EsFuncion(fname)) { 
-		err_handler.SyntaxError(243,string("Ya existe otro proceso/subproceso con el mismo nombre(")+fname+").");
-	}
-	else if (!CheckVariable(rt,fname)) { 
-		CheckVariable(rt,fname);
-		err_handler.SyntaxError(244,string("El nombre del proceso/subproceso(")+fname+") no es válido.");
+		the_func->id = string("<sin_nombre>")+IntToStr(++untitled_functions_count);
+	} else {
+		the_func->id = parts.nombre;
+		if (rt.funcs.IsFunction(parts.nombre))
+			err_handler.SyntaxError(243,string("Ya existe otro proceso/subproceso con el mismo nombre(")+parts.nombre+").");
+		else if (not CheckVariable(rt,parts.nombre))
+			err_handler.SyntaxError(244,string("El nombre del proceso/subproceso(")+parts.nombre+") no es válido.");
 	}
 	// argumentos
-	if (tok=="(") {
-		if (es_proceso) err_handler.SyntaxError(246,"El proceso principal no puede recibir argumentos.");
-		bool closed=false;
-		tok=NextToken(cadena,p);
-		while (tok!="") {
-			if (tok==")") { closed=true; break; }
-			else if (tok==",") { 
-				err_handler.SyntaxError(247,"Falta nombre de argumento.");
-				tok=NextToken(cadena,p);
-			} else {
-				CheckVariable(rt,tok);
-				the_func->AddArg(tok);
-				tok=NextToken(cadena,p);
-				if (tok=="POR") {
-					tok=NextToken(cadena,p);
-					if (tok!="REFERENCIA"&&tok!="COPIA"&&tok!="VALOR")
-						err_handler.SyntaxError(248,"Tipo de pasaje inválido, se esperaba Referencia, Copia o Valor.");
-					else the_func->SetLastPasaje(tok=="REFERENCIA"?PP_REFERENCIA:PP_VALOR);
-					tok=NextToken(cadena,p);
-				} else if (tok!="," && tok!=")" && tok!="")
-					err_handler.SyntaxError(249,"Se esperaba coma(,) o parentesis ()).");
-				if (tok==",") { tok=NextToken(cadena,p); }
+	if (not parts.args.empty())	{
+		int p = 0; std::string tok = NextToken(parts.args,p);
+		if (tok=="(") {// si habia argumentos
+			if (es_proceso) err_handler.SyntaxError(246,"El proceso principal no puede recibir argumentos.");
+			bool closed = false; 
+			std::string tok = NextToken(parts.args,p);
+			while (tok!="") {
+				if (tok==")") { closed=true; break; }
+				else if (tok==",") { 
+					err_handler.SyntaxError(247,"Falta nombre de argumento.");
+					tok=NextToken(parts.args,p);
+				} else {
+					CheckVariable(rt,tok);
+					the_func->AddArg(tok);
+					tok=NextToken(parts.args,p);
+					if (tok=="POR") {
+						tok=NextToken(parts.args,p);
+						if (tok!="REFERENCIA"&&tok!="COPIA"&&tok!="VALOR")
+							err_handler.SyntaxError(248,"Tipo de pasaje inválido, se esperaba Referencia, Copia o Valor.");
+						else the_func->SetLastPasaje(tok=="REFERENCIA"?PP_REFERENCIA:PP_VALOR);
+						tok=NextToken(parts.args,p);
+					} else if (tok!="," && tok!=")" && tok!="")
+						err_handler.SyntaxError(249,"Se esperaba coma(,) o parentesis ()).");
+					if (tok==",") { tok=NextToken(parts.args,p); }
+				}
+			}
+			if (not closed) err_handler.SyntaxError(250,"Falta cerrar lista de argumentos.");
+			else if (NextToken(parts.args,p).size()) err_handler.SyntaxError(251,"Se esperaba fin de linea.");
+		} else {
+			// si no habia argumentos no tiene que haber nada
+			if (es_proceso) err_handler.SyntaxError(252,"Se esperaba el fin de linea."); 
+			else {
+				if (the_func->nombres[0].size()) err_handler.SyntaxError(253,"Se esperaba la lista de argumentos, o el fin de linea.");
+				else err_handler.SyntaxError(254,"Se esperaba la lista de argumentos, el signo de asignación, o el fin de linea.");
 			}
 		}
-		if (not closed) err_handler.SyntaxError(250,"Falta cerrar lista de argumentos.");
-		else if (NextToken(cadena,p).size()) err_handler.SyntaxError(251,"Se esperaba fin de linea.");
-	} else if (tok!="") { // si no habia argumentos no tiene que haber nada
-		if (es_proceso) err_handler.SyntaxError(252,"Se esperaba el fin de linea."); 
-		else {
-			if (the_func->nombres[0].size()) err_handler.SyntaxError(253,"Se esperaba la lista de argumentos, o el fin de linea.");
-			else err_handler.SyntaxError(254,"Se esperaba la lista de argumentos, el signo de asignación, o el fin de linea.");
-		}
 	}
-	the_func->id=fname;
 	return the_func;
 }
 
-string ExtraerNombreDeSubProceso(string cadena) {
-	int p=0; string fname=NextToken(cadena,p); string tok=NextToken(cadena,p);
-	if (tok=="="||tok=="<-") fname=NextToken(cadena,p);
-	if (fname=="") {
-		static int untitled_functions_count=0;
-		fname=string("<sin_nombre>")+IntToStr(++untitled_functions_count);
+FuncStrings SepararCabeceraDeSubProceso(string cadena) {
+	FuncStrings ret;
+	int p_args = 0; 
+	ret.nombre = NextToken(cadena,p_args);
+	int p_aux = p_args;
+	std::string tok = NextToken(cadena,p_aux);
+	if (tok=="="||tok=="<-") { 
+		ret.ret_id = std::move(ret.nombre); 
+		ret.nombre = NextToken(cadena,p_aux);
+		p_args = p_aux;
 	}
-	return fname;
+	ret.args = cadena.substr(p_args);
+	if (ret.nombre.empty()) {
+		static int untitled_functions_count=0;
+		ret.nombre = string("<sin_nombre>")+IntToStr(++untitled_functions_count);
+	}
+	return ret;
 }
 
 string FirstWord(const string & s) {

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <csignal>
 #include "version.h"
 #include "zcurlib.h"
@@ -9,11 +10,12 @@
 #include "Evaluar.hpp"
 #include "SynCheck.hpp"
 #include "Ejecutar.hpp"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "Programa.hpp"
 #include "ErrorHandler.hpp"
 #include "case_map.h"
 #include "RunTime.hpp"
+#include "ProgramaDump.hpp"
 using namespace std;
 
 void on_signal(int s) {
@@ -23,7 +25,7 @@ void on_signal(int s) {
 }
 
 void checksum(Programa &prog) {
-	if (prog.GetLinesCount()==3) {
+	if (prog.GetInstCount()==3) {
 		string &s=prog[1].instruccion;
 		int n=0,p=1;
 		for(unsigned int i=0;i<s.size();i++) { 
@@ -35,7 +37,7 @@ void checksum(Programa &prog) {
 			prog[1].instruccion[11]-=7;
 			prog[1].instruccion.insert(12,",\"!\"");
 		}
-	} else if (prog.GetLinesCount()==4) {
+	} else if (prog.GetInstCount()==4) {
 		string &s1=prog[1].instruccion;
 		string &s2=prog[2].instruccion;
 		int n1=0,n2=0,p1=1,p2=1;
@@ -197,7 +199,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// inicializaciones varias
-	LoadFunciones();
+	rt.funcs.LoadPredefs();
 	if (forced_seed==-1) srand(time(NULL)); else srand(forced_seed);
 	
 	Programa &programa = rt.prog;
@@ -207,31 +209,30 @@ int main(int argc, char* argv[]) {
 		while (cin) {
 //			memoria->HardReset();
 			programa.HardReset();
-			UnloadSubprocesos();
+			rt.funcs.UnloadSubprocesos();
 			string line;
 			int lcount=0;
 			while (cin) {
 				getline(cin,line); lcount++;
-				if (line=="<!{[EXIT]}!>") { UnloadFunciones(); return 0; }
+				if (line=="<!{[EXIT]}!>") { rt.funcs.UnloadPredefs(); return 0; }
 				if (line=="<!{[END_OF_INPUT]}!>") break;
 				programa.PushBack(line);
 			}
 			SynCheck(rt);
 			cout<<"<!{[END_OF_OUTPUT]}!>"<<endl;
-			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
-			while (it1!=it2) {
-				Funcion *func=it1->second;
-				for(int j=0;j<=func->cant_arg;j++) { // agregar argumentos y valor de retorno de la funcion
+			for(auto &pf : rt.funcs.GetAllSubs()) {
+				auto &func = pf.second;
+				const std::string &name = pf.first;
+				for(int j=0;j<=func->GetArgsCount();j++) { // agregar argumentos y valor de retorno de la funcion
 					if (func->nombres[j].size() && !func->memoria->Existe(func->nombres[j]))
 						func->memoria->DefinirTipo(func->nombres[j],vt_desconocido);
 				}
-				if (it1->first!=main_process_name) cout<<"SUB";
+				if (name!=rt.funcs.GetMainName()) cout<<"SUB";
 				cout<<"PROCESO ";
-				if (case_map) cout<<(*case_map)[it1->first];
-				else cout<<it1->first;
+				if (case_map) cout<<(*case_map)[name];
+				else cout<<name;
 				cout<<":"<<func->userline_start-1<<':'<<func->userline_end-1<<endl;
 				func->memoria->ListVars(case_map);
-				++it1;
 			}
 			cout<<"<!{[END_OF_VARS]}!>"<<endl;
 			if (lcount) {
@@ -284,55 +285,28 @@ int main(int argc, char* argv[]) {
 	SynCheck(rt);
 	Inter.InitDebug(delay);
 	
-	if (for_pseint_terminal) { cout<<"\033[zt"<<main_process_name<<"\n"; }
+	if (for_pseint_terminal) { cout<<"\033[zt"<<rt.funcs.GetMainName()<<"\n"; }
 
 	//ejecutar
 	if (err_handler.IsOk()) {
-	// salida para diagrama
+	// salida para diagrama (temporal, hasta que psdraw y psexport consuman Programa directamente)
 		if (for_draw) {
-			if (case_map) CaseMapPurge();
-			ofstream dibujo(fil_args[1]);
-			for (int i=0;i<programa.GetLinesCount();i++) {
-				if (!for_export && programa[i].type==IT_ASIGNAR) { 
-					// sacar los parentesis adicionales
-					int p = programa[i].instruccion.find("<-");
-					programa[i].instruccion.erase(p+2,1);
-					programa[i].instruccion.erase(programa[i].instruccion.size()-2,1);
-					// unir varias asignaciones en una sola linea si asi estaban originalmente y esto va para psdraw
-					while (i+1<programa.GetLinesCount() && programa[i+1].type==IT_ASIGNAR && programa[i].loc.linea==programa[i+1].loc.linea) 
-					{
-						++i;
-						// sacar los parentesis adicionales
-						int p = programa[i].instruccion.find("<-");
-						programa[i].instruccion.erase(p+2,1);
-						programa[i].instruccion.erase(programa[i].instruccion.size()-2,1);
-						// unir
-						programa[i].instruccion = 
-							programa[i-1].instruccion +" "+ programa[i].instruccion;
-					}
-				}
-				if (case_map && (!preserve_comments || !LeftCompare(programa[i].instruccion,"#")))
-					CaseMapApply(programa[i].instruccion,!for_export);
-				if (write_positions) 
-					dibujo<<"#pos "<<programa[i].loc.linea<<":"<<programa[i].loc.instruccion<<endl;
-#ifdef _DEBUG
-				cerr<<programa[i].instruccion<<endl;
-#endif
-				dibujo<<programa[i].instruccion<<endl;
+			if (case_map) {
+				CaseMapPurge();
+				CaseMapApply(rt,programa,for_export);
 			}
-			dibujo.close();
+			SavePrograma(fil_args[1],programa);
 			if (user) show_user_info("Dibujo guardado.");
 			ExeInfo.close();
 			ExeInfoOn=false;
 		} else if (run) {
 			if (ExeInfoOn) if (user) ExeInfo<<"*** Ejecucion Iniciada. ***"<<endl;
 			if (user) show_user_info("*** Ejecución Iniciada. ***");
-			map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
-			while (it1!=it2) (it1++)->second->memoria->FakeReset();
+			for(auto &pf : rt.funcs.GetAllSubs()) pf.second->memoria->FakeReset();
 			checksum(programa);
 			Inter.SetStarted();
-			const Funcion *main_func=EsFuncion(main_process_name,true);
-			memoria=main_func->memoria;
+			const Funcion *main_func = rt.funcs.GetMainFunc();
+			memoria = main_func->memoria.get();
 			Ejecutar(rt,main_func->line_start);
 			Inter.SetFinished();
 			if (ExeInfoOn) ExeInfo<<"*** Ejecucion Finalizada. ***";
@@ -359,10 +333,6 @@ int main(int argc, char* argv[]) {
 		showCursor();
 	}
 
-#ifdef _DEBUG	
-	UnloadFunciones();
-	UnloadSubprocesos();
-#endif
 	return 0;
 }
 

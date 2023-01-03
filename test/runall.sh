@@ -9,6 +9,6 @@ fi
 echo ""
 for A in *.psc; do 
     echo -n -e $A"              " \\r; 
-    bash run $BIN $(echo $A | sed 's/.psc//');
+    ./run.sh $BIN $(echo $A | sed 's/.psc//');
 done
 echo "done                           "

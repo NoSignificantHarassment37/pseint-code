@@ -1,36 +1,8 @@
 #include <cmath>
-#include <cstdlib>
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "ErrorHandler.hpp"
-#include "utils.h"
-#include "intercambio.h"
+#include "LangSettings.h"
 #include "global.h"
-#include "DataValue.h"
-using namespace std;
-
-map<string,Funcion*> funciones;
-map<string,Funcion*> subprocesos;
-
-string main_process_name="<no_main_process>";
-
-const Funcion* EsFuncionDelUsuario(const string &nombre, bool include_main_process) {
-	if (nombre==main_process_name && !include_main_process) return NULL;
-	map<string,Funcion*>::iterator it_func = subprocesos.find(nombre);
-	if (it_func!=subprocesos.end()) return it_func->second;
-	return NULL;
-}
-
-const Funcion* EsFuncionPredefinida(const string &nombre) {
-	map<string,Funcion*>::iterator it_func = funciones.find(nombre);
-	if (it_func!=funciones.end()) return it_func->second;
-	return NULL;
-}
-
-const Funcion* EsFuncion(const string &nombre, bool include_main_process) {
-	const Funcion *ret=EsFuncionDelUsuario(nombre, include_main_process);
-	if (!ret) ret=EsFuncionPredefinida(nombre);
-	return ret;
-}
 
 DataValue func_rc(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
@@ -38,8 +10,9 @@ DataValue func_rc(ErrorHandler &err_handler, DataValue *arg) {
 		err_handler.ErrorIfRunning(147,"Raiz cuadrada de número negativo.");
 		return DataValue::MakeEmpty(vt_numerica);
 	} 
-	return DataValue::MakeReal(sqrt(x));
+	return DataValue::MakeReal(std::sqrt(x));
 }
+
 DataValue func_abs(ErrorHandler &err_handler, DataValue *arg) {
 	double d = arg[0].GetAsReal();
 	return DataValue::MakeReal( d<0 ? -d : d );
@@ -198,63 +171,34 @@ DataValue func_euler(ErrorHandler &err_handler, DataValue *arg) {
 	return DataValue::MakeReal(2.7182818284590452353602874713527);
 }
 
-void LoadFunciones() {
-	funciones["PI"]=new Funcion(vt_numerica,func_pi); 
-	funciones["EULER"]=new Funcion(vt_numerica,func_euler); 
-	funciones["RC"]=new Funcion(vt_numerica,func_rc,vt_numerica); 
-	funciones["RAIZ"]=new Funcion(vt_numerica,func_rc,vt_numerica); 
-	funciones["ABS"]=new Funcion(vt_numerica,func_abs,vt_numerica);
-	funciones["LN"]=new Funcion(vt_numerica,func_ln,vt_numerica);
-	funciones["EXP"]=new Funcion(vt_numerica,func_exp,vt_numerica);
-	funciones["SEN"]=new Funcion(vt_numerica,func_sen,vt_numerica);
-	funciones["ASEN"]=new Funcion(vt_numerica,func_asen,vt_numerica);
-	funciones["ACOS"]=new Funcion(vt_numerica,func_acos,vt_numerica);
-	funciones["COS"]=new Funcion(vt_numerica,func_cos,vt_numerica);
-	funciones["TAN"]=new Funcion(vt_numerica,func_tan,vt_numerica);
-	funciones["ATAN"]=new Funcion(vt_numerica,func_atan,vt_numerica);
-	funciones["AZAR"]=new Funcion(vt_numerica,func_azar,vt_numerica_entera);
-	funciones["ALEATORIO"]=new Funcion(vt_numerica,func_aleatorio,vt_numerica_entera,vt_numerica_entera);
-	funciones["TRUNC"]=new Funcion(vt_numerica,func_trunc,vt_numerica);
-	funciones["REDON"]=new Funcion(vt_numerica,func_redon,vt_numerica);
+void FuncsManager::LoadPredefs() {
+	m_predefs["PI"]        = std::make_unique<Funcion>(vt_numerica,func_pi); 
+	m_predefs["EULER"]     = std::make_unique<Funcion>(vt_numerica,func_euler); 
+	m_predefs["RC"]        = std::make_unique<Funcion>(vt_numerica,func_rc,vt_numerica); 
+	m_predefs["RAIZ"]      = std::make_unique<Funcion>(vt_numerica,func_rc,vt_numerica); 
+	m_predefs["ABS"]       = std::make_unique<Funcion>(vt_numerica,func_abs,vt_numerica);
+	m_predefs["LN"]        = std::make_unique<Funcion>(vt_numerica,func_ln,vt_numerica);
+	m_predefs["EXP"]       = std::make_unique<Funcion>(vt_numerica,func_exp,vt_numerica);
+	m_predefs["SEN"]       = std::make_unique<Funcion>(vt_numerica,func_sen,vt_numerica);
+	m_predefs["ASEN"]      = std::make_unique<Funcion>(vt_numerica,func_asen,vt_numerica);
+	m_predefs["ACOS"]      = std::make_unique<Funcion>(vt_numerica,func_acos,vt_numerica);
+	m_predefs["COS"]       = std::make_unique<Funcion>(vt_numerica,func_cos,vt_numerica);
+	m_predefs["TAN"]       = std::make_unique<Funcion>(vt_numerica,func_tan,vt_numerica);
+	m_predefs["ATAN"]      = std::make_unique<Funcion>(vt_numerica,func_atan,vt_numerica);
+	m_predefs["AZAR"]      = std::make_unique<Funcion>(vt_numerica,func_azar,vt_numerica_entera);
+	m_predefs["ALEATORIO"] = std::make_unique<Funcion>(vt_numerica,func_aleatorio,vt_numerica_entera,vt_numerica_entera);
+	m_predefs["TRUNC"]     = std::make_unique<Funcion>(vt_numerica,func_trunc,vt_numerica);
+	m_predefs["REDON"]     = std::make_unique<Funcion>(vt_numerica,func_redon,vt_numerica);
 	if (lang[LS_ENABLE_STRING_FUNCTIONS]) {
-		funciones["CONVERTIRANÚMERO"]=new Funcion(vt_numerica,func_atof,vt_caracter);
-		funciones["CONVERTIRANUMERO"]=new Funcion(vt_numerica,func_atof,vt_caracter);
-		funciones["CONVERTIRATEXTO"]=new Funcion(vt_caracter,func_ftoa,vt_numerica);
-		funciones["LONGITUD"]=new Funcion(vt_numerica,func_longitud,vt_caracter);
-		funciones["SUBCADENA"]=new Funcion(vt_caracter,func_subcadena,vt_caracter,vt_numerica_entera,vt_numerica_entera);
-		funciones["MAYUSCULAS"]=new Funcion(vt_caracter,func_mayusculas,vt_caracter);
-		funciones["MINUSCULAS"]=new Funcion(vt_caracter,func_minusculas,vt_caracter);
-		funciones["MAYÚSCULAS"]=new Funcion(vt_caracter,func_mayusculas,vt_caracter);
-		funciones["MINÚSCULAS"]=new Funcion(vt_caracter,func_minusculas,vt_caracter);
-		funciones["CONCATENAR"]=new Funcion(vt_caracter,func_concatenar,vt_caracter,vt_caracter);
+		m_predefs["CONVERTIRANÚMERO"] = std::make_unique<Funcion>(vt_numerica,func_atof,vt_caracter);
+		m_predefs["CONVERTIRANUMERO"] = std::make_unique<Funcion>(vt_numerica,func_atof,vt_caracter);
+		m_predefs["CONVERTIRATEXTO"]  = std::make_unique<Funcion>(vt_caracter,func_ftoa,vt_numerica);
+		m_predefs["LONGITUD"]         = std::make_unique<Funcion>(vt_numerica,func_longitud,vt_caracter);
+		m_predefs["SUBCADENA"]        = std::make_unique<Funcion>(vt_caracter,func_subcadena,vt_caracter,vt_numerica_entera,vt_numerica_entera);
+		m_predefs["MAYUSCULAS"]       = std::make_unique<Funcion>(vt_caracter,func_mayusculas,vt_caracter);
+		m_predefs["MINUSCULAS"]       = std::make_unique<Funcion>(vt_caracter,func_minusculas,vt_caracter);
+		m_predefs["MAYÚSCULAS"]       = std::make_unique<Funcion>(vt_caracter,func_mayusculas,vt_caracter);
+		m_predefs["MINÚSCULAS"]       = std::make_unique<Funcion>(vt_caracter,func_minusculas,vt_caracter);
+		m_predefs["CONCATENAR"]       = std::make_unique<Funcion>(vt_caracter,func_concatenar,vt_caracter,vt_caracter);
 	}
 }
-
-void UnloadSubprocesos() {
-	map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
-	while (it1!=it2) {
-		delete (it1)->second->memoria;
-		delete (it1)->second;
-		++it1;
-	}
-	subprocesos.clear();
-}
-
-void UnloadFunciones() {
-	map<string,Funcion*>::iterator it1=funciones.begin(), it2=funciones.end();
-	while (it1!=it2) {
-		delete (it1)->second;
-		++it1;
-	}
-	funciones.clear();
-}
-
-string GetNombreFuncion(const Funcion * func) {
-	map<string,Funcion*>::iterator it1=subprocesos.begin(), it2=subprocesos.end();
-	while (it1!=it2) {
-		if (it1->second==func) return it1->first;
-		else ++it1;
-	}
-	return "";
-}
-

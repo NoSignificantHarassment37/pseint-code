@@ -1,8 +1,9 @@
 #include "case_map.h"
 #include "utils.h"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
+#include "RunTime.hpp"
 
-map<string,string> *case_map=NULL;
+map<string,string> *case_map = nullptr;
 
 //----------------from wxPSeInt/CommonParsinsFunctions------
 // tengo que unificar las mil implementaciones de estos auxiliares
@@ -27,7 +28,7 @@ int SkipParentesis(const TString &line, int i, int len) {
 }
 //----------------
 
-void CaseMapAux(string &s, bool fill, bool fix_parentesis) {
+static void CaseMapAux(const RunTime &rt, string &s, bool fill, bool fix_parentesis) {
 	int len=s.size(),p = 0;
 	bool comillas=false, word=false;
 	for(int i=0;i<=len;i++) { 
@@ -49,7 +50,7 @@ void CaseMapAux(string &s, bool fill, bool fix_parentesis) {
 						if (s2.size()==keylen) {
 							for(unsigned int j=0;j<keylen;j++) 
 								s[p+j]=s2[j];
-							if (fix_parentesis && s[i]=='(' && !EsFuncion(s1,true)) {
+							if (fix_parentesis && s[i]=='(' && !rt.funcs.IsFunction(s1)) {
 								s[i]='['; 
 								int i2 = SkipParentesis(s,i,len);
 								if (i2<len && s[i2]==')') s[i2]=']';
@@ -65,12 +66,12 @@ void CaseMapAux(string &s, bool fill, bool fix_parentesis) {
 	}
 }
 
-void CaseMapFill(string &s) {
-	CaseMapAux(s,true,false);
+void CaseMapFill(const RunTime &rt, string &s) {
+	CaseMapAux(rt,s,true,false);
 }
 
-void CaseMapApply(string &s, bool and_fix_parentesis) {
-	CaseMapAux(s,false,and_fix_parentesis);
+void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis) {
+	CaseMapAux(rt,s,false,and_fix_parentesis);
 }
 
 
@@ -117,6 +118,16 @@ void CaseMapPurge() {
 	(*case_map)["CARACTER"]="";
 	(*case_map)["REAL"]="";
 	(*case_map)["LOGICO"]="";
+	
+//	(*case_map)["LIMPIAR"]="";
+//	(*case_map)["BORRAR"]="";
+//	(*case_map)["PANTALLA"]="";
+//	(*case_map)["ESPERAR"]="";
+//	(*case_map)["TECLA"]="";
+//	(*case_map)["SEGUNDO"]="";
+//	(*case_map)["SEGUNDOS"]="";
+//	(*case_map)["MILISEGUNDO"]="";
+//	(*case_map)["MILISEGUNDOS"]="";
 	
 }
 

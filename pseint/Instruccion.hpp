@@ -9,7 +9,7 @@
 #include "Code.h"
 
 enum InstructionType {
-	IT_NULL, IT_ERROR, IT_PROCESO, IT_FINPROCESO,
+	IT_NULL, IT_ERROR, IT_COMMENT, IT_PROCESO, IT_FINPROCESO,
 	IT_LEER, IT_ASIGNAR, IT_ESCRIBIR, IT_DIMENSION, IT_DEFINIR,
 	IT_ESPERARTECLA, IT_ESPERAR, IT_BORRARPANTALLA, IT_INVOCAR,
 	IT_MIENTRAS, IT_FINMIENTRAS, IT_REPETIR, IT_HASTAQUE,
@@ -25,7 +25,7 @@ struct Instruccion {
 		:type(IT_NULL),instruccion(_instruccion),loc(_loc){}
 //	Instruccion(InstructionType _type, int _num_linea=-1, int _num_instruccion=-1)
 //		:type(_type),instruccion(""),num_linea(_num_linea),num_instruccion(_num_instruccion){}
-	operator std::string() { return instruccion; }
+//	operator std::string() { return instruccion; }
 	bool operator==(InstructionType t) const { return type==t; }
 	bool operator!=(InstructionType t) const { return type!=t; }
 	std::string &operator=(const std::string &s) { return instruccion=s; }
@@ -33,7 +33,7 @@ struct Instruccion {
 	struct INull {};
 	
 	struct IProceso {
-		std::string nombre;
+		std::string nombre, ret_id, args;
 		bool principal;
 		int fin = -1;
 	};
@@ -44,7 +44,7 @@ struct Instruccion {
 	};
 	
 	struct IEscribir {
-		std::vector<std::string> expressiones;
+		std::vector<std::string> expresiones;
 		bool saltar = true;
 	};
 	
@@ -115,7 +115,11 @@ struct Instruccion {
 		std::string nombre, args;
 	};
 	
-	std::variant<INull,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,IDimension,IDefinir,IEsperar,IInvocar,
+	struct IComentario {
+		std::string text;
+	};
+	
+	std::variant<INull,IComentario,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,IDimension,IDefinir,IEsperar,IInvocar,
 				 ISi,ISegun,IOpcion,IHastaQue,IPara,IParaCada,IMientras,IRepetir> impl;
 	void setType(InstructionType t) {
 		type = t;
@@ -137,6 +141,7 @@ struct Instruccion {
 		case IT_FINPROCESO: impl = IFinProceso(); break;
 		case IT_INVOCAR:    impl = IInvocar();    break;
 		case IT_REPETIR:    impl = IRepetir();    break;
+		case IT_COMMENT:    impl = IComentario(); break;
 		default: ; // las demas instrucciones por ahora no tienen info adicional
 		}
 	}
@@ -166,6 +171,7 @@ template<> struct InstImplHelper<IT_PROCESO>   { static auto& get(Instruccion &i
 template<> struct InstImplHelper<IT_FINPROCESO>{ static auto& get(Instruccion &inst) { return std::get<Instruccion::IFinProceso>(inst.impl); } };
 template<> struct InstImplHelper<IT_INVOCAR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IInvocar>   (inst.impl); } };
 template<> struct InstImplHelper<IT_REPETIR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IRepetir>   (inst.impl); } };
+template<> struct InstImplHelper<IT_COMMENT>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IComentario>(inst.impl); } };
 template<int IT_ALGO> auto &getImpl(Instruccion &inst) { _expects(inst.type==IT_ALGO); return InstImplHelper<IT_ALGO>::get(inst); }
 
 #endif

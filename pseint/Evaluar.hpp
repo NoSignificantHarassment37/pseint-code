@@ -12,6 +12,7 @@ int BuscarOperador(const string &expresion, int &p1, int &p2);
 tipo_var DeterminarTipo(RunTime &rt, const string &expresion, int p1, int p2);
 bool AplicarTipo(RunTime &rt, const string &expresion, int &p1, int &p2, tipo_var tipo);
 DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumentos, const tipo_var &forced_tipo, bool for_expresion=true);
+DataValue EvaluarFuncion(RunTime &rt, const std::string &func_name, const string &argumentos, const tipo_var &forced_tipo, bool for_expresion=true);
 DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const tipo_var &forced_tipo=vt_desconocido);
 DataValue Evaluar(RunTime &rt, string expresion, const tipo_var &forced_tipo=vt_desconocido);
 DataValue EvaluarSC(RunTime &rt, string expresion, const tipo_var &forced_tipo=vt_desconocido);

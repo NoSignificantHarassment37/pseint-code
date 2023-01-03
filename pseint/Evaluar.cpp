@@ -6,7 +6,7 @@
 #include "Evaluar.hpp"
 #include "RunTime.hpp"
 #include "global.h"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "intercambio.h"
 #include "utils.h"
 #include "Ejecutar.hpp"
@@ -122,10 +122,8 @@ tipo_var DeterminarTipo(RunTime &rt, const string &expresion, int p1, int p2) {
 			return vt_logica;
 		else {
 			size_t pp=expresion.find('(',p1);
-//			if (pp!=string::npos) {
-				const Funcion *func=EsFuncion(expresion.substr(p1,pp-p1));
-				if (func) return func->tipos[0];
-//			}
+			const Funcion *func = rt.funcs.GetFunction(expresion.substr(p1,pp-p1),false);
+			if (func) return func->tipos[0];
 			return memoria->LeerTipo(expresion.substr(p1,p2-p1+1));
 		}
 	} else {
@@ -174,7 +172,7 @@ bool AplicarTipo(RunTime &rt, const string &expresion, int &p1, int &p2, tipo_va
 		size_t p=sub.find('(');
 		if (p!=string::npos) { // si era funcion no tiene que llegar a DefinirTipo porque sino aparece en el panel de variables
 			sub.erase(p);
-			const Funcion *f=EsFuncion(sub,true);
+			const Funcion *f = rt.funcs.GetFunction(sub,false);
 			if (f) {
 				tipo_var tv=f->GetTipo(0);
 				return tv.set(tipo);
@@ -226,17 +224,21 @@ static bool EsArreglo(const string &nombre) {
 	return nombre.find('(')==string::npos && memoria->Existe(nombre) && memoria->LeerDims(nombre);
 }
 
+DataValue EvaluarFuncion(RunTime &rt, const std::string &func_name, const string &argumentos, const tipo_var &forced_tipo, bool for_expresion) {
+	return EvaluarFuncion(rt,rt.funcs.GetFunction(func_name,true),argumentos,forced_tipo,for_expresion);
+}
+
 DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumentos, const tipo_var &forced_tipo, bool for_expresion) {
 	ErrorHandler &err_handler = rt.err;
 	if (for_expresion && func->GetTipo(0)==vt_error) {
-		err_handler.AnytimeError(278,string("El subproceso (")+GetNombreFuncion(func)+(") no devuelve ningún valor."));
+		err_handler.AnytimeError(278,string("El subproceso (")+func->id+(") no devuelve ningún valor."));
 		return DataValue::DVError();
 	}
 	// controlar cantidad de argumentos
 	int b=0,ca=argumentos[1]==')'?0:1, l=argumentos.length()-1;
 	if (ca==1) while ((b=BuscarComa(argumentos,b+1,l))>0) ca++;
-	if (func->cant_arg!=ca) {
-		err_handler.AnytimeError(279,string("Cantidad de argumentos incorrecta para el subproceso (")+GetNombreFuncion(func)+(")"));
+	if (func->GetArgsCount()!=ca) {
+		err_handler.AnytimeError(279,string("Cantidad de argumentos incorrecta para el subproceso (")+func->id+(")"));
 		return DataValue(func->GetTipo(0));
 	}
 	// parsear argumentos
@@ -280,7 +282,7 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 	// obtener salida
 	DataValue ret;
 	if (func->func) { // funcion predefinida
-		for(int i=0;i<func->cant_arg;i++)
+		for(int i=0;i<func->GetArgsCount();i++)
 			if (args.values[i].CanBeString() && EsArreglo(args.values[i].GetAsString())) {
 				/// @todo: mejorar esto, podria querer funciones predefinidas que reciban arreglos, tipo sizeof
 				err_handler.AnytimeError(282,string("La función espera un único valor, pero recibe un arreglo (")+args.values[i].GetAsString()+(")"));
@@ -290,10 +292,10 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 #ifndef _FOR_PSEXPORT
 	} else { // subprocesos del usuario
 		if (Inter.IsRunning()) {
-			Memoria *caller_memoria=memoria;
-			memoria=new Memoria(func);
-			tipo_var tipo_arg;
-			for(int i=0;i<func->cant_arg;i++) { 
+			Memoria *caller_memoria = memoria;
+			auto sub_memory = std::make_unique<Memoria>(func);
+			memoria = sub_memory.get();
+			for(int i=0;i<func->GetArgsCount();i++) { 
 				if (args.pasajes[i]==PP_VALOR) { // por valor
 					memoria->EscribirValor(func->nombres[i+1],args.values[i]);
 					memoria->DefinirTipo(func->nombres[i+1],args.values[i].type);
@@ -302,15 +304,12 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 					memoria->AgregarAlias(func->nombres[i+1],args.values[i].GetAsString(),caller_memoria);
 				}
 			}
-//			Inter.OnFunctionIn(); // ahora se encarga Ejecutar
 			Ejecutar(rt,func->line_start);
-//			Inter.OnFunctionOut(); // ahora se encarga Ejecutar
 			if (func->nombres[0].size()) {
 				ret = memoria->LeerValor(func->nombres[0]);
 				ret.type = memoria->LeerTipo(func->nombres[0]);
 			}
-			delete memoria;
-			memoria=caller_memoria;
+			memoria = caller_memoria;
 		} 
 #endif
 	}
@@ -342,13 +341,13 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			if (int(pm)>p2) pm=string::npos;
 			if (pm==string::npos) { // si es una variable comun
 				string nombre = expresion.substr(p1,p2-p1+1);
-				if (!Inter.IsRunning() && (PalabraReservada(nombre) || nombre==main_process_name)) {
+				if (!Inter.IsRunning() && (PalabraReservada(nombre) || nombre==rt.funcs.GetMainName())) {
 					err_handler.AnytimeError(285,string("Identificador no válido (")+nombre+")");
 					ev_return(DataValue::DVError());
 				}
-				const Funcion *func = EsFuncion(nombre);
+				const Funcion *func = rt.funcs.GetFunction(nombre,false);
 				if (func) {
-					if (func->cant_arg!=0) {
+					if (func->GetArgsCount()!=0) {
 						err_handler.AnytimeError(286,string("Faltan parámetros para la función (")+nombre+")");
 						ev_return(DataValue::DVError());
 					} else {
@@ -372,8 +371,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				res = memoria->Leer(nombre);
 				ev_return(res);
 			} else { // si es un arreglo o funcion
-				string nombre=expresion.substr(p1,pm-p1);
-				const Funcion *func=EsFuncion(nombre);
+				string nombre = expresion.substr(p1,pm-p1);
+				const Funcion *func = rt.funcs.GetFunction(nombre,false);
 				if (func) { //si es funcion
 					DataValue res = EvaluarFuncion(rt,func,expresion.substr(pm,p2-pm+1),forced_tipo);
 					ev_return(res);

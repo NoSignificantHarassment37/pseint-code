@@ -7,7 +7,7 @@
 #include "Evaluar.hpp"
 #include "intercambio.h"
 #include "Programa.hpp"
-#include "Funciones.hpp"
+#include "FuncsManager.hpp"
 #include "case_map.h"
 #include "debug.h"
 #include "ErrorHandler.hpp"
@@ -55,7 +55,7 @@ static string Trim(const string &str) {
 }
 
 // pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y quita espacios extras
-std::pair<string,bool> Normalizar(string &cadena) {
+std::pair<std::string,bool> Normalizar(string &cadena) {
 	string rest; bool is_comment = true;
 	// corregir saltos de linea win/linux
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
@@ -71,13 +71,9 @@ std::pair<string,bool> Normalizar(string &cadena) {
 		}
 		if (i>0 && c=='/' && cadena[i-1]=='/') { // "remover" comentarios
 			if (preserve_comments) {
-				bool is_inline = false;
-				for(int j=0;j<i-1;j++) 
-					if (cadena[j]!=' '&&cadena[j]!='\t'&&cadena[j]!=';') 
-						{ is_inline=true; break; }
+				// is_comment = true estaba por defecto
 				rest = cadena.substr(i+1); 
 				while (rest.size() && (rest[0]==' '||rest[0]=='\t')) rest.erase(0,1);
-				if (rest.size()) rest.insert(0,is_inline?string("#comment-inline "):string("#comment "));
 			}
 			cadena=cadena.substr(0,i-1); break; 
 		}
@@ -176,7 +172,6 @@ vector<coloquial_aux> &GetColoquialConditions() {
 // reescribir condiciones coloquiales
 void Condiciones(RunTime &rt, string &cadena) {
 	ErrorHandler &err_handler = rt.err;
-	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	if (!cadena.size() || !lang[LS_COLOQUIAL_CONDITIONS]) return;
 	if (cadena[cadena.size()-1]!=' ') cadena+=" ";
 	bool comillas=false;
@@ -290,7 +285,6 @@ int is_valid_operator(char act, char next, int &len, what_extra &type) {
 // verificar operadores, constantes y parentesis, y borrar los espacios en blanco que sobran entre ellos
 void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instruction_type) {
 	ErrorHandler &err_handler = rt.err;
-	if (preserve_comments && (LeftCompare(cadena,"#comment ")||LeftCompare(cadena,"#comment-inline "))) return;
 	bool allow_multiple_expresions=instruction_type!=IT_DEOTROMODO && instruction_type!=IT_ASIGNAR;
 	what w=w_null; what_extra wext=w_other;
 	int parentesis=0, csize; bool comillas=false;
@@ -463,7 +457,7 @@ bool SirveParaReferencia(RunTime &rt, const string &s) {
 	while (p<l) {
 		if (s[p]=='(') {
 			if (in_name) {
-				if (!CheckVariable(rt,s.substr(0,p))||EsFuncion(s.substr(0,p))) return false;
+				if (!CheckVariable(rt,s.substr(0,p))||rt.funcs.IsFunction(s.substr(0,p))) return false;
 				in_name=false;
 			}
 			parentesis++;
@@ -473,7 +467,7 @@ bool SirveParaReferencia(RunTime &rt, const string &s) {
 		p++;
 		
 	}
-	if (in_name && (!CheckVariable(rt,s)||EsFuncion(s)) ) return false;
+	if (in_name && (!CheckVariable(rt,s)||rt.funcs.IsFunction(s)) ) return false;
 	return true;
 }
 
@@ -496,7 +490,7 @@ void Instrucciones(RunTime &rt) {
 	// Checkear sintaxis y reorganizar el codigo
 	for (int prog_idx=0; prog_idx<programa.GetInstCount(); ++prog_idx){
 		Inter.SetLocation(programa[prog_idx].loc);
-		cadena = programa[prog_idx];
+		cadena = programa[prog_idx].instruccion;
 		auto this_instruction_is_ok = 
 			[prev_count=err_handler.GetErrorsCount(),&err_handler](){
 				return prev_count==err_handler.GetErrorsCount();
@@ -506,7 +500,6 @@ void Instrucciones(RunTime &rt) {
 			
 //			Instruccion &inst = programa[prog_idx];
 			#define inst programa[prog_idx] // no usar referencia porque al modificar el vector se invalida
-			_expects(inst.type==IT_NULL);
 			
 			// puede haber que trimear las cadenas que surgieron de separar lineas con mas de una instrucción
 			int pt1=0,pt2=cadena.size(), l=cadena.size();
@@ -514,9 +507,8 @@ void Instrucciones(RunTime &rt) {
 			while (pt2>0 && cadena[pt2-1]==' ') pt2--;
 			if (pt1!=0||pt2!=l) cadena=cadena.substr(pt1,pt2-pt1);
 			
-			if (preserve_comments && LeftCompare(cadena,"#comment") && 
-				(cadena=="#comment" || cadena=="#comment-line" || LeftCompare(cadena,"#comment ") || LeftCompare(cadena,"#comment-inline "))
-			) continue;
+			if (inst.type==IT_COMMENT) continue;
+			_expects(inst.type==IT_NULL);
 			
 			int len = cadena.size();
 			if (lang[LS_LAZY_SYNTAX] && LeftCompare(cadena,"FIN ")) { cadena="FIN"+cadena.substr(4); len--; }
@@ -707,11 +699,11 @@ void Instrucciones(RunTime &rt) {
 						}
 					while (i<l && (cadena[i]=='\t'||cadena[i]==' ')) i++;
 					if (i>0&&i<l) {
-						if (i+1<l && cadena[i]==':' && cadena[i+1]=='=') {cadena[i]='<';cadena[i+1]='-';}
+						if (i+1<l && cadena[i]==':' && cadena[i+1]=='=') { cadena[i]='<'; cadena[i+1]='-'; }
 						else if (lang[LS_OVERLOAD_EQUAL] && cadena[i]=='=') cadena.replace(i,1,"<-");
-						if (i+1<l&&cadena[i]=='<'&&cadena[i+1]=='-') {
-							bool comillas=false;
-							for (int y=0; y<(int)cadena.find("<-",0);y++)
+						if (i+1<l && cadena[i]=='<' && cadena[i+1]=='-') {
+							bool comillas = false;
+							for (int y=0;y<i;y++)
 								if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
 							if (!comillas) {
 								inst.setType(IT_ASIGNAR);
@@ -743,7 +735,7 @@ void Instrucciones(RunTime &rt) {
 					if (inst.type!=IT_ASIGNAR && inst.type!=IT_DEFINIR) {
 						int p=0, l=cadena.length();
 						while (p<l&&EsLetra(cadena[p],true)) p++;
-						if (EsFuncion(cadena.substr(0,p)))
+						if (rt.funcs.IsFunction(cadena.substr(0,p)))
 							inst.setType(IT_INVOCAR);
 					}
 				}
@@ -772,8 +764,7 @@ void Instrucciones(RunTime &rt) {
 			if (prog_idx&&programa[prog_idx-1]==IT_SI)
 				if (inst.type!=IT_ENTONCES && inst.type!=IT_NULL && inst.type!=IT_ERROR) {
 					if (lang[LS_LAZY_SYNTAX]) {
-						programa.Insert(prog_idx,
-										Instruccion("ENTONCES",programa[prog_idx].loc));
+						programa.Insert(prog_idx,"ENTONCES",programa[prog_idx].loc);
 						programa[prog_idx].setType(IT_ENTONCES);
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
@@ -812,13 +803,16 @@ void Instrucciones(RunTime &rt) {
 			if (inst.type==IT_PROCESO) {
 				auto &inst_impl = getImpl<IT_PROCESO>(inst);
 				if (in_process) InformUnclosedLoops(rt,bucles);
-				in_process=true;
-				inst_impl.nombre = ExtraerNombreDeSubProceso(cadena);
-				current_func=subprocesos[inst_impl.nombre];
-				current_func->line_start=prog_idx;
+				in_process = true;
+				auto func_strs = SepararCabeceraDeSubProceso(cadena);
+				inst_impl.nombre = func_strs.nombre;
+				inst_impl.ret_id = func_strs.ret_id;
+				inst_impl.args = func_strs.args;
+				current_func = rt.funcs.GetEditableSub(inst_impl.nombre);
+				current_func->line_start = prog_idx;
 				bucles.push_back(prog_idx);
-				current_func->userline_start=Inter.GetLocation().linea;
-				memoria=current_func->memoria=new Memoria(current_func);
+				current_func->userline_start = Inter.GetLocation().linea;
+				memoria = (current_func->memoria = std::make_unique<Memoria>(current_func)).get();
 			}
 			if (!in_process && inst.type!=IT_NULL&&cadena!="") {
 				err_handler.SyntaxError(43,lang[LS_ENABLE_USER_FUNCTIONS]?"Instrucción fuera de proceso/subproceso.":"Instrucción fuera de proceso.");
@@ -829,6 +823,7 @@ void Instrucciones(RunTime &rt) {
 				if (!bucles.empty()) {
 					auto &inst_back = programa[bucles.back()];
 					if (inst_back==IT_PROCESO and inst_impl.principal==getImpl<IT_PROCESO>(inst_back).principal) {
+						getImpl<IT_PROCESO>(inst_back).fin = prog_idx;
 						if (current_func) { 
 							inst_impl.nombre = current_func->id;
 							if (!current_func->nombres[0].empty()) {
@@ -842,6 +837,7 @@ void Instrucciones(RunTime &rt) {
 					} else {
 						auto &inst_front = programa[bucles.front()];
 						if (inst_front==IT_PROCESO and inst_impl.principal==getImpl<IT_PROCESO>(inst_front).principal) {
+							getImpl<IT_PROCESO>(inst_front).fin = prog_idx;
 							bucles.erase(bucles.begin());
 							InformUnclosedLoops(rt,bucles);
 						}
@@ -937,7 +933,7 @@ void Instrucciones(RunTime &rt) {
 							str=cadena.substr(last_i,i-last_i);
 							if (this_instruction_is_ok()) EvaluarSC(rt,str);
 							last_i=i+1;
-							inst_impl.expressiones.push_back(str);
+							inst_impl.expresiones.push_back(str);
 						}
 					}
 					cadena[cadena.size()-1]=';';
@@ -1139,17 +1135,16 @@ void Instrucciones(RunTime &rt) {
 								if (res.IsOk()&&!res.CanBeReal())
 									err_handler.SyntaxError(76,"No coinciden los tipos.");
 								
-								string &val_ini = inst_impl.val_ini = cadena;
-								val_ini.erase(0,val_ini.find("<-")+2);
-								val_ini.erase(val_ini.find(" "),val_ini.size()-val_ini.find(" ",0));
-								inst_impl.val_ini = val_ini;
+								auto p_arrow = cadena.find("<-");
+								auto p_space = cadena.find(' ',p_arrow);
+								string &val_ini = inst_impl.val_ini = cadena.substr(p_arrow+3,p_space-p_arrow-4);
 								if (this_instruction_is_ok()) res = EvaluarSC(rt,val_ini,vt_numerica);
 								if (res.IsOk()&&!res.CanBeReal())
 									err_handler.SyntaxError(77,"No coinciden los tipos.");
 								else { // comprobar hasta y variable final
 									
 									str=cadena;
-									size_t pos_hasta=str.find(" ");
+									size_t pos_hasta = p_space;
 									str.erase(0,pos_hasta);
 									if (lang[LS_LAZY_SYNTAX] && LeftCompare(str," CON PASO ")) { // si esta el "CON PASO" antes del "HASTA", dar vuelta
 										size_t e=str.find(" ",10);
@@ -1251,15 +1246,13 @@ void Instrucciones(RunTime &rt) {
 			
 			if (inst.type==IT_ASIGNAR) {  // ------------ ASIGNACION -----------//
 				auto &inst_impl = getImpl<IT_ASIGNAR>(inst);
-				str=cadena;
-				str.erase(str.find("<-",0),str.size()-str.find("<-",0));
-				if (str.size()==0)
+				auto pos_arrow = cadena.find("<-",0);
+				std::string &var = inst_impl.variable = cadena.substr(0,pos_arrow);
+				if (var.empty())
 					err_handler.SyntaxError(85,"Asignación incompleta.");
 				else {
-					CheckVariable(rt,str,86);
-					inst_impl.variable = str;
-					str=cadena;
-					str.erase(0,str.find("<-",0)+2);
+					CheckVariable(rt,var,86);
+					str = cadena.substr(pos_arrow+2);
 					bool comillas=false; int parentesis=0;
 					for (int y=0;y<(int)str.size();y++){ // comprobar que se un solo parametro
 						if (str[y]=='(') parentesis++;
@@ -1271,10 +1264,10 @@ void Instrucciones(RunTime &rt) {
 						if ((!comillas) && parentesis==1 && str[y]==',')
 							err_handler.SyntaxError(88,"Demasiados parámetros.");
 					}
-					if (str.size()==3)
+					if (str.size()==3) // "();"
 						err_handler.SyntaxError(89,"Asignación incompleta.");
 					else {
-						str.erase(str.size()-1,1);
+						str.erase(0,1); str.erase(str.size()-2,2); // eliminar parentesis y punto y comma
 						inst_impl.valor = str;
 						tipo_var tipo_left = memoria->LeerTipo(inst_impl.variable);
 						tipo_left.rounded = false; // no transferir a la expresión
@@ -1432,13 +1425,13 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_INVOCAR>(inst);
 				int p=0;
 				const string &fname = inst_impl.nombre = NextToken(cadena,p);
-				const Funcion *func=EsFuncion(fname);
+				const Funcion *func = rt.funcs.GetFunction(fname);
 				string &args = inst_impl.args = cadena.substr(p);
 				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) err_handler.SyntaxError(310,string("La función retorna un valor, debe ser parte de una expresión (")+fname+").");
 				if (args==";") args="();"; // para que siempre aparezcan las llaves y se eviten así problemas
 				if (args=="();") {
-					if (func->cant_arg!=0 && !ignore_logic_errors) err_handler.SyntaxError(264,string("Se esperaban argumentos para el subproceso (")+fname+").");
-				} else if (func->cant_arg==0) {
+					if (func->GetArgsCount()!=0 && !ignore_logic_errors) err_handler.SyntaxError(264,string("Se esperaban argumentos para el subproceso (")+fname+").");
+				} else if (func->GetArgsCount()==0) {
 					if (args!="();" && !ignore_logic_errors) err_handler.SyntaxError(265,string("El subproceso (")+fname+") no debe recibir argumentos.");
 				} else if (args[0]!='(' && !ignore_logic_errors) err_handler.SyntaxError(266,"Los argumentos para invocar a un subproceso deben ir entre paréntesis.");
 				else { // entonces tiene argumentos, y requiere argumentos, ver que la cantidad esté bien
@@ -1448,7 +1441,7 @@ void Instrucciones(RunTime &rt) {
 						do {
 							pos_coma=BuscarComa(args,pos_coma+1,args_last_pos,',');
 							if (pos_coma==-1) pos_coma=args_last_pos;
-							if (cant_args<func->cant_arg) {
+							if (cant_args<func->GetArgsCount()) {
 								string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
 								if (not SirveParaReferencia(rt,arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
 									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) err_handler.SyntaxError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")"));
@@ -1457,8 +1450,8 @@ void Instrucciones(RunTime &rt) {
 							}
 							cant_args++; last_pos_coma=pos_coma;
 						} while (pos_coma!=args_last_pos);
-						if (cant_args!=func->cant_arg && !ignore_logic_errors) 
-							err_handler.SyntaxError(268,string("Cantidad de argumentos incorrecta para el subproceso (")+fname+(")"));
+						if (cant_args!=func->GetArgsCount() && !ignore_logic_errors) 
+							err_handler.SyntaxError(267,string("Cantidad de argumentos incorrecta para el subproceso (")+fname+(")"));
 						else if (args_last_pos!=int(args.length())-2) err_handler.SyntaxError(269,"Se esperaba fin de instrucción."); // el -2 de la condición es por el punto y coma
 					}
 				}
@@ -1541,42 +1534,49 @@ bool SynCheck(RunTime &rt) {
 	programa.PushBack(""); // linea en blanco al final, para que era?
 	programa.Insert(0,""); // linea en blanco al principio, para que era?
 	
-	if (case_map) for(int i=0;i<programa.GetLinesCount();i++) CaseMapFill(programa[i].instruccion);
+	if (case_map) for(int i=0;i<programa.GetInstCount();i++) CaseMapFill(rt,programa[i].instruccion);
 	
 	// pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y trimear
-	for(int i=0;i<programa.GetLinesCount();i++) {
+	for(int i=0;i<programa.GetInstCount();i++) {
 		auto ret = Normalizar(programa[i].instruccion);
 		if (ret.first.empty()) continue;
-		if (ret.second) {
-			if (preserve_comments && ret.first.size()) { programa.Insert(i,ret.first); i++; }
-		} else {
+		// si despues de la 1ra instruccion habia otra, o habia un comentario
+		if (ret.second) { // comentario...
+			if (preserve_comments && ret.first.size()) {
+				if (not programa[i].instruccion.empty())
+					programa.Insert(++i,"//");
+				programa[i].setType(IT_COMMENT);
+				getImpl<IT_COMMENT>(programa[i]).text = ret.first;
+			}
+		} else { // 2da instruccion
 			programa.Insert(i+1,ret.first);
 		}
 	}
 	
-	bool have_proceso=false;
-	for(int i=0;i<programa.GetLinesCount();i++) {
+	_expects(not rt.funcs.HaveMain());
+	for(int i=0;i<programa.GetInstCount();i++) {
 		string &s=programa[i].instruccion;
-		string fw=FirstWord(s); FixAcentos(fw);
+		string fw = FirstWord(s); FixAcentos(fw);
 		if (fw=="FUNCION"||fw=="PROCESO"||fw=="SUBPROCESO"||fw=="ALGORITMO"||fw=="SUBALGORITMO") {
 				Inter.SetLocation(programa[i].loc);
 				bool es_proceso=(fw=="PROCESO"||fw=="ALGORITMO");
 				if (s==fw) s+=" ";
-				Funcion *func = ParsearCabeceraDeSubProceso(rt,s.substr(fw.size()+1),es_proceso);
-				func->userline_start=Inter.GetLocation().linea;
-				subprocesos[func->id]=func;
+				string name = s.substr(fw.size()+1);
+				auto func = MakeFuncionForSubproceso(rt,name,es_proceso);
+				func->userline_start = Inter.GetLocation().linea;
+				rt.funcs.AddSub(std::move(func));
 				if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
-					if (have_proceso) err_handler.SyntaxError(272,"Solo puede haber un Proceso.");
-					main_process_name=func->id;
-					have_proceso=true;
+					if (rt.funcs.HaveMain())
+						err_handler.SyntaxError(272,"Solo puede haber un Proceso.");
+					rt.funcs.SetMain(name);
 				} else if (!lang[LS_ENABLE_USER_FUNCTIONS])
 					err_handler.SyntaxError(309,"Este perfil no admite SubProcesos.");
 			}
 	}
 	Instrucciones(rt);
 	
-	if (!have_proceso) { Inter.SetLocation({1,1}); err_handler.SyntaxError(273,"Debe haber un Proceso."); }  
-	else Inter.SetLocation({EsFuncion(main_process_name,true)->line_start,1});
+	if (not rt.funcs.HaveMain()) { Inter.SetLocation({1,1}); err_handler.SyntaxError(273,"Debe haber un Proceso."); }  
+	else Inter.SetLocation({rt.funcs.GetMainFunc()->line_start,1});
 	
 	return err_handler.IsOk();
 }
