@@ -1,7 +1,8 @@
+#if 0
 #include "export_cs.h"
 #include "exportexp.h"
 #include "../pseint/utils.h"
-#include "../pseint/new_funciones.h"
+#include "../pseint/FuncsManager.hpp"
 
 
 CSharpExporter::CSharpExporter():CppExporter() {
@@ -14,16 +15,16 @@ CSharpExporter::CSharpExporter():CppExporter() {
 #endif
 }
 
-void CSharpExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void CSharpExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"Console.Clear();");
 }
 
-void CSharpExporter::esperar_tecla(t_output &prog, string param, string tabs) {
+void CSharpExporter::esperar_tecla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"Console.ReadKey();");
 }
 
-void CSharpExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void CSharpExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	use_threading=true;
 	stringstream inst;
 	inst<<"Thread.Sleep(";
@@ -36,13 +37,13 @@ void CSharpExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, st
 	insertar(prog,tabs+inst.str());
 }
 
-void CSharpExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void CSharpExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	string arglist;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		if (arglist.size()) arglist+="+";
 		tipo_var t;
-		arglist+=expresion(*it,t);
+		arglist+=expresion(GetRT(),*it,t);
 		++it;
 	}
 	if (saltar)
@@ -51,11 +52,11 @@ void CSharpExporter::escribir(t_output &prog, t_arglist args, bool saltar, strin
 		insertar(prog,tabs+"Console.Write("+arglist+");");
 }
 
-void CSharpExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void CSharpExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = int.Parse(Console.ReadLine());");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Double.Parse(Console.ReadLine());");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean.Parse(Console.ReadLine());");
@@ -64,7 +65,7 @@ void CSharpExporter::leer(t_output &prog, t_arglist args, string tabs) {
 	}
 }
 
-void CSharpExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs) {
+void CSharpExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	if (!dims) { insertar(out,string("ERROR: ")+var+" NO ES UN ARREGLO"); return; }
@@ -187,7 +188,7 @@ void CSharpExporter::header(t_output &out) {
 	if (use_threading) out.push_back("using System.Threading;");
 	if (!for_test) out.push_back("");
 	out.push_back("namespace PSeInt {");
-	out.push_back(string("\tclass ")+ToLower(main_process_name)+" {");
+	out.push_back(string("\tclass ")+ToLower(GetRT().funcs.GetMainName())+" {");
 	if (!for_test) out.push_back("");
 }
 
@@ -221,7 +222,7 @@ void CSharpExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso 
 			ret=string("return")+ret.substr(ret.find(" "));
 		}
 		dec+=ToLower(f->id)+"(";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			string var_dec=get_tipo(f->nombres[i],f->pasajes[i]==PP_REFERENCIA,true);
 			if (f->pasajes[i]==PP_REFERENCIA) use_reference=true;
@@ -260,7 +261,7 @@ string CSharpExporter::get_operator(string op, bool for_string) {
 }
 
 
-void CSharpExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void CSharpExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs);
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
@@ -286,7 +287,8 @@ string CSharpExporter::get_constante(string name) {
 	return name;
 }
 
-void CSharpExporter::translate_all_procs (t_output & out, t_programa & prog, string tabs) {
+void CSharpExporter::translate_all_procs (t_output & out, t_programa & prog, std::string tabs) {
 	ExporterBase::translate_all_procs(out,prog,"\t\t");
 }
 
+#endif

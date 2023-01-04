@@ -1,48 +1,49 @@
+#if 0
 #include "export_javascript.h"
 #include "exportexp.h"
 #include "../pseint/utils.h"
-#include "../pseint/new_funciones.h"
+#include "../pseint/FuncsManager.hpp"
 
 JavaScriptExporter::JavaScriptExporter(bool for_html):CppExporter() {
 	this->for_html=for_html;
 }
 
-void JavaScriptExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void JavaScriptExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"document.body.innerHTML = \'\';");
 }
 
-void JavaScriptExporter::esperar_tecla(t_output &prog, string param, string tabs) {
+void JavaScriptExporter::esperar_tecla(t_output &prog, std::string tabs) {
 	if (for_test)
 		insertar(prog,tabs+"prompt();");
 	else
 		insertar(prog,tabs+"prompt(); // no hay una forma simple de esperar una tecla en javascript sin separar esta función (vease document.onKeyUp), lo cual no siempre es posible");
 }
 
-void JavaScriptExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
+void JavaScriptExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
 	if (for_test)
 		insertar(prog,tabs+"prompt();");
 	else
 		insertar(prog,tabs+"prompt(); // no hay una forma simple de esperar un tiempo en javascript sin separar esta función (vease setTimeOut), lo cual no siempre es posible");
 }
 
-void JavaScriptExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void JavaScriptExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	string arglist;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		if (arglist.size()) arglist+=",";
 		tipo_var t;
-		arglist+=expresion(*it,t);
+		arglist+=expresion(GetRT(),*it,t);
 		++it;
 	}
 	if (saltar) arglist+=",\'<BR/>\'";
 	insertar(prog,tabs+"document.write("+arglist+");");
 }
 
-void JavaScriptExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void JavaScriptExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = Number(prompt());");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Number(prompt());");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean(prompt());");
@@ -52,7 +53,7 @@ void JavaScriptExporter::leer(t_output &prog, t_arglist args, string tabs) {
 	
 }
 
-void JavaScriptExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs) {
+void JavaScriptExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	if (!dims) { insertar(out,string("ERROR: ")+var+" NO ES UN ARREGLO"); return; }
@@ -151,13 +152,13 @@ void JavaScriptExporter::translate_single_proc(t_output &out, Funcion *f, t_proc
 	
 	// cabecera del proceso
 	if (!f) {
-		insertar(out,tab+"function "+ToLower(main_process_name)+"() {");
+		insertar(out,tab+"function "+ToLower(GetRT().funcs.GetMainName())+"() {");
 	} else {
 		string dec=tab+"function ";
 		if (f->nombres[0]!="") 
 			ret=string("return ")+ToLower(f->nombres[0]);
 		dec+=ToLower(f->id)+"(";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			string var_dec=ToLower(f->nombres[i]);
 			memoria->RemoveVar(f->nombres[i]);
@@ -182,7 +183,7 @@ string JavaScriptExporter::get_operator(string op, bool for_string) {
 	else return CppExporter::get_operator(op,false);
 }
 
-void JavaScriptExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void JavaScriptExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs);
 	
 	t_arglist_it it=args.begin();
@@ -198,14 +199,14 @@ void JavaScriptExporter::dimension(t_output &prog, t_arglist &args, string tabs)
 		t_arglist_it it2=dimlist.begin();
 		
 		stack<string> auxs; string var=ToLower(name), last_size;
-		string line=string("var ")+ToLower(name)+" = new Array("+(last_size=expresion(*it2))+");"; ++it2;
+		string line=string("var ")+ToLower(name)+" = new Array("+(last_size=expresion(GetRT(),*it2))+");"; ++it2;
 		while (it2!=dimlist.end()) {
 			string aux=get_aux_varname("aux_index_"); auxs.push(aux);
 			line+=" for (var "+aux+"=0;"+aux+"<"+last_size+";"+aux+"++) { "; 
 			var+="[";
 			var+=aux;
 			var+="]";
-			line+=var+" = new Array("+(last_size=expresion(*it2))+");";
+			line+=var+" = new Array("+(last_size=expresion(GetRT(),*it2))+");";
 			++it2;
 		}
 		while(!auxs.empty()) { release_aux_varname(auxs.top()); auxs.pop(); line+=" }"; }
@@ -238,7 +239,7 @@ void JavaScriptExporter::declarar_variables(t_output &prog, string tab) {
 	if (vars.size()) prog.push_back(tab+"var "+vars+";");
 }
 
-void JavaScriptExporter::definir(t_output &prog, t_arglist &arglist, string tipo, string tabs) {
+void JavaScriptExporter::definir(t_output &prog, t_arglist &arglist, string tipo, std::string tabs) {
 	tipo_var vt=vt_desconocido;
 	if (tipo=="ENTERO") { tipo="Number()"; vt=vt_numerica_entera; }
 	else if (tipo=="REAL") { tipo="Number()"; vt=vt_numerica; }
@@ -246,13 +247,14 @@ void JavaScriptExporter::definir(t_output &prog, t_arglist &arglist, string tipo
 	else { tipo="String()"; vt=vt_caracter; }
 	t_arglist_it it=arglist.begin();
 	while (it!=arglist.end()) {
-		string vname = expresion(*it);
+		string vname = expresion(GetRT(),*it);
 		insertar(prog,tabs+"var "+vname+" = new "+tipo+";");
 		++it;
 	}
 }
 
-void JavaScriptExporter::translate_all_procs (t_output & out, t_programa & prog, string tabs) {
+void JavaScriptExporter::translate_all_procs (t_output & out, t_programa & prog, std::string tabs) {
 	ExporterBase::translate_all_procs(out,prog,for_html?"\t\t\t":"");
 }
 
+#endif

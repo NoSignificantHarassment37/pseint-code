@@ -1,27 +1,19 @@
-#ifndef EXPORT_COMMON_H
-#define EXPORT_COMMON_H
+#ifndef EXPORTER_BASE_HPP
+#define EXPORTER_BASE_HPP
 #include <string>
-#include "defines.h"
 #include <map>
 #include <stack>
 #include <vector>
-class Memoria;
-class Funcion;
-using namespace std;
-
-#if __cplusplus >= 201103
-#define _CPP11_ENABLED 1
-#else
-
-// missing keywords
-#define final
-#define override
-
-#endif // cpp11
+#include "defines.h"
+#include "../pseint/FuncsManager.hpp"
+#include "../pseint/Evaluar.hpp"
+#include "../pseint/new_memoria.h"
+#include "../pseint/utils.h"
+#include "../pseint/RunTime.hpp"
 
 class ExporterBase {
 
-	static map<string,Memoria*> mapa_memorias;
+	static RunTime m_runtime; // static para que se comparta por ej entre el de tipos y el de otro lenguaje cuando se encadenan
 	
 protected:
 	
@@ -34,7 +26,7 @@ protected:
 	virtual string get_aux_varname(string pref);
 	virtual void release_aux_varname(string vname);
 	void init_header(t_output &out, string comment_pre, string comment_post="");
-	void bloque(t_output &prog, t_proceso_it r, t_proceso_it q,string tabs);
+	void bloque(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs);
 	string get_arg(string args, int cual);
 	string make_dims(const int *tdims, string c1="[", string c2=",", string c3="]", bool numbers=true);
 	void crop_name_and_dims(string decl, string &name, string &dims, string c1="[", string c2=",", string c3="]");
@@ -43,26 +35,29 @@ protected:
 	bool es_numerica_entera_constante(const string &s);
 	void sep_args(const string &args, t_arglist &out);
 	bool replace_all(string &str, string from, string to);
+	void load_subs_in_funcs_manager(Programa &prog);
 	
 	// funciones que traducen instrucciones y estructuras de control
-	virtual void esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs)=0;
-	virtual void esperar_tecla(t_output &prog, string param,string tabs)=0;
-	virtual void borrar_pantalla(t_output &prog, string param,string tabs)=0;
-	virtual void invocar(t_output &prog, string param,string tabs)=0;
-	virtual void escribir(t_output &prog, t_arglist args, bool saltar, string tabs)=0;
-	virtual void leer(t_output &prog, t_arglist args, string tabs)=0;
-	virtual void asignacion(t_output &prog, string param1, string param2,string tabs)=0;
-	virtual void si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s,string tabs)=0;
-	virtual void mientras(t_output &prog, t_proceso_it r, t_proceso_it q,string tabs)=0;
-	virtual void segun(t_output &prog, list<t_proceso_it> its,string tabs)=0;
-	virtual void repetir(t_output &prog, t_proceso_it r, t_proceso_it q,string tabs)=0;
-	virtual void paracada(t_output &prog, t_proceso_it r, t_proceso_it q,string tabs)=0;
-	virtual void para(t_output &prog, t_proceso_it r, t_proceso_it q,string tabs)=0;
-	virtual void dimension(t_output &prog, t_arglist &args, string tabs);
-	virtual void definir(t_output &prog, t_arglist &arglist, string tipo, string tabs);
-	virtual void comentar(t_output &prog, string text, string tabs);
+	virtual void esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs)=0;
+	virtual void esperar_tecla(t_output &prog, std::string tabs)=0;
+	virtual void borrar_pantalla(t_output &prog, std::string tabs)=0;
+	virtual void invocar(t_output &prog, string func_name, string args, std::string tabs)=0;
+	virtual void escribir(t_output &prog, t_arglist expresiones, bool saltar, std::string tabs)=0;
+	virtual void leer(t_output &prog, t_arglist variables, std::string tabs)=0;
+	virtual void asignacion(t_output &prog, string variable, string valor, std::string tabs)=0;
+	virtual void si(t_output &prog, t_proceso_it ir_si, t_proceso_it it_fin, t_proceso_it s, std::string tabs)=0;
+	virtual void mientras(t_output &prog, t_proceso_it it_mientras, t_proceso_it it_fin, std::string tabs)=0;
+	virtual void segun(t_output &prog, std::vector<t_proceso_it> &its_opciones, std::string tabs)=0;
+	virtual void repetir(t_output &prog, t_proceso_it it_rep, t_proceso_it it_hasta, std::string tabs)=0;
+	virtual void paracada(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs)=0;
+	virtual void para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs)=0;
+	virtual void dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs);
+	virtual void definir(t_output &prog, t_arglist &variables, tipo_var tipo, std::string tabs);
+	virtual void comentar(t_output &prog, string text, std::string tabs);
 	
 public:
+	
+	RunTime &GetRT() { return m_runtime; }
 	
 	// funciones para traducir expresiones
 	
@@ -103,6 +98,12 @@ public:
 	**/
 	virtual string function(string name, string args)=0;
 	
+	/**
+	* @brief modifica una expresion para que sea pasada por referencia a una
+	*        funcion (por ej, en C aplica el &)
+	**/
+	virtual std::string referencia(const std::string &exp) { return exp; }
+	
 	
 	// función principal, que arma el esqueleto e invoca a las demas
 	
@@ -112,10 +113,10 @@ public:
 	* @param out     argumento de salida, donde colocar las instrucciones traducidas
 	* @param prog    argumento de entrada, con el algoritmo ya parseado
 	**/
-	virtual void translate(t_output &out, t_programa &prog)=0;
+	virtual void translate(t_output &out, Programa &prog)=0;
 	
-	virtual void translate_all_procs(t_output &out, t_programa &prog, string tabs="");
-	virtual void translate_all_procs(t_output &out_main, t_output &out_procs, t_programa &prog, string tabs="");
+	virtual void translate_all_procs(t_output &out_main,t_output &out_progs, Programa &prog, std::string tabs="");
+	virtual void translate_all_procs(t_output &out, Programa &prog, std::string tabs="");
 	virtual void translate_single_proc(t_output &out, Funcion *f, t_proceso &proc);
 	
 };

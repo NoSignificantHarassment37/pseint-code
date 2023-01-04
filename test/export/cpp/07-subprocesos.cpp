@@ -11,7 +11,7 @@ int main() {
 	SIN_TIPO b[3][4];
 	float c;
 	cout << funciondoble(5) << endl;
-	noretornanada(3,9);
+	noretornanada(3, 9);
 	c = 0;
 	porreferencia(c);
 	cout << c << endl;

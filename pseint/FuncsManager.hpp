@@ -19,7 +19,8 @@ struct Funcion {
 	std::vector<PASAJE> pasajes; // tipo de pasaje de parametros (solo para las definidas por el usuario)
 	std::vector<std::string> nombres; // nombres de los argumentos, la pos 0 es para el valor de retorno (solo para las definidas por el usuario, es "" si no retorna nada)
 	std::vector<tipo_var> tipos; // la pos 0 es para el tipo que retorna
-	const tipo_var &GetTipo(int i) const { return tipos[i]; } // para acceder a los tipos desde punteros const
+	const tipo_var &GetTipo(int i) const { return tipos[i]; } // para acceder a los tipos desde punteros const (0 es el de retorno)
+	const PASAJE &GetPasaje(int i) const { return pasajes[i+1]; } // 0 es el 1er arg
 	FunctionPtr func = nullptr; // NULL si es de las definidas por el usuario como subproceso
 	int line_start = -1; // linea del pseudocodigo parseado donde comienza la funcion (solo para las definidas por el usuario)
 	int userline_start = -1, userline_end = -1; // linea del pseudocodigo original donde empieza y termina la funcion (para pasarsela a la lista de variables del editor)

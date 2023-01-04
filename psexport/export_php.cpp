@@ -1,13 +1,10 @@
-#include "export_php.h"
+#if 0
 #include <sstream>
 #include <cstdlib>
-#include "../pseint/new_evaluar.h"
-#include "../pseint/utils.h"
+#include "export_php.h"
 #include "version.h"
-#include "new_memoria.h"
 #include "exportexp.h"
-#include "new_funciones.h"
-#include "export_common.h"
+#include "ExporterBase.h"
 #include "export_tipos.h"
 using namespace std;
 
@@ -17,14 +14,14 @@ PhpExporter::PhpExporter():CppExporter() {
 	output_base_zero_arrays=false;
 }
 
-void PhpExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void PhpExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	if (for_test)
 		insertar(prog,tabs+"echo PHP_EOL;");
 	else
 		insertar(prog,tabs+"echo PHP_EOL; // no hay forma directa de borrar la pantalla con php");
 }
 
-void PhpExporter::esperar_tecla(t_output &prog, string param, string tabs){
+void PhpExporter::esperar_tecla(t_output &prog, std::string tabs){
 	use_stdin=true;
 	if (for_test)
 		insertar(prog,tabs+"fgetc($stdin);");
@@ -32,31 +29,31 @@ void PhpExporter::esperar_tecla(t_output &prog, string param, string tabs){
 		insertar(prog,tabs+"fgetc($stdin); // a diferencia del pseudocódigo, espera un Enter, no cualquier tecla");
 }
 
-void PhpExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void PhpExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	stringstream inst;
 	if (mili) inst<<"usleep("<<colocarParentesis(tiempo)<<"*1000);";
 	else inst<<"sleep("<<tiempo<<");";
 	insertar(prog,tabs+inst.str());
 }
 
-void PhpExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void PhpExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	t_arglist_it it=args.begin();
 	string linea="";
 	while (it!=args.end()) {
 		if (linea.size()) linea+=",";
-		linea+=expresion(*it);
+		linea+=expresion(GetRT(),*it);
 		++it;
 	}
 	insertar(prog,tabs+"echo "+linea+(saltar?",PHP_EOL;":";"));
 }
 
-void PhpExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void PhpExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	use_stdin=true;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+"fscanf($stdin,\"%d\","+varname+");");
 		else if (t==vt_numerica) insertar(prog,tabs+"fscanf($stdin,\"%f\","+varname+");");
 		else if (t==vt_logica) insertar(prog,tabs+"fscanf($stdin,\"%d\","+varname+");");
@@ -66,7 +63,7 @@ void PhpExporter::leer(t_output &prog, t_arglist args, string tabs) {
 }
 
 
-void PhpExporter::paracada(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs) {
+void PhpExporter::paracada(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	if (!dims) { insertar(prog,string("Error: ")+var+" no es un arreglo"); return; }
@@ -169,7 +166,7 @@ void PhpExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pr
 	
 	bloque(out_proc,++proc.begin(),proc.end(),"\t\t");
 	string dec="\tfunction "; dec+=ToLower(f->id)+"(";
-	for(int i=1;i<=f->cant_arg;i++) {
+	for(int i=1;i<=f->GetArgsCount();i++) {
 		if (i!=1) dec+=", ";
 		if (f->pasajes[i]==PP_REFERENCIA) dec+="&";
 		dec+="$"; dec+=ToLower(f->nombres[i]);
@@ -210,14 +207,14 @@ string PhpExporter::make_string (string cont) {
 	return string("\'")+cont+"\'";
 }
 
-void PhpExporter::definir(t_output &prog, t_arglist &arglist, string tipo, string tabs) {
+void PhpExporter::definir(t_output &prog, t_arglist &arglist, string tipo, std::string tabs) {
 	if (tipo=="ENTERO") tipo="integer";
 	else if (tipo=="REAL") tipo="float";
 	else if (tipo=="LOGICO") tipo="boolean";
 	else tipo="string";
 	t_arglist_it it=arglist.begin();
 	while (it!=arglist.end()) {
-		insertar(prog,tabs+"settype("+expresion(*it)+",'"+tipo+"');");
+		insertar(prog,tabs+"settype("+expresion(GetRT(),*it)+",'"+tipo+"');");
 		++it;
 	}
 }
@@ -226,11 +223,11 @@ string PhpExporter::make_varname(string varname) {
 	return string("$")+ToLower(varname);
 }
 
-void PhpExporter::asignacion(t_output &prog, string param1, string param2, string tabs){
-	insertar(prog,tabs+expresion(param1)+" = "+expresion(param2)+";");
+void PhpExporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
+	insertar(prog,tabs+expresion(GetRT(),param1)+" = "+expresion(GetRT(),param2)+";");
 }
 
-void PhpExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void PhpExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs);
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
@@ -240,4 +237,4 @@ void PhpExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
 		++it;
 	}
 }
-
+#endif

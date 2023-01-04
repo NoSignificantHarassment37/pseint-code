@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<math.h>
 #include<stdbool.h>
 #include<string.h>
 char *get_aux_buffer(double t);
@@ -16,28 +17,28 @@ int main() {
 	d = false;
 	e = "Hola";
 	f = "Mundo";
-	printf("%f\n",a+b);
-	printf("%f\n",a*b);
-	printf("%f\n",a/b);
-	printf("%f\n",a-b);
-	printf("%f\n",pow(a,b));
-	printf("%f\n",a%b);
-	printf("%i\n",a==b);
-	printf("%i\n",a!=b);
-	printf("%i\n",a<b);
-	printf("%i\n",a>b);
-	printf("%i\n",a<=b);
-	printf("%i\n",a>=b);
-	printf("%i\n",c && d);
-	printf("%i\n",c || d);
-	printf("%i\n",!(c && d));
-	printf("%s\n",strcat(strcpy(get_aux_buffer(),strcat(strcpy(get_aux_buffer(),e)," ")),f));
-	printf("%i\n",strcmp(e,f)==0);
-	printf("%i\n",strcmp(e,f)!=0);
-	printf("%i\n",strcmp(e,f)<0);
-	printf("%i\n",strcmp(e,f)>0);
-	printf("%i\n",strcmp(e,f)<=0);
-	printf("%i\n",strcmp(e,f)>=0);
+	printf("%f\n", a+b);
+	printf("%f\n", a*b);
+	printf("%f\n", a/b);
+	printf("%f\n", a-b);
+	printf("%f\n", pow(a, b));
+	printf("%f\n", a%b);
+	printf("%i\n", a==b);
+	printf("%i\n", a!=b);
+	printf("%i\n", a<b);
+	printf("%i\n", a>b);
+	printf("%i\n", a<=b);
+	printf("%i\n", a>=b);
+	printf("%i\n", c && d);
+	printf("%i\n", c || d);
+	printf("%i\n", !(c && d));
+	printf("%s\n", strcat(strcpy(get_aux_buffer(), strcat(strcpy(get_aux_buffer(), e), " ")), f));
+	printf("%i\n", strcmp(e, f)==0);
+	printf("%i\n", strcmp(e, f)!=0);
+	printf("%i\n", strcmp(e, f)<0);
+	printf("%i\n", strcmp(e, f)>0);
+	printf("%i\n", strcmp(e, f)<=0);
+	printf("%i\n", strcmp(e, f)>=0);
 	return 0;
 }
 #define MAX_BUFFERS 10
@@ -45,6 +46,6 @@ char *get_aux_buffer(double t) {
 	static char buffers[MAX_BUFFERS][MAX_STRLEN];
 	static int count = -1;
 	count = count+1;
-	if(count==MAX_BUFFERS) count = 0;
+	if (count==MAX_BUFFERS) count = 0;
 	return buffers[count];
 }

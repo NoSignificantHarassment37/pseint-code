@@ -32,8 +32,9 @@ bool PalabraReservada(const string &str) {
 }
 
 int BuscarComa(const string &expresion, int p1, int p2, char coma) {
+	if (p2==-1) p2 = expresion.size();
 	int parentesis = 0;
-	while (p1<=p2) {
+	while (p1<p2) {
 		char c = expresion[p1];
 		if (c=='\'' || c=='\"') {
 			do {

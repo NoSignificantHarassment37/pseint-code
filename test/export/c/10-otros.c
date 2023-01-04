@@ -7,7 +7,7 @@ int main() {
 	getchar();
 	esperar(100);
 	esperar(1*1000);
-	printf("%f\n",M_PI);
+	printf("%f\n", M_PI);
 	return 0;
 }
 void esperar(double t) {

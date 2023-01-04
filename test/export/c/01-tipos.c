@@ -16,7 +16,7 @@ int main() {
 	d = false;
 	e = "Hola";
 	f = "Hola Mundo";
-	scanf("%s",p);
-	printf("%s\n",p);
+	scanf("%f", p);
+	printf("%f\n", p);
 	return 0;
 }

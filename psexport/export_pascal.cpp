@@ -1,15 +1,12 @@
-#include "export_pascal.h"
+#if 0
+#include <algorithm>
 #include <sstream>
 #include <cstdlib>
-#include "../pseint/new_evaluar.h"
-#include "../pseint/utils.h"
+#include "ExporterBase.hpp"
+#include "export_pascal.h"
 #include "version.h"
-#include "new_memoria.h"
 #include "exportexp.h"
-#include "new_funciones.h"
-#include "export_common.h"
 #include "export_tipos.h"
-#include <algorithm>
 using namespace std;
 
 #define linea_special_para_reemplazar_por_uses_y_otros "<{[!ACA_VAN_USES_TYPE_CONST!]}>"
@@ -26,18 +23,18 @@ PascalExporter::PascalExporter() {
 	use_arreglo_max=false;
 }
 
-void PascalExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void PascalExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	uses_crt=true;
 	insertar(prog,tabs+"ClrScr;");
 }
 
-void PascalExporter::esperar_tecla(t_output &prog, string param, string tabs){
+void PascalExporter::esperar_tecla(t_output &prog, std::string tabs){
 	uses_crt=true;
 	insertar(prog,tabs+"ReadKey;");
 }
 
-void PascalExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void PascalExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	uses_crt=true;
 	stringstream inst;
 	inst<<"Delay(";
@@ -47,32 +44,32 @@ void PascalExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, st
 	insertar(prog,tabs+inst.str());
 }
 
-void PascalExporter::invocar(t_output &prog, string param, string tabs){
-	string linea=expresion(param);
+void PascalExporter::invocar(t_output &prog, string param, std::string tabs){
+	string linea=expresion(GetRT(),param);
 	if (linea[linea.size()-1]!=')') 
 		linea+="()";
 		linea+=";";
 		insertar(prog,tabs+linea);
 }
 
-void PascalExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void PascalExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	t_arglist_it it=args.begin();
 	string linea=saltar?"WriteLn":"Write", sep="(";
 	while (it!=args.end()) {
 		linea+=sep; sep=",";
-		linea+=expresion(*it);
+		linea+=expresion(GetRT(),*it);
 		++it;
 	}
 	linea+=");";
 	insertar(prog,tabs+linea);
 }
 
-void PascalExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void PascalExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	string params, sep="(";
 	while (it!=args.end()) {
 		tipo_var t;
-		string vname=expresion(*it,t);
+		string vname=expresion(GetRT(),*it,t);
 		if (t==vt_logica) {
 			memoria->DefinirTipo("aux_leer_logica",vt_caracter);
 			if (params.size()) insertar(prog,tabs+"ReadLn"+params+");");
@@ -91,12 +88,12 @@ void PascalExporter::leer(t_output &prog, t_arglist args, string tabs) {
 	if (params.size()) insertar(prog,tabs+"ReadLn"+params+");");
 }
 
-void PascalExporter::asignacion(t_output &prog, string param1, string param2, string tabs){
-	insertar(prog,tabs+expresion(param1)+" := "+expresion(param2)+";");
+void PascalExporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
+	insertar(prog,tabs+expresion(GetRT(),param1)+" := "+expresion(GetRT(),param2)+";");
 }
 
-void PascalExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, string tabs){
-	insertar(prog,tabs+"If "+expresion((*r).par1)+" Then Begin");
+void PascalExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, std::string tabs){
+	insertar(prog,tabs+"If "+expresion(GetRT(),(*r).par1)+" Then Begin");
 	bloque(prog,++r,q,tabs+"\t");
 	if (q!=s) {
 		insertar(prog,tabs+"End");
@@ -106,17 +103,17 @@ void PascalExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proces
 	insertar(prog,tabs+"End;");
 }
 
-void PascalExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	insertar(prog,tabs+"While "+expresion((*r).par1)+" Do Begin");
+void PascalExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	insertar(prog,tabs+"While "+expresion(GetRT(),(*r).par1)+" Do Begin");
 	bloque(prog,++r,q,tabs+"\t");
 	insertar(prog,tabs+"End;");
 }
 
-void PascalExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
+void PascalExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
 	list<t_proceso_it>::iterator p,q,r;
 	q=p=its.begin();r=its.end();
 	t_proceso_it i=*q;
-	insertar(prog,tabs+"Case "+expresion((*i).par1)+" Of");
+	insertar(prog,tabs+"Case "+expresion(GetRT(),(*i).par1)+" Of");
 	++q;++p;
 	while (++p!=r) {
 		i=*q;
@@ -124,7 +121,7 @@ void PascalExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
 		if (dom) {
 			insertar(prog,tabs+"\tElse Begin");
 		} else {
-			insertar(prog,tabs+"\t"+expresion((*i).par1)+": Begin");
+			insertar(prog,tabs+"\t"+expresion(GetRT(),(*i).par1)+": Begin");
 		}
 		bloque(prog,++i,*p,tabs+"\t\t");
 		insertar(prog,tabs+"\tEnd;");
@@ -133,17 +130,17 @@ void PascalExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
 	insertar(prog,tabs+"End;");
 }
 
-void PascalExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
+void PascalExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
 	insertar(prog,tabs+"Repeat");
 	bloque(prog,++r,q,tabs+"\t");
 	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"Until "+expresion((*q).par1)+";");
+		insertar(prog,tabs+"Until "+expresion(GetRT(),(*q).par1)+";");
 	else
-		insertar(prog,tabs+"Until "+expresion(invert_expresion((*q).par1))+";");
+		insertar(prog,tabs+"Until "+expresion(GetRT(),invert_expresion((*q).par1))+";");
 }
 
-void PascalExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs) {
-	string var=expresion((*r).par1), ini=expresion((*r).par2), fin=expresion((*r).par3), paso=(*r).par4;
+void PascalExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) {
+	string var=expresion(GetRT(),(*r).par1), ini=expresion(GetRT(),(*r).par2), fin=expresion(GetRT(),(*r).par3), paso=(*r).par4;
 	if (paso=="1") {
 		insertar(prog,tabs+"For "+var+":="+ini+" To "+fin+" Do Begin");
 	} else if (paso=="-1") {
@@ -166,7 +163,7 @@ void PascalExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, string
 	insertar(prog,tabs+"End;");
 }
 
-void PascalExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs) {
+void PascalExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	int n=dims[0];
@@ -335,7 +332,7 @@ void PascalExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso 
 	
 	// cabecera del proceso
 	if (!f) {
-		insertar(out,string("Program ")+ToLower(main_process_name)+";");
+		insertar(out,string("Program ")+ToLower(GetRT().funcs.GetMainName())+";");
 		insertar(out,linea_special_para_reemplazar_por_uses_y_otros);
 	} else {
 		string dec,ret;
@@ -348,9 +345,9 @@ void PascalExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso 
 			replace_var(out_proc,ToLower(f->nombres[0]),ToLower(f->id));
 		}
 		dec+=ToLower(f->id);
-		if (f->cant_arg) {
+		if (f->GetArgsCount()) {
 			dec+="(";
-			for(int i=1;i<=f->cant_arg;i++) {
+			for(int i=1;i<=f->GetArgsCount();i++) {
 				if (i!=1) dec+="; ";
 				dec+=get_tipo(f->nombres[i],f->pasajes[i]==PP_REFERENCIA||memoria->LeerDims(f->nombres[i]),true);
 			}
@@ -447,7 +444,8 @@ string PascalExporter::make_string (string cont) {
 	return string("\'")+cont+"\'";
 }
 
-void PascalExporter::comentar (t_output & prog, string text, string tabs) {
+void PascalExporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"// "+text);
 }
 
+#endif

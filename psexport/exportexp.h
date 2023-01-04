@@ -2,6 +2,7 @@
 #include<iomanip>
 #include<stack>
 #include "new_memoria.h"
+#include "RunTime.hpp"
 
 class ExpIntrucciones;
 
@@ -17,8 +18,10 @@ string colocarParentesis(const string &exp);
 
 string sumarOrestarUno(string exp, bool sumar);
 
-string expresion(string exp, tipo_var &tipo);
+string expresion(RunTime &rt, string exp, tipo_var &tipo);
 
-string expresion(string exp);
+string expresion(RunTime &rt, string exp);
 
 string invert_expresion(string expr);
+
+std::vector<std::string> splitArgs(const std::string &arglist);

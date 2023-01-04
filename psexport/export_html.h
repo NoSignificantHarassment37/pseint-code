@@ -5,7 +5,7 @@
 class HTMLExporter : public JavaScriptExporter {
 public:
 	HTMLExporter();
-	void translate(t_output &out, t_programa &prog);
+	void translate(t_output &out, t_programa &prog) override;
 };
 
 #endif

@@ -1,14 +1,10 @@
-#include "export_cpp.h"
 #include <sstream>
 #include <cstdlib>
-#include "../pseint/new_evaluar.h"
-#include "../pseint/utils.h"
+#include "CppExporter.hpp"
 #include "version.h"
-#include "new_memoria.h"
 #include "exportexp.h"
-#include "new_funciones.h"
-#include "export_common.h"
-#include "export_tipos.h"
+#include "ExporterBase.hpp"
+#include "TiposExporter.hpp"
 using namespace std;
 
 CppExporter::CppExporter() {
@@ -26,22 +22,22 @@ CppExporter::CppExporter() {
 	read_strings=true;
 }
 
-void CppExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void CppExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	if (for_test)
 		insertar(prog,tabs+"cout << endl;");
 	else
 		insertar(prog,tabs+"cout << endl; // no hay forma directa de borrar la pantalla con C++ estandar");
 }
 
-void CppExporter::esperar_tecla(t_output &prog, string param, string tabs){
+void CppExporter::esperar_tecla(t_output &prog, std::string tabs){
 	if (for_test)
 		insertar(prog,tabs+"cin.get();");
 	else
 		insertar(prog,tabs+"cin.get(); // a diferencia del pseudocódigo, espera un Enter, no cualquier tecla");
 }
 
-void CppExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void CppExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo = expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	use_func_esperar=true;
 	stringstream inst;
 	inst<<"esperar(";
@@ -53,133 +49,122 @@ void CppExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, strin
 	insertar(prog,tabs+inst.str());
 }
 
-void CppExporter::invocar(t_output &prog, string param, string tabs){
-	string linea=expresion(param);
-	if (linea[linea.size()-1]!=')') 
-		linea+="()";
-		linea+=";";
-		insertar(prog,tabs+linea);
+void CppExporter::invocar(t_output &prog, std::string func_name, std::string params, std::string tabs){
+	std::string line = func_name+params;
+	if (params.empty()) line += "()";
+	insertar(prog,tabs+expresion(GetRT(),line)+";");
 }
 
-void CppExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void CppExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	t_arglist_it it=args.begin();
 	string linea="cout";
 	while (it!=args.end()) {
 		linea+=" << ";
-		linea+=expresion(*it);
+		linea+=expresion(GetRT(),*it);
 		++it;
 	}
 	insertar(prog,tabs+linea+(saltar?" << endl;":";"));
 }
 
-void CppExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void CppExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	string linea="cin";
 	while (it!=args.end()) {
 		linea+=" >> ";
 		tipo_var t;
-		linea+=expresion(*it,t);
+		linea+=expresion(GetRT(),*it,t);
 		if (t==vt_caracter) read_strings=true;
 		++it;
 	}
 	insertar(prog,tabs+linea+";");
 }
 
-void CppExporter::asignacion(t_output &prog, string param1, string param2, string tabs){
-	insertar(prog,tabs+expresion(param1)+" = "+expresion(param2)+";");
+void CppExporter::asignacion(t_output &prog, string variable, string valor, std::string tabs){
+	insertar(prog,tabs+expresion(GetRT(),variable)+" = "+expresion(GetRT(),valor)+";");
 }
 
-void CppExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, string tabs){
-	insertar(prog,tabs+"if ("+expresion((*r).par1)+") {");
-	bloque(prog,++r,q,tabs+"\t");
-	if (q!=s) {
+void CppExporter::si(t_output &prog, t_proceso_it it_si, t_proceso_it it_sino, t_proceso_it it_fin, std::string tabs){
+	string condicion = expresion(GetRT(),getImpl<IT_SI>(*it_si).condicion);
+	insertar(prog,tabs+"if ("+condicion+") {");
+	bloque(prog,++it_si,it_sino,tabs+"\t");
+	if (it_sino!=it_fin) {
 		insertar(prog,tabs+"} else {");
-		bloque(prog,++q,s,tabs+"\t");
+		bloque(prog,++it_sino,it_fin,tabs+"\t");
 	}
 	insertar(prog,tabs+"}");
 }
 
-void CppExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	insertar(prog,tabs+"while ("+expresion((*r).par1)+") {");
+void CppExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) {
+	auto impl = getImpl<IT_MIENTRAS>(*r);
+	insertar(prog,tabs+"while ("+expresion(GetRT(),impl.condicion)+") {");
 	bloque(prog,++r,q,tabs+"\t");
 	insertar(prog,tabs+"}");
 }
 
-void CppExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
-	list<t_proceso_it>::iterator p,q,r;
-	q=p=its.begin();r=its.end();
-	t_proceso_it i=*q;
-	insertar(prog,tabs+"switch ("+expresion((*i).par1)+") {");
-	++q;++p;
-	while (++p!=r) {
-		i=*q;
-		bool dom=(*i).par1=="DE OTRO MODO";
+void CppExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs) {
+	auto impl = getImpl<IT_SEGUN>(*(its[0]));
+	insertar(prog,tabs+"switch ("+expresion(GetRT(),impl.expresion)+") {");
+	for(size_t i=2;i<its.size();++i) {
+		auto it_op = its[i-1], it_next = its[i];
+		bool dom = it_op->type==IT_DEOTROMODO;
 		if (dom) {
 			insertar(prog,tabs+"default:");
 		} else {
-			string e="case "+expresion((*i).par1)+":";
-			bool comillas=false; int parentesis=0, j=0,l=e.size();
-			while(j<l) {
-				if (e[j]=='\''||e[j]=='\"') comillas=!comillas;
-				else if (!comillas) {
-					if (e[j]=='['||e[j]=='(') parentesis++;
-					else if (e[j]==']'||e[j]==')') parentesis--;
-					else if (parentesis==0 && e[j]==',') {
-						e.replace(j,1,": case "); l+=6;
-					}
-				}
-				j++;
-			}
-			insertar(prog,tabs+e);
+			for(std::string &exp : getImpl<IT_OPCION>(*it_op).expresiones)
+				insertar(prog,tabs+"case "+expresion(GetRT(),exp)+":");
 		}
-		bloque(prog,++i,*p,tabs+"\t");
+		bloque(prog,++it_op,it_next,tabs+"\t");
 		if (!dom) insertar(prog,tabs+"\tbreak;");
-		++q;
 	}
 	insertar(prog,tabs+"}");
 }
 
-void CppExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
+void CppExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	auto impl = getImpl<IT_HASTAQUE>(*q);
 	insertar(prog,tabs+"do {");
 	bloque(prog,++r,q,tabs+"\t");
-	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"} while ("+expresion(invert_expresion((*q).par1))+");");
+	if (impl.mientras_que)
+		insertar(prog,tabs+"} while ("+expresion(GetRT(),impl.condicion)+");");
 	else
-		insertar(prog,tabs+"} while ("+expresion((*q).par1)+");");
+		insertar(prog,tabs+"} while ("+expresion(GetRT(),invert_expresion(impl.condicion)+");"));
 }
 
-void CppExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	string var=expresion((*r).par1), ini=expresion((*r).par2), fin=expresion((*r).par3), paso=(*r).par4;
-	if ((*r).par4[0]=='-') {
+void CppExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
+	auto &impl = getImpl<IT_PARA>(*it_para);
+	string var = expresion(GetRT(),impl.contador), ini = expresion(GetRT(),impl.val_ini), 
+		   fin = expresion(GetRT(),impl.val_fin), paso = impl.paso;
+	if ((not paso.empty()) and paso[0]=='-') {
 		if (paso=="-1")
-			insertar(prog,tabs+"for ("+var+"="+ini+";"+var+">="+fin+";"+var+"--) {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; --"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+";"+var+">="+fin+";"+var+"-="+expresion(paso.substr(1,paso.size()-1))+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; "+var+"-="+expresion(GetRT(),paso.substr(1))+") {");
 	} else {
-		if (paso=="1")
-			insertar(prog,tabs+"for ("+var+"="+ini+";"+var+"<="+fin+";"+var+"++) {");
+		if (paso.empty() or paso=="1")
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; ++"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+";"+var+"<="+fin+";"+var+"+="+expresion(paso)+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; "+var+"+="+expresion(GetRT(),paso)+") {");
 	}
-	bloque(prog,++r,q,tabs+"\t");
+	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
 	insertar(prog,tabs+"}");
 }
 
-void CppExporter::paracada(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
-	string first=var,last=var;
-	const int *dims=memoria->LeerDims(var);
-	if (!dims) { insertar(prog,string("Error: ")+var+" no es un arreglo"); return; }
+void CppExporter::paracada(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
+	auto &impl = getImpl<IT_PARACADA>(*it_para);
+	string identif = ToLower(impl.identificador), arreglo = ToLower(impl.arreglo);
+	string first = arreglo, last = arreglo;
+	const int *dims = memoria->LeerDims(arreglo);
+	if (!dims) { insertar(prog,string("Error: ")+arreglo+" no es un arreglo"); return; }
 	for (int i=1;i<=dims[0];i++) {
 		first+="[0]";
 		last+="[";
 		last+=IntToStr(dims[i]-1);
 		last+="]";
 	}
-	string ptr=get_aux_varname("aux_ptr_");
-	insertar(prog,tabs+"for (typeof(&("+first+")) "+ptr+"=&("+first+");"+ptr+"<=&("+last+");"+ptr+"++) {");
-	insertar(prog,tabs+"\ttypeof("+first+") &"+aux+" = *"+ptr+";");
-	bloque(prog,++r,q,tabs+"\t");
+	string ptr = get_aux_varname("aux_ptr_");
+	insertar(prog,tabs+"for (auto "+ptr+"=&("+first+"); "+ptr+"<=&("+last+"); ++"+ptr+") {");
+	insertar(prog,tabs+"\tauto &"+identif+" = *"+ptr+";");
+	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
+	memoria->RemoveVar(identif);
 	insertar(prog,tabs+"}");
 	release_aux_varname(ptr);
 }
@@ -242,10 +227,10 @@ string CppExporter::function(string name, string args) {
 	} else if (name=="LONGITUD") {
 		return convertirAString(get_arg(args,1))+".size()";
 	} else if (name=="SUBCADENA") {
-		string desde=get_arg(args,2);
-		string cuantos=sumarOrestarUno(get_arg(args,3)+"-"+get_arg(args,2),true);
-		if (!input_base_zero_arrays) desde=sumarOrestarUno(desde,false);
-		return convertirAString(get_arg(args,1))+".substr("+desde+","+cuantos+")";
+		string desde = get_arg(args,2);
+		string cuantos = sumarOrestarUno(get_arg(args,3)+"-"+get_arg(args,2),true);
+		if (!input_base_zero_arrays) desde = sumarOrestarUno(desde,false);
+		return convertirAString(get_arg(args,1))+".substr("+desde+", "+cuantos+")";
 	} else if (name=="CONVERTIRANUMERO") {
 		include_cstdlib=true;
 		string s=get_arg(args,1);
@@ -389,7 +374,7 @@ void CppExporter::footer(t_output &out) {
 	if (use_func_mayusculas) {
 		if (!for_test) out.push_back("");
 		out.push_back("string mayusculas(string s) {");
-		out.push_back("\tfor(unsigned int i=0;i<s.size();i++)");
+		out.push_back("\tfor (unsigned int i=0; i<s.size(); ++i)");
 		out.push_back("\t\ts[i] = toupper(s[i]);");
 		out.push_back("\treturn s;");
 		out.push_back("}");
@@ -398,7 +383,7 @@ void CppExporter::footer(t_output &out) {
 	if (use_func_minusculas) {
 		if (!for_test) out.push_back("");
 		out.push_back("string minusculas(string s) {");
-		out.push_back("\tfor(unsigned int i=0;i<s.size();i++)");
+		out.push_back("\tfor (unsigned int i=0; i<s.size(); ++i)");
 		out.push_back("\t\ts[i] = tolower(s[i]);");
 		out.push_back("\treturn s;");
 		out.push_back("}");
@@ -409,7 +394,7 @@ void CppExporter::footer(t_output &out) {
 
 void CppExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &proc) {
 	
-	//cuerpo del proceso
+	// cuerpo del proceso
 	t_output out_proc;
 	bloque(out_proc,++proc.begin(),proc.end(),"\t");
 	
@@ -420,7 +405,7 @@ void CppExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pr
 		ret="return 0";
 	} else {
 		string dec;
-		if (f->nombres[0]=="") {
+		if (f->nombres[0].empty()) {
 			dec="void "; 
 		} else {
 			ret=get_tipo(f->nombres[0],false,false);
@@ -428,7 +413,7 @@ void CppExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pr
 			ret=string("return")+ret.substr(ret.find(" "));
 		}
 		dec+=ToLower(f->id)+"(";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			dec+=get_tipo(f->nombres[i],f->pasajes[i]==PP_REFERENCIA);
 		}
@@ -447,7 +432,9 @@ void CppExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pr
 	if (!for_test) out.push_back("");
 }
 
-void CppExporter::translate(t_output &out, t_programa &prog) {
+void CppExporter::translate(t_output &out, Programa &prog) {
+	
+	load_subs_in_funcs_manager(prog);
 	
 	// cppcheck-suppress unusedScopedObject
 	TiposExporter(prog,true); // para que se cargue el mapa_memorias con memorias que tengan ya definidos los tipos de variables que correspondan
@@ -498,7 +485,7 @@ string CppExporter::get_operator(string op, bool for_string) {
 	if (op=="-") return "-"; 
 	if (op=="/") return "/"; 
 	if (op=="*") return "*";
-	if (op=="^") { include_cmath=true; return "func pow(arg1,arg2)"; }
+	if (op=="^") { include_cmath=true; return "func pow(arg1, arg2)"; }
 	if (op=="%") return "%";
 	if (op=="=") return "=="; 
 	if (op=="<>") return "!="; 
@@ -518,11 +505,11 @@ string CppExporter::make_string (string cont) {
 	return string("\"")+cont+"\"";
 }
 
-void CppExporter::comentar (t_output & prog, string text, string tabs) {
+void CppExporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"// "+text);
 }
 
-void CppExporter::translate_all_procs (t_output & out, t_programa & prog, string tabs) {
+void CppExporter::translate_all_procs (t_output & out, Programa &prog, std::string tabs) {
 	ExporterBase::translate_all_procs (out,prog,tabs);
 }
 

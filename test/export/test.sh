@@ -3,18 +3,18 @@ if [ "$1" = "" ]; then
   echo "Use: $0 langcode"
 else
   LANGCODE=$1
-  if ! make -C ../../psexport -f Makefile.lnx; then exit 1; fi
-  ebin=../../../bin/psexport
+  if ! make -C ../../psexport ARCH=lnx; then exit 1; fi
+  ebin=../../../bin/bin/psexport
   
   echo LANG: $LANGCODE
-  if ! make -C ../../pseint -f Makefile.lnx; then exit 1; fi
+  if ! make -C ../../pseint ARCH=lnx; then exit 1; fi
 
   if ! test -e $LANGCODE; then
     mkdir $LANGCODE
   fi
   cd psc
   
-  ibin=../../../bin/pseint
+  ibin=../../../bin/bin/pseint
   mkdir -p ../temp
   
   for A in *.psc; do

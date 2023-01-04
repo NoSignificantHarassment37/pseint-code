@@ -1,12 +1,10 @@
-#include "export_python3.h"
-#include "../pseint/utils.h"
-#include "version.h"
-#include "new_memoria.h"
-#include "exportexp.h"
-#include "new_funciones.h"
-#include "export_common.h"
-#include "export_tipos.h"
+#if 0
 #include <stack>
+#include "export_python3.h"
+#include "version.h"
+#include "exportexp.h"
+#include "ExporterBase.hpp"
+#include "export_tipos.h"
 using namespace std;
 
 Python3Exporter::Python3Exporter(int version) {
@@ -27,7 +25,7 @@ Python3Exporter::Python3Exporter(int version) {
 	output_base_zero_arrays=true;
 }
 
-void Python3Exporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void Python3Exporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs); // creo que esto no es necesario, pero lo dejo por las dudas (del copy/paste de java)
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
@@ -50,7 +48,7 @@ void Python3Exporter::dimension(t_output &prog, t_arglist &args, string tabs) {
 		stack<string> auxvars;
 		while (it2!=dimlist.end()) {
 			auxvars.push(get_aux_varname("ind"));
-			dims=string("[")+dims+" for "+auxvars.top()+" in range("+expresion(*it2)+")]";
+			dims=string("[")+dims+" for "+auxvars.top()+" in range("+expresion(GetRT(),*it2)+")]";
 			++it2;
 		}
 		while(!auxvars.empty()) { release_aux_varname(auxvars.top()); auxvars.pop(); }
@@ -60,7 +58,7 @@ void Python3Exporter::dimension(t_output &prog, t_arglist &args, string tabs) {
 	}
 }
 
-void Python3Exporter::borrar_pantalla(t_output &out, string param, string tabs){
+void Python3Exporter::borrar_pantalla(t_output &out, std::string tabs) {
 	string linea=tabs;
 	if (version==3) linea+="print(\"\")";
 	else linea+="print \"\"";
@@ -68,7 +66,7 @@ void Python3Exporter::borrar_pantalla(t_output &out, string param, string tabs){
 	insertar(out,linea);
 }
 
-void Python3Exporter::esperar_tecla(t_output &prog, string param, string tabs){
+void Python3Exporter::esperar_tecla(t_output &prog, std::string tabs){
 	string input=version==3?"input":"raw_input";
 	if (for_test)
 		insertar(prog,tabs+input+"()");
@@ -76,8 +74,8 @@ void Python3Exporter::esperar_tecla(t_output &prog, string param, string tabs){
 		insertar(prog,tabs+input+"() # a diferencia del pseudocódigo, espera un Enter, no cualquier tecla");
 }
 
-void Python3Exporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void Python3Exporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	import_sleep=true;
 	if (mili) 
 		insertar(prog,tabs+"sleep("+colocarParentesis(tiempo)+"/1000.0)");
@@ -85,19 +83,19 @@ void Python3Exporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, s
 		insertar(prog,tabs+"sleep("+tiempo+")");
 }
 
-void Python3Exporter::invocar(t_output &prog, string param, string tabs){
-	string linea=expresion(param);
+void Python3Exporter::invocar(t_output &prog, string param, std::string tabs){
+	string linea=expresion(GetRT(),param);
 	if (linea[linea.size()-1]!=')') 
 		linea+="()";
 		insertar(prog,tabs+linea);
 }
 
-void Python3Exporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void Python3Exporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	t_arglist_it it=args.begin();
 	string linea="print",sep=version==3?"(":" ";
 	while (it!=args.end()) {
 		linea+=sep; sep=",";
-		linea+=expresion(*it);
+		linea+=expresion(GetRT(),*it);
 		++it;
 	}
 	if (version==3) {
@@ -106,25 +104,25 @@ void Python3Exporter::escribir(t_output &prog, t_arglist args, bool saltar, stri
 	insertar(prog,tabs+linea);
 }
 
-void Python3Exporter::definir(t_output &prog, t_arglist &arglist, string tipo, string tabs) {
+void Python3Exporter::definir(t_output &prog, t_arglist &arglist, string tipo, std::string tabs) {
 	if (tipo=="ENTERO") tipo="int()";
 	else if (tipo=="REAL") tipo="float()";
 	else if (tipo=="LOGICO") tipo="bool()";
 	else tipo="str()";
 	t_arglist_it it=arglist.begin();
 	while (it!=arglist.end()) {
-		insertar(prog,tabs+expresion(*it)+" = "+tipo);
+		insertar(prog,tabs+expresion(GetRT(),*it)+" = "+tipo);
 		++it;
 	}
 }
 
 
-void Python3Exporter::leer(t_output &prog, t_arglist args, string tabs) {
+void Python3Exporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	string input=version==3?"input":"raw_input";
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = int("+input+"())");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = float("+input+"())");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = bool("+input+"())");
@@ -133,12 +131,12 @@ void Python3Exporter::leer(t_output &prog, t_arglist args, string tabs) {
 	}
 }
 
-void Python3Exporter::asignacion(t_output &prog, string param1, string param2, string tabs){
-	insertar(prog,tabs+expresion(param1)+" = "+expresion(param2));
+void Python3Exporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
+	insertar(prog,tabs+expresion(GetRT(),param1)+" = "+expresion(GetRT(),param2));
 }
 
-void Python3Exporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, string tabs){
-	insertar(prog,tabs+"if "+expresion((*r).par1)+":");
+void Python3Exporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, std::string tabs){
+	insertar(prog,tabs+"if "+expresion(GetRT(),(*r).par1)+":");
 	bloque(prog,++r,q,tabs+"\t");
 	if (q!=s) {
 		insertar(prog,tabs+"else:");
@@ -146,16 +144,16 @@ void Python3Exporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proce
 	}
 }
 
-void Python3Exporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	insertar(prog,tabs+"while "+expresion((*r).par1)+":");
+void Python3Exporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	insertar(prog,tabs+"while "+expresion(GetRT(),(*r).par1)+":");
 	bloque(prog,++r,q,tabs+"\t");
 }
 
-void Python3Exporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
+void Python3Exporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
 	list<t_proceso_it>::iterator p,q,r;
 	q=p=its.begin();r=its.end();
 	t_proceso_it i=*q;
-	string cond=expresion((*i).par1)+"==";
+	string cond=expresion(GetRT(),(*i).par1)+"==";
 	++q;++p; bool first=true;
 	while (++p!=r) {
 		i=*q;
@@ -164,7 +162,7 @@ void Python3Exporter::segun(t_output &prog, list<t_proceso_it> its, string tabs)
 			insertar(prog,tabs+"else:");
 		} else {
 			string line=first?"if ":"elif "; first=false;
-			string e=expresion((*i).par1);
+			string e=expresion(GetRT(),(*i).par1);
 			bool comillas=false; int parentesis=0, j=0,l=e.size();
 			while(j<l) {
 				if (e[j]=='\''||e[j]=='\"') comillas=!comillas;
@@ -185,17 +183,17 @@ void Python3Exporter::segun(t_output &prog, list<t_proceso_it> its, string tabs)
 	}
 }
 
-void Python3Exporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
+void Python3Exporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
 	insertar(prog,tabs+"while True:"+(for_test?"":"# no hay 'repetir' en python"));
 	bloque(prog,++r,q,tabs+"\t");
 	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"\tif "+expresion((*q).par1)+": break");
+		insertar(prog,tabs+"\tif "+expresion(GetRT(),(*q).par1)+": break");
 	else
-		insertar(prog,tabs+"\tif "+expresion(invert_expresion((*q).par1))+": break");
+		insertar(prog,tabs+"\tif "+expresion(GetRT(),invert_expresion((*q).par1))+": break");
 }
 
-void Python3Exporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	string var=expresion((*r).par1), ini=expresion((*r).par2), fin=expresion((*r).par3), paso=(*r).par4;
+void Python3Exporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	string var=expresion(GetRT(),(*r).par1), ini=expresion(GetRT(),(*r).par2), fin=expresion(GetRT(),(*r).par3), paso=(*r).par4;
 	string line=string("for ")+var+" in range(";
 	if (ini!="0"||paso!="1") line+=ini+",";
 	line+=sumarOrestarUno(fin,(*r).par4[0]!='-');
@@ -205,7 +203,7 @@ void Python3Exporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, strin
 	bloque(prog,++r,q,tabs+"\t");
 }
 
-void Python3Exporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs) {
+void Python3Exporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	// el "for x in a" de python sirve para solo-lectura (modificar x no modifica a)
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
@@ -340,7 +338,7 @@ void Python3Exporter::translate_single_proc(t_output &out, Funcion *f, t_proceso
 	} else {
 		string dec="def ";
 		dec+=ToLower(f->id)+"(";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			dec+=ToLower(f->nombres[i]);
 		}
@@ -414,7 +412,8 @@ string Python3Exporter::make_string (string cont) {
 	return string("\"")+cont+"\"";
 }
 
-void Python3Exporter::comentar (t_output & prog, string text, string tabs) {
+void Python3Exporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"# "+text);
 }
 
+#endif

@@ -28,7 +28,7 @@ int main() {
 	cout << s.size() << endl;
 	cout << minusculas(s) << endl;
 	cout << mayusculas(s) << endl;
-	cout << s.substr(1,3-1) << endl;
+	cout << s.substr(1, 3-1) << endl;
 	cout << (s+" Mundo") << endl;
 	cout << (string("Mundo ")+s) << endl;
 	cout << atof("15.5") << endl;
@@ -41,12 +41,12 @@ string convertiratexto(float f) {
 	return ss.str();
 }
 string mayusculas(string s) {
-	for(unsigned int i=0;i<s.size();i++)
+	for (unsigned int i=0; i<s.size(); ++i)
 		s[i] = toupper(s[i]);
 	return s;
 }
 string minusculas(string s) {
-	for(unsigned int i=0;i<s.size();i++)
+	for (unsigned int i=0; i<s.size(); ++i)
 		s[i] = tolower(s[i]);
 	return s;
 }

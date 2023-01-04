@@ -1,13 +1,11 @@
+#if 0
 /**
 * @file export_qbasic.cpp
 *
 * Las traducciones están basadas en los ejemplos enviados por el Prof. Tito Sánchez
 **/
-#include "../pseint/new_funciones.h"
-#include "../pseint/new_evaluar.h"
-#include "../pseint/utils.h"
 #include "export_qbasic.h"
-#include "export_common.h"
+#include "ExporterBase.hpp"
 #include "version.h"
 #include "exportexp.h"
 #include "export_tipos.h"
@@ -17,12 +15,12 @@ QBasicExporter::QBasicExporter() {
 	output_base_zero_arrays=input_base_zero_arrays;
 }
 
-void QBasicExporter::esperar_tecla(t_output &prog, string param, string tabs){
+void QBasicExporter::esperar_tecla(t_output &prog, std::string tabs){
 	insertar(prog,tabs+"WHILE INKEY$<>\"\": WEND");
 }
 
-void QBasicExporter::esperar_tiempo(t_output &prog, string tiempo, bool milis, string tabs){
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void QBasicExporter::esperar_tiempo(t_output &prog, string tiempo, bool milis, std::string tabs){
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	stringstream inst;
 	inst<<"SLEEP ";
 	if (!milis) inst<<tiempo; 
@@ -30,26 +28,26 @@ void QBasicExporter::esperar_tiempo(t_output &prog, string tiempo, bool milis, s
 	insertar(prog,tabs+inst.str());
 }
 
-void QBasicExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void QBasicExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"CLS");
 }
 
-void QBasicExporter::invocar(t_output &prog, string param, string tabs){
-	string linea=expresion(param);
+void QBasicExporter::invocar(t_output &prog, string param, std::string tabs){
+	string linea=expresion(GetRT(),param);
 	if (linea[linea.size()-1]!=')') 
 		linea+="()";
 	string fname=ToUpper(linea.substr(0,linea.find('(')));
-	const Funcion *func=EsFuncion(fname);
+	const Funcion *func=GetRT().funcs.GetFunction(fname,true);
 	if (func->nombres[0]=="") linea=string("CALL ")+linea;
 	insertar(prog,tabs+linea);
 }
 
-void QBasicExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void QBasicExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	t_arglist_it it=args.begin();
 	string linea;
 	while (it!=args.end()) {
 		if (linea.size()) linea+=";";
-		linea+=expresion(*it);
+		linea+=expresion(GetRT(),*it);
 		++it;
 	}
 	if (saltar) linea=string("PRINT ")+linea; 
@@ -57,23 +55,23 @@ void QBasicExporter::escribir(t_output &prog, t_arglist args, bool saltar, strin
 	insertar(prog,tabs+linea);
 }
 
-void QBasicExporter::leer(t_output &prog, t_arglist args, string tabs){
+void QBasicExporter::leer(t_output &prog, t_arglist args, std::string tabs){
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_caracter||t==vt_desconocido) insertar(prog,tabs+"LINE INPUT "+varname);
 		else  insertar(prog,tabs+"INPUT "+varname);
 		++it;
 	}
 }
 
-void QBasicExporter::asignacion(t_output &prog, string param1, string param2, string tabs){
-	insertar(prog,tabs+expresion(param1)+" = "+expresion(param2));
+void QBasicExporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
+	insertar(prog,tabs+expresion(GetRT(),param1)+" = "+expresion(GetRT(),param2));
 }
 
-void QBasicExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, string tabs){
-	insertar(prog,tabs+"IF "+expresion((*r).par1)+" THEN");
+void QBasicExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, std::string tabs){
+	insertar(prog,tabs+"IF "+expresion(GetRT(),(*r).par1)+" THEN");
 	bloque(prog,++r,q,tabs+"\t");
 	if (q!=s) {
 		insertar(prog,tabs+"ELSE");
@@ -82,24 +80,24 @@ void QBasicExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proces
 	insertar(prog,tabs+"END");
 }
 
-void QBasicExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	insertar(prog,tabs+"WHILE "+expresion((*r).par1));
+void QBasicExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	insertar(prog,tabs+"WHILE "+expresion(GetRT(),(*r).par1));
 	bloque(prog,++r,q,tabs+"\t");
 	insertar(prog,tabs+"WEND");
 }
 
-void QBasicExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
+void QBasicExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
 	list<t_proceso_it>::iterator p,q,r;
 	q=p=its.begin();r=its.end();
 	t_proceso_it i=*q;
-	insertar(prog,tabs+"SELECT CASE "+expresion((*i).par1));
+	insertar(prog,tabs+"SELECT CASE "+expresion(GetRT(),(*i).par1));
 	++q;++p;
 	while (++p!=r) {
 		i=*q;
 		if ((*i).par1=="DE OTRO MODO")
 			insertar(prog,tabs+"\tCASE ELSE");
 		else {
-			string e="CASE "+expresion((*i).par1);
+			string e="CASE "+expresion(GetRT(),(*i).par1);
 			bool comillas=false; int parentesis=0, j=0,l=e.size();
 			while(j<l) {
 				if (e[j]=='\''||e[j]=='\"') comillas=!comillas;
@@ -120,26 +118,26 @@ void QBasicExporter::segun(t_output &prog, list<t_proceso_it> its, string tabs){
 	insertar(prog,tabs+"END SELECT");
 }
 
-void QBasicExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
+void QBasicExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
 	insertar(prog,tabs+"DO");
 	bloque(prog,++r,q,tabs+"\t");
 	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"LOOP UNTIL "+expresion((*q).par1));
+		insertar(prog,tabs+"LOOP UNTIL "+expresion(GetRT(),(*q).par1));
 	else
-		insertar(prog,tabs+"LOOP WHILE "+expresion((*q).par1));
+		insertar(prog,tabs+"LOOP WHILE "+expresion(GetRT(),(*q).par1));
 }
 
-void QBasicExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, string tabs){
-	string var=expresion((*r).par1), ini=expresion((*r).par2), fin=expresion((*r).par3), paso=(*r).par4;
+void QBasicExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+	string var=expresion(GetRT(),(*r).par1), ini=expresion(GetRT(),(*r).par2), fin=expresion(GetRT(),(*r).par3), paso=(*r).par4;
 	if (paso=="1")
 		insertar(prog,tabs+"FOR "+var+" = "+ini+" TO "+fin);
 	else
-		insertar(prog,tabs+"FOR "+var+" = "+ini+" TO "+fin+" STEP "+expresion(paso));
+		insertar(prog,tabs+"FOR "+var+" = "+ini+" TO "+fin+" STEP "+expresion(GetRT(),paso));
 	bloque(prog,++r,q,tabs+"\t");
 	insertar(prog,tabs+"NEXT "+var);
 }
 
-void QBasicExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs){
+void QBasicExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs){
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	int n=dims[0];
@@ -281,7 +279,7 @@ void QBasicExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso 
 			ret=ToLower(f->id)+" = "+ToLower(f->nombres[0]);
 		}
 		dec+=ToLower(f->id)+" (";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			dec+=get_tipo(f->nombres[i],f->pasajes[i]==PP_REFERENCIA);
 		}
@@ -380,7 +378,7 @@ string QBasicExporter::make_string (string cont) {
 	return string("\"")+cont+"\"";
 }
 
-void QBasicExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void QBasicExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs);
 	t_arglist_it it=args.begin();
 	string line;
@@ -403,7 +401,8 @@ void QBasicExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
 	insertar(prog,tabs+"DIM "+line);
 }
 
-void QBasicExporter::comentar (t_output & prog, string text, string tabs) {
+void QBasicExporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"' "+text);
 }
 
+#endif

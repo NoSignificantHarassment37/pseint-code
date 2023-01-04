@@ -1,7 +1,8 @@
+#if 0
 #include "export_java.h"
 #include "exportexp.h"
 #include "../pseint/utils.h"
-#include "../pseint/new_funciones.h"
+#include "../pseint/FuncsManager.hpp"
 
 #define _buf_reader_line "\t\tBufferedReader bufEntrada = new BufferedReader(new InputStreamReader(System.in));"
 
@@ -15,14 +16,14 @@ JavaExporter::JavaExporter():CppExporter() {
 #endif
 }
 
-void JavaExporter::borrar_pantalla(t_output &prog, string param, string tabs){
+void JavaExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	if (for_test)
 		insertar(prog,tabs+"System.out.println(\"\");");
 	else
 		insertar(prog,tabs+"System.out.println(\"\"); // no hay forma directa de borrar la consola en Java");
 }
 
-void JavaExporter::esperar_tecla(t_output &prog, string param, string tabs) {
+void JavaExporter::esperar_tecla(t_output &prog, std::string tabs) {
 	use_esperar_tecla=true;
 	if (for_test)
 		insertar(prog,tabs+"System.in.read();");
@@ -30,8 +31,8 @@ void JavaExporter::esperar_tecla(t_output &prog, string param, string tabs) {
 		insertar(prog,tabs+"System.in.read(); // a diferencia del pseudocódigo, espera un Enter, no cualquier tecla");
 }
 
-void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, string tabs) {
-	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
+void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
 	use_esperar_tiempo=true;
 	stringstream inst;
 	inst<<"Thread.sleep(";
@@ -46,13 +47,13 @@ void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, stri
 	insertar(prog,tabs+inst.str());
 }
 
-void JavaExporter::escribir(t_output &prog, t_arglist args, bool saltar, string tabs){
+void JavaExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
 	string arglist;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		if (arglist.size()) arglist+="+";
 		tipo_var t;
-		arglist+=expresion(*it,t);
+		arglist+=expresion(GetRT(),*it,t);
 		++it;
 	}
 	if (saltar)
@@ -61,12 +62,12 @@ void JavaExporter::escribir(t_output &prog, t_arglist args, bool saltar, string 
 		insertar(prog,tabs+"System.out.print("+arglist+");");
 }
 
-void JavaExporter::leer(t_output &prog, t_arglist args, string tabs) {
+void JavaExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	use_reader=true;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		string varname=expresion(GetRT(),*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = Integer.parseInt(bufEntrada.readLine());");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Double.parseDouble(bufEntrada.readLine());");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean.parseBoolean(bufEntrada.readLine());");
@@ -76,7 +77,7 @@ void JavaExporter::leer(t_output &prog, t_arglist args, string tabs) {
 }
 
 
-void JavaExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, string tabs) {
+void JavaExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
 	const int *dims=memoria->LeerDims(var);
 	if (!dims) { insertar(out,string("ERROR: ")+var+" NO ES UN ARREGLO"); return; }
@@ -209,7 +210,7 @@ void JavaExporter::header(t_output &out) {
 	init_header(out,"/* "," */");
 	if (!for_test) {
 		out.push_back("// En java, el nombre de un archivo fuente debe coincidir con el nombre de la clase que contiene,");
-		out.push_back(string("// por lo que este archivo debería llamarse \"")+main_process_name+".java.\"");
+		out.push_back(string("// por lo que este archivo debería llamarse \"")+GetRT().funcs.GetMainName()+".java.\"");
 		out.push_back("");
 	}
 	if (have_subprocesos && !for_test) {
@@ -231,7 +232,7 @@ void JavaExporter::header(t_output &out) {
 	out.push_back("import java.io.*;");
 	if (include_cmath) out.push_back("import java.math.*;");
 	if (!for_test) out.push_back("");
-	out.push_back(string("public class ")+ToLower(main_process_name)+" {");
+	out.push_back(string("public class ")+ToLower(GetRT().funcs.GetMainName())+" {");
 	if (!for_test) out.push_back("");
 }
 
@@ -274,7 +275,7 @@ void JavaExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &p
 			ret=string("return")+ret.substr(ret.find(" "));
 		}
 		dec+=ToLower(f->id)+"(";
-		for(int i=1;i<=f->cant_arg;i++) {
+		for(int i=1;i<=f->GetArgsCount();i++) {
 			if (i!=1) dec+=", ";
 			string var_dec=CppExporter::get_tipo(f->nombres[i],f->pasajes[i]==PP_REFERENCIA);
 			dec+=var_dec;
@@ -314,7 +315,7 @@ string JavaExporter::get_operator(string op, bool for_string) {
 }
 
 
-void JavaExporter::dimension(t_output &prog, t_arglist &args, string tabs) {
+void JavaExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
 	ExporterBase::dimension(prog,args,tabs);
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
@@ -368,7 +369,7 @@ void JavaExporter::translate(t_output &out, t_programa &prog) {
 	}
 }
 
-void JavaExporter::translate_all_procs (t_output & out, t_programa & prog, string tabs) {
+void JavaExporter::translate_all_procs (t_output & out, t_programa & prog, std::string tabs) {
 	ExporterBase::translate_all_procs(out,prog,"\t");
 }
-
+#endif

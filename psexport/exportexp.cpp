@@ -3,12 +3,12 @@
 #include <string>
 #include <sstream>
 #include "../pseint/utils.h"
-#include "../pseint/new_evaluar.h"
-#include "../pseint/new_funciones.h"
+#include "../pseint/Evaluar.hpp"
+#include "../pseint/FuncsManager.hpp"
 #include "../pseint/global.h"
-#include "export_common.h"
+#include "ExporterBase.hpp"
 #include "exportexp.h"
-#include "export_cpp.h"
+#include "CppExporter.hpp"
 using namespace std;
 
 bool input_base_zero_arrays=false;
@@ -166,17 +166,17 @@ bool fixArrayIndex(string &str) {
 	return true;
 }
 
-static void ReplaceOper(string &exp, unsigned int &i, string oper) {
+static void ReplaceOper(RunTime &rt, string &exp, unsigned int &i, string oper) {
 	// evaluar el segundo operando para ver si es string (algunos operadores son iguales para numeros y cadenas en pseudocódigo pero diferentes en otros lenguajes)
 	string oper2=buscarOperando(exp,i+oper.size(),+1);
-	tipo_var t = Evaluar(oper2).type; 
+	tipo_var t = Evaluar(rt,oper2).type; 
 	// obtener el operador/funcion que lo reemplaza
 	string rep=exporter->get_operator(oper,t==vt_caracter);
 	if (rep.size()>5 && rep.substr(0,5)=="func ") { // si el operador es reemplazado por una función, colocar los argumentos y reemplazar todo (operador y operandos)
 		rep.erase(0,5);
 		string oper1=buscarOperando(exp,i-1,-1); // todo: ojo que este busca en la parte de la cadena que ya está convertida, podría traer problemas
 		int i0=i-oper1.size(); i+=oper2.size()+oper.size()-1;
-		oper2=expresion(oper2);
+		oper2=expresion(rt,oper2);
 		for(unsigned int j=0;j+3<rep.size();j++) { 
 			if (rep[j]=='a' && rep[j+1]=='r' && rep[j+2]=='g') {
 				if (rep[j+3]=='1') {
@@ -192,7 +192,7 @@ static void ReplaceOper(string &exp, unsigned int &i, string oper) {
 	i+=oper.size()-1;
 }
 
-string expresion(string exp, tipo_var &tipo) {
+string expresion(RunTime &rt, string exp, tipo_var &tipo) {
 //cerr<<"IN :"<<exp<<endl;	
 	// las cadenas por ahora van con comillas simples (porque Evaluar las quiere así)
 	for (unsigned int i=0;i<exp.size();i++) 
@@ -209,7 +209,7 @@ string expresion(string exp, tipo_var &tipo) {
 		else if (exp[i]=='ó' || exp[i]=='Ó') exp[i]='O';
 		else if (exp[i]=='ú' || exp[i]=='Ú') exp[i]='U';
 	}
-	tipo = Evaluar(exp).type;
+	tipo = Evaluar(rt,exp).type;
 	
 	// reemplazar operadores y funciones matematicas, arreglar indices de arreglos
 	exp+=",";
@@ -228,7 +228,7 @@ string expresion(string exp, tipo_var &tipo) {
 				if (word=="VERDADERO"||word=="FALSO"||word=="PI") {
 					Replace(exp,id_start,i-1,exporter->get_constante(word),i);
 				} else if (exp[id_start]<'0'||exp[id_start]>'9') {
-					if (!EsFuncion(word,false))
+					if (not rt.funcs.IsFunction(word))
 						Replace(exp,id_start,i-1,exporter->make_varname(word),i);
 				}
 			}
@@ -247,7 +247,8 @@ string expresion(string exp, tipo_var &tipo) {
 				// determinar si es arreglo o funcion
 				sub=buscarOperando(exp,i-1,-1);
 				sub=ToUpper(sub); // para que EsFuncion lo reconozca
-				if (EsFuncion(sub)) { // funcion, puede ser subproceso del usuario o funcion predefinida
+				auto f = rt.funcs.GetFunction(sub,false);
+				if (f) { // funcion, puede ser subproceso del usuario o funcion predefinida
 					// buscar donde terminan los argumentos
 					int parentesis=1; unsigned int fin=i;
 					while(parentesis>0) { 
@@ -255,9 +256,16 @@ string expresion(string exp, tipo_var &tipo) {
 						if (exp[fin]=='[' || exp[fin]=='(') parentesis++;
 						else if (exp[fin]==']' || exp[fin]==')') parentesis--;
 					}
-					string args=exporter->get_operator("{")+expresion(exp.substr(i+1,fin-i-1))+exporter->get_operator("}"); // argumentos, con parentesis incluidos
+					auto vargs = splitArgs(exp.substr(i+1,fin-i-1));
+					string args = exporter->get_operator("{");
+					for(size_t i=0;i<vargs.size();++i) {
+						vargs[i] = expresion(rt,vargs[i]);
+						if (i<f->GetArgsCount() and f->GetPasaje(i)==PP_REFERENCIA)
+							vargs[i] = exporter->referencia(vargs[i]);
+						args += vargs[i] + ( (i+1<vargs.size()) ? ", " : exporter->get_operator("}") );
+					}
 					int ini=i-sub.size(); i=fin;
-					if (EsFuncionPredefinida(sub)) { // funcion predefinida del lenguaje
+					if (rt.funcs.IsPredef(sub)) { // funcion predefinida del lenguaje
 						Replace(exp,ini,fin,exporter->function(sub,args),i); // traduccion de la llamada con argumentos y todo
 					} else { // subproceso del usuario
 						Replace(exp,ini,fin,ToLower(sub)+args,i); // traduccion de la llamada con argumentos y todo
@@ -297,22 +305,22 @@ string expresion(string exp, tipo_var &tipo) {
 		else if (exp[i]=='|' && exp[i+1]=='|') exp.erase(i--,1);
 		else if (exp[i]=='=' && exp[i+1]=='=') exp.erase(i--,1);
 		// operadores
-		else if (exp[i]=='!' && exp[i+1]=='=') { ReplaceOper(exp,i,"<>"); id_start=i+1; }
-		else if (exp[i]=='<' && exp[i+1]=='>') { ReplaceOper(exp,i,"<>"); id_start=i+1; }
-		else if (exp[i]=='>' && exp[i+1]=='=') { ReplaceOper(exp,i,">="); id_start=i+1; }
-		else if (exp[i]=='<' && exp[i+1]=='=') { ReplaceOper(exp,i,"<="); id_start=i+1; }
-		else if (exp[i]=='=' && i>0 && exp[i-1]!='!' && exp[i-1]!='=') { ReplaceOper(exp,i,"="); id_start=i+1; }
-		else if (exp[i]=='&') { ReplaceOper(exp,i,"&"); id_start=i+1; }
-		else if (exp[i]=='|') { ReplaceOper(exp,i,"|"); id_start=i+1; }
-		else if (exp[i]=='+') { ReplaceOper(exp,i,"+"); id_start=i+1; }
-		else if (exp[i]=='-') { ReplaceOper(exp,i,"-"); id_start=i+1; } 
-		else if (exp[i]=='/') { ReplaceOper(exp,i,"/"); id_start=i+1; }
-		else if (exp[i]=='*') { ReplaceOper(exp,i,"*"); id_start=i+1; }
-		else if (exp[i]=='^') { ReplaceOper(exp,i,"^"); id_start=i+1; }
-		else if (exp[i]=='%') { ReplaceOper(exp,i,"%"); id_start=i+1; }
-		else if (exp[i]=='<') { ReplaceOper(exp,i,"<"); id_start=i+1; }
-		else if (exp[i]=='>') { ReplaceOper(exp,i,">"); id_start=i+1; }
-		else if (exp[i]=='~') { ReplaceOper(exp,i,"~"); id_start=i+1; }
+		else if (exp[i]=='!' && exp[i+1]=='=') { ReplaceOper(rt,exp,i,"<>"); id_start=i+1; }
+		else if (exp[i]=='<' && exp[i+1]=='>') { ReplaceOper(rt,exp,i,"<>"); id_start=i+1; }
+		else if (exp[i]=='>' && exp[i+1]=='=') { ReplaceOper(rt,exp,i,">="); id_start=i+1; }
+		else if (exp[i]=='<' && exp[i+1]=='=') { ReplaceOper(rt,exp,i,"<="); id_start=i+1; }
+		else if (exp[i]=='=' && i>0 && exp[i-1]!='!' && exp[i-1]!='=') { ReplaceOper(rt,exp,i,"="); id_start=i+1; }
+		else if (exp[i]=='&') { ReplaceOper(rt,exp,i,"&"); id_start=i+1; }
+		else if (exp[i]=='|') { ReplaceOper(rt,exp,i,"|"); id_start=i+1; }
+		else if (exp[i]=='+') { ReplaceOper(rt,exp,i,"+"); id_start=i+1; }
+		else if (exp[i]=='-') { ReplaceOper(rt,exp,i,"-"); id_start=i+1; } 
+		else if (exp[i]=='/') { ReplaceOper(rt,exp,i,"/"); id_start=i+1; }
+		else if (exp[i]=='*') { ReplaceOper(rt,exp,i,"*"); id_start=i+1; }
+		else if (exp[i]=='^') { ReplaceOper(rt,exp,i,"^"); id_start=i+1; }
+		else if (exp[i]=='%') { ReplaceOper(rt,exp,i,"%"); id_start=i+1; }
+		else if (exp[i]=='<') { ReplaceOper(rt,exp,i,"<"); id_start=i+1; }
+		else if (exp[i]=='>') { ReplaceOper(rt,exp,i,">"); id_start=i+1; }
+		else if (exp[i]=='~') { ReplaceOper(rt,exp,i,"~"); id_start=i+1; }
 		
 	}
 	exp=exp.substr(0,exp.size()-1);
@@ -320,7 +328,23 @@ string expresion(string exp, tipo_var &tipo) {
 	return exp;
 }
 
-string expresion(string exp) {
+string expresion(RunTime &rt, string exp) {
 	tipo_var t;
-	return expresion(exp,t);
+	return expresion(rt, exp,t);
 }
+
+std::vector<std::string> splitArgs(const std::string &arglist) {
+	std::vector<std::string> vret;
+	int p0 = 0, l = arglist.size();
+	while(true) {
+		int p1 = BuscarComa(arglist,p0,l);
+		if (p1==-1) {
+			vret.push_back(arglist.substr(p0));
+			break;
+		}
+		vret.push_back(arglist.substr(p0,p1-p0));
+		p0 = p1+1;
+	}
+	return vret;
+}
+

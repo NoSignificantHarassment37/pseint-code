@@ -8,9 +8,9 @@ int main() {
 	SIN_TIPO d[50][5];
 	SIN_TIPO e[ARREGLO_MAX];
 	int n;
-	scanf("%i",&n);
-	scanf("%s",a[0]);
+	scanf("%i", &n);
+	scanf("%f", a[0]);
 	a[9] = a[0];
-	printf("%s\n",b[9][9]);
+	printf("%f\n", b[9][9]);
 	return 0;
 }

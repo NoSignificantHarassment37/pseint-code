@@ -7,7 +7,9 @@ int main() {
 	case 1:
 		cout << "1" << endl;
 		break;
-	case 3: case 5: case 9:
+	case 3:
+	case 5:
+	case 9:
 		cout << "3, 5 o 9" << endl;
 		break;
 	case 7:
