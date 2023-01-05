@@ -20,7 +20,7 @@ FuncsManager::~FuncsManager ( ) {
 }
 
 void FuncsManager::AddSub(std::unique_ptr<Funcion> &&func) {
-	m_subs[func->id] = std::move(func); 
+	m_subs[func->id] = std::move(func);
 }
 
 const Funcion *FuncsManager::GetSub(const std::string &name) const {

@@ -22,7 +22,7 @@ void TiposExporter::esperar_tiempo(t_output &prog, std::string tiempo, bool mili
 void TiposExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) {
 	for(size_t i=0;i<nombres.size();++i) { 
 		std::string args = tamanios[i];
-		t_arglist dims; sep_args(args,dims);
+		t_arglist dims = splitArgsList(args);
 		for (auto &d : dims)
 			AplicarTipo(GetRT(),d,vt_numerica_entera);
 	}
@@ -40,7 +40,7 @@ void TiposExporter::leer(t_output &prog, t_arglist args, std::string tabs) { }
 
 void TiposExporter::asignacion(t_output &prog, std::string variable, std::string valor, std::string tabs) {
 	tipo_var t;
-	expresion(GetRT(),valor,t);
+	expresion(valor,t);
 	AplicarTipo(GetRT(),variable,t);
 }
 
@@ -65,12 +65,12 @@ void TiposExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::s
 	if (switch_only_for_integers) {
 		t = vt_numerica_entera;
 	} else {
-		expresion(GetRT(),cond,t);
+		expresion(cond,t);
 		for(auto it : its) {
 			if (it->type!=IT_OPCION) continue;
 			for(string &exp : getImpl<IT_OPCION>(*it).expresiones) {
 				tipo_var aux;
-				expresion(GetRT(),exp,aux);
+				expresion(exp,aux);
 				if (!t.set(aux)) return;
 			}
 		}
@@ -92,8 +92,8 @@ void TiposExporter::repetir(t_output &prog, t_proceso_it it_repetir, t_proceso_i
 
 void TiposExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
 	auto &impl = getImpl<IT_PARA>(*it_para);
-	std::string var = expresion(GetRT(),impl.contador), ini = expresion(GetRT(),impl.val_ini),
-		        fin = expresion(GetRT(),impl.val_fin), paso = impl.paso;
+	std::string var = expresion(impl.contador), ini = expresion(impl.val_ini),
+		        fin = expresion(impl.val_fin), paso = impl.paso;
 	AplicarTipo(GetRT(),var,vt_numerica);
 	AplicarTipo(GetRT(),ini,vt_numerica);
 	AplicarTipo(GetRT(),fin,vt_numerica);
@@ -136,5 +136,5 @@ string TiposExporter::make_string(std::string cont) { return string("\'")+cont+"
 
 void TiposExporter::definir(t_output &prog, t_arglist &variables, tipo_var tipo, std::string tabs) {
 	for(std::string &var : variables)
-		memoria->DefinirTipo(expresion(GetRT(),var),tipo,tipo.rounded);
+		memoria->DefinirTipo(expresion(var),tipo,tipo.rounded);
 }

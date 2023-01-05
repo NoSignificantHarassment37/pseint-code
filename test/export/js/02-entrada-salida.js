@@ -7,14 +7,14 @@ function sin_titulo() {
 	b = Number(prompt());
 	c = prompt();
 	d = Boolean(prompt());
-	document.write(a,'<BR/>');
-	document.write(b,'<BR/>');
-	document.write(c,'<BR/>');
-	document.write(d,'<BR/>');
+	document.write(a, '<BR/>');
+	document.write(b, '<BR/>');
+	document.write(c, '<BR/>');
+	document.write(d, '<BR/>');
 	a = Number(prompt());
 	b = Number(prompt());
 	c = prompt();
 	d = Boolean(prompt());
-	document.write(a,b,c,d,'<BR/>');
+	document.write(a, b, c, d, '<BR/>');
 	document.write("Esta linea no lleva enter al final");
 }

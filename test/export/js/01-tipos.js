@@ -8,5 +8,5 @@ function sin_titulo() {
 	e = "Hola";
 	f = "Hola Mundo";
 	p = prompt();
-	document.write(p,'<BR/>');
+	document.write(p, '<BR/>');
 }

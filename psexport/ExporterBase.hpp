@@ -10,6 +10,7 @@
 #include "../pseint/new_memoria.h"
 #include "../pseint/utils.h"
 #include "../pseint/RunTime.hpp"
+#include "exportexp.h"
 
 class ExporterBase {
 
@@ -29,13 +30,15 @@ protected:
 	void bloque(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs);
 	string get_arg(string args, int cual);
 	string make_dims(const int *tdims, string c1="[", string c2=",", string c3="]", bool numbers=true);
-	void crop_name_and_dims(string decl, string &name, string &dims, string c1="[", string c2=",", string c3="]");
+	void crop_name_and_dims(string decl, string &name, string &dims, string par_open="[", string comma=",", string par_close="]");
+	void fix_dims(string &dims, string par_open="[", string comma=",", string par_close="]");
 	bool es_cadena_constante(const string &s);
 	bool es_numerica_constante(const string &s);
 	bool es_numerica_entera_constante(const string &s);
-	void sep_args(const string &args, t_arglist &out);
 	bool replace_all(string &str, string from, string to);
 	void load_subs_in_funcs_manager(Programa &prog);
+	std::string expresion(string exp) { return ::expresion(m_runtime,exp); }
+	std::string expresion(string exp, tipo_var &t) { return ::expresion(m_runtime,exp,t); }
 	
 	// funciones que traducen instrucciones y estructuras de control
 	virtual void esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs)=0;

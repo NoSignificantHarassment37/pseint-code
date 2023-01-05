@@ -7,7 +7,7 @@ Begin
 		1: Begin
 			WriteLn('1');
 		End;
-		3,5,9: Begin
+		3, 5, 9: Begin
 			WriteLn('3, 5 o 9');
 		End;
 		7: Begin

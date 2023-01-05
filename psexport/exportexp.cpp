@@ -256,7 +256,7 @@ string expresion(RunTime &rt, string exp, tipo_var &tipo) {
 						if (exp[fin]=='[' || exp[fin]=='(') parentesis++;
 						else if (exp[fin]==']' || exp[fin]==')') parentesis--;
 					}
-					auto vargs = splitArgs(exp.substr(i+1,fin-i-1));
+					auto vargs = splitArgsList(exp.substr(i+1,fin-i-1));
 					string args = exporter->get_operator("{");
 					for(size_t i=0;i<vargs.size();++i) {
 						vargs[i] = expresion(rt,vargs[i]);
@@ -332,19 +332,22 @@ string expresion(RunTime &rt, string exp) {
 	tipo_var t;
 	return expresion(rt, exp,t);
 }
-
-std::vector<std::string> splitArgs(const std::string &arglist) {
-	std::vector<std::string> vret;
-	int p0 = 0, l = arglist.size();
-	while(true) {
-		int p1 = BuscarComa(arglist,p0,l);
-		if (p1==-1) {
-			vret.push_back(arglist.substr(p0));
-			break;
+std::vector<std::string> splitArgsList(const std::string &args, bool allow_trailing_comma) {
+	std::vector<std::string> out;
+	int parentesis=0; bool comillas=false; int i0=0;
+	for(int i=0,l=args.size();i<l;i++) {
+		if (args[i]=='\''||args[i]=='\"') comillas=!comillas;
+		else if (!comillas) {
+			if (args[i]=='('||args[i]=='[') parentesis++;
+			else if (args[i]==')'||args[i]==']') parentesis--;
+			else if (parentesis==0 && args[i]==',') {
+				insertar(out,args.substr(i0,i-i0));
+				i0=i+1;
+			}
+			
 		}
-		vret.push_back(arglist.substr(p0,p1-p0));
-		p0 = p1+1;
 	}
-	return vret;
+	if (i0!=args.size() or (not allow_trailing_comma))
+		insertar(out,args.substr(i0));
+	return out;
 }
-

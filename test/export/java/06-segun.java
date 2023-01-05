@@ -8,7 +8,9 @@ public class sin_titulo {
 		case 1:
 			System.out.println("1");
 			break;
-		case 3: case 5: case 9:
+		case 3:
+		case 5:
+		case 9:
 			System.out.println("3, 5 o 9");
 			break;
 		case 7:

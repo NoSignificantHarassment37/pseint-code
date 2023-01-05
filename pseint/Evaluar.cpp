@@ -100,7 +100,7 @@ int BuscarOperador(const string &expresion, int &p1, int &p2) {
 					}
 				}
 			}
-			c=expresion[++i];
+			c = expresion[++i];
 		}
 		if (parentesis_externos) {
 			p1++; p2--;

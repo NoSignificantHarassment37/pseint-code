@@ -13,18 +13,6 @@ make: Leaving directory '/mnt/ex/pseint/pseint'
 === 05-para.psc
 === 06-segun.psc
 === 07-subprocesos.psc
-15c15
-< 	porreferencia(c);
----
-> 	porreferencia(&c);
-33c33
-< 	scanf("%s",v[0]);
----
-> 	scanf("%f",v[0]);
-36c36
-< 	scanf("%s",m[0][0]);
----
-> 	scanf("%f",m[0][0]);
 === 08-operadores.psc
 === 09-funciones.psc
 === 10-otros.psc

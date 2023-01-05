@@ -18,7 +18,7 @@ public class sin_titulo {
 		System.out.println(a*b);
 		System.out.println(a/b);
 		System.out.println(a-b);
-		System.out.println(Math.pow(a,b));
+		System.out.println(Math.pow(a, b));
 		System.out.println(a%b);
 		System.out.println(a==b);
 		System.out.println(a!=b);

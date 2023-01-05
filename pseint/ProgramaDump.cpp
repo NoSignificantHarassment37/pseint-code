@@ -329,6 +329,8 @@ void CaseMapApply(const RunTime & rt, Programa &programa, bool for_export) {
 		case IT_PROCESO: {
 			auto &impl = getImpl<IT_PROCESO>(inst); 
 			CaseMapApply(rt,impl.nombre,!for_export);
+			CaseMapApply(rt,impl.ret_id,!for_export);
+			CaseMapApply(rt,impl.args,!for_export);
 		} break;
 		
 		case IT_FINPROCESO: {

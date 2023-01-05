@@ -18,12 +18,12 @@ namespace PSeInt {
 			Console.WriteLine(Math.Atan(x));
 			Console.WriteLine(Math.Round(x));
 			Console.WriteLine(Math.Truncate(x));
-			Console.WriteLine(azar.Next(0,15));
+			Console.WriteLine(azar.Next(0, 15));
 			s = "Hola";
 			Console.WriteLine(s.Length);
 			Console.WriteLine(s.ToLower());
 			Console.WriteLine(s.ToUpper());
-			Console.WriteLine(s.Substring(1,3-1));
+			Console.WriteLine(s.Substring(1, 3-1));
 			Console.WriteLine(s+" Mundo");
 			Console.WriteLine("Mundo "+s);
 			Console.WriteLine(Convert.ToDouble("15.5"));

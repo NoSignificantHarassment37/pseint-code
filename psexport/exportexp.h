@@ -1,3 +1,6 @@
+#ifndef EXPORT_EXP_H
+#define EXPORT_EXP_H
+
 #include<iostream>
 #include<iomanip>
 #include<stack>
@@ -22,6 +25,8 @@ string expresion(RunTime &rt, string exp, tipo_var &tipo);
 
 string expresion(RunTime &rt, string exp);
 
-string invert_expresion(string expr);
+string invert_expresion(std::string expr);
 
-std::vector<std::string> splitArgs(const std::string &arglist);
+std::vector<std::string> splitArgsList(const std::string &args, bool allow_trailing_comma=false);
+
+#endif

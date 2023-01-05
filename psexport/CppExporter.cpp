@@ -37,7 +37,7 @@ void CppExporter::esperar_tecla(t_output &prog, std::string tabs){
 }
 
 void CppExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
-	tipo_var t; tiempo = expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
+	tipo_var t; tiempo = expresion(tiempo,t); // para que arregle los nombres de las variables
 	use_func_esperar=true;
 	stringstream inst;
 	inst<<"esperar(";
@@ -52,7 +52,7 @@ void CppExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::
 void CppExporter::invocar(t_output &prog, std::string func_name, std::string params, std::string tabs){
 	std::string line = func_name+params;
 	if (params.empty()) line += "()";
-	insertar(prog,tabs+expresion(GetRT(),line)+";");
+	insertar(prog,tabs+expresion(line)+";");
 }
 
 void CppExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
@@ -60,7 +60,7 @@ void CppExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::str
 	string linea="cout";
 	while (it!=args.end()) {
 		linea+=" << ";
-		linea+=expresion(GetRT(),*it);
+		linea+=expresion(*it);
 		++it;
 	}
 	insertar(prog,tabs+linea+(saltar?" << endl;":";"));
@@ -72,7 +72,7 @@ void CppExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	while (it!=args.end()) {
 		linea+=" >> ";
 		tipo_var t;
-		linea+=expresion(GetRT(),*it,t);
+		linea+=expresion(*it,t);
 		if (t==vt_caracter) read_strings=true;
 		++it;
 	}
@@ -80,11 +80,11 @@ void CppExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 }
 
 void CppExporter::asignacion(t_output &prog, string variable, string valor, std::string tabs){
-	insertar(prog,tabs+expresion(GetRT(),variable)+" = "+expresion(GetRT(),valor)+";");
+	insertar(prog,tabs+expresion(variable)+" = "+expresion(valor)+";");
 }
 
 void CppExporter::si(t_output &prog, t_proceso_it it_si, t_proceso_it it_sino, t_proceso_it it_fin, std::string tabs){
-	string condicion = expresion(GetRT(),getImpl<IT_SI>(*it_si).condicion);
+	string condicion = expresion(getImpl<IT_SI>(*it_si).condicion);
 	insertar(prog,tabs+"if ("+condicion+") {");
 	bloque(prog,++it_si,it_sino,tabs+"\t");
 	if (it_sino!=it_fin) {
@@ -96,14 +96,14 @@ void CppExporter::si(t_output &prog, t_proceso_it it_si, t_proceso_it it_sino, t
 
 void CppExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) {
 	auto impl = getImpl<IT_MIENTRAS>(*r);
-	insertar(prog,tabs+"while ("+expresion(GetRT(),impl.condicion)+") {");
+	insertar(prog,tabs+"while ("+expresion(impl.condicion)+") {");
 	bloque(prog,++r,q,tabs+"\t");
 	insertar(prog,tabs+"}");
 }
 
 void CppExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs) {
 	auto impl = getImpl<IT_SEGUN>(*(its[0]));
-	insertar(prog,tabs+"switch ("+expresion(GetRT(),impl.expresion)+") {");
+	insertar(prog,tabs+"switch ("+expresion(impl.expresion)+") {");
 	for(size_t i=2;i<its.size();++i) {
 		auto it_op = its[i-1], it_next = its[i];
 		bool dom = it_op->type==IT_DEOTROMODO;
@@ -111,7 +111,7 @@ void CppExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::str
 			insertar(prog,tabs+"default:");
 		} else {
 			for(std::string &exp : getImpl<IT_OPCION>(*it_op).expresiones)
-				insertar(prog,tabs+"case "+expresion(GetRT(),exp)+":");
+				insertar(prog,tabs+"case "+expresion(exp)+":");
 		}
 		bloque(prog,++it_op,it_next,tabs+"\t");
 		if (!dom) insertar(prog,tabs+"\tbreak;");
@@ -124,25 +124,25 @@ void CppExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::s
 	insertar(prog,tabs+"do {");
 	bloque(prog,++r,q,tabs+"\t");
 	if (impl.mientras_que)
-		insertar(prog,tabs+"} while ("+expresion(GetRT(),impl.condicion)+");");
+		insertar(prog,tabs+"} while ("+expresion(impl.condicion)+");");
 	else
-		insertar(prog,tabs+"} while ("+expresion(GetRT(),invert_expresion(impl.condicion)+");"));
+		insertar(prog,tabs+"} while ("+expresion(invert_expresion(impl.condicion)+");"));
 }
 
 void CppExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
 	auto &impl = getImpl<IT_PARA>(*it_para);
-	string var = expresion(GetRT(),impl.contador), ini = expresion(GetRT(),impl.val_ini), 
-		   fin = expresion(GetRT(),impl.val_fin), paso = impl.paso;
+	string var = expresion(impl.contador), ini = expresion(impl.val_ini), 
+		   fin = expresion(impl.val_fin), paso = impl.paso;
 	if ((not paso.empty()) and paso[0]=='-') {
 		if (paso=="-1")
 			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; --"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; "+var+"-="+expresion(GetRT(),paso.substr(1))+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; "+var+"-="+expresion(paso.substr(1))+") {");
 	} else {
 		if (paso.empty() or paso=="1")
 			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; ++"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; "+var+"+="+expresion(GetRT(),paso)+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; "+var+"+="+expresion(paso)+") {");
 	}
 	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
 	insertar(prog,tabs+"}");

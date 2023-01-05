@@ -1,14 +1,13 @@
-#if 0
 /**
 * @file export_matlab.cpp
 *
 * Las traducciones están basadas en los ejemplos enviados por Jaime Meza
 **/
-#include "export_matlab.h"
+#include "MatLabExporter.hpp"
 #include "ExporterBase.hpp"
 #include "version.h"
 #include "exportexp.h"
-#include "export_tipos.h"
+#include "TiposExporter.hpp"
 
 MatLabExporter::MatLabExporter() {
 	output_base_zero_arrays=false;
@@ -21,7 +20,7 @@ void MatLabExporter::esperar_tecla(t_output &prog, std::string tabs){
 }
 
 void MatLabExporter::esperar_tiempo(t_output &prog, string tiempo, bool milis, std::string tabs){
-	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
+	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
 	stringstream inst;
 	inst<<"pause(";
 	if (milis) inst<<colocarParentesis(tiempo)<<"/1000"; 
@@ -34,9 +33,9 @@ void MatLabExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"clc;");
 }
 
-void MatLabExporter::invocar(t_output &prog, string param, std::string tabs){
-	string linea=expresion(GetRT(),param);
-	if (linea[linea.size()-1]!=')') linea+="()";
+void MatLabExporter::invocar(t_output &prog, std::string func_name, std::string args, std::string tabs){
+	if (args.empty()) args = "()";
+	string linea = expresion(func_name+args);
 	insertar(prog,tabs+linea+";");
 }
 
@@ -47,7 +46,7 @@ void MatLabExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		args_num+=varname;
 		if (t==vt_caracter) {
 			args_str+=varname;
@@ -68,7 +67,7 @@ void MatLabExporter::leer(t_output &prog, t_arglist args, std::string tabs){
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		if (t==vt_caracter) insertar(prog,tabs+varname+"=input(\'\',\'s\');");
 		else insertar(prog,tabs+varname+"=input(\'\');");
 		++it;
@@ -76,94 +75,83 @@ void MatLabExporter::leer(t_output &prog, t_arglist args, std::string tabs){
 }
 
 void MatLabExporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
-	insertar(prog,tabs+expresion(GetRT(),param1)+"="+expresion(GetRT(),param2)+";");
+	insertar(prog, tabs+expresion(param1)+"="+expresion(param2)+";");
 }
 
-void MatLabExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, std::string tabs){
-	insertar(prog,tabs+"if "+expresion(GetRT(),(*r).par1));
-	bloque(prog,++r,q,tabs+"\t");
-	if (q!=s) {
-		insertar(prog,tabs+"else");
-		bloque(prog,++q,s,tabs+"\t");
+void MatLabExporter::si(t_output &prog, t_proceso_it it_si, t_proceso_it it_sino, t_proceso_it it_fin, std::string tabs){
+	insertar(prog, tabs+"if "+expresion(getImpl<IT_SI>(*it_si).condicion));
+	bloque(prog, std::next(it_si), it_sino, tabs+"\t");
+	if (it_sino!=it_fin) {
+		insertar(prog, tabs+"else");
+		bloque(prog, std::next(it_sino), it_fin, tabs+"\t");
 	}
-	insertar(prog,tabs+"end");
+	insertar(prog, tabs+"end");
 }
 
-void MatLabExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
-	insertar(prog,tabs+"while "+expresion(GetRT(),(*r).par1));
-	bloque(prog,++r,q,tabs+"\t");
-	insertar(prog,tabs+"end");
+void MatLabExporter::mientras(t_output &prog, t_proceso_it it_mientras, t_proceso_it it_fin, std::string tabs){
+	insertar(prog,tabs+"while "+expresion(getImpl<IT_MIENTRAS>(*it_mientras).condicion));
+	bloque(prog, std::next(it_mientras), it_fin, tabs+"\t");
+	insertar(prog, tabs+"end");
 }
 
 void MatLabExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
-	list<t_proceso_it>::iterator p,q,r;
-	q=p=its.begin();r=its.end();
-	t_proceso_it i=*q;
-	insertar(prog,tabs+"switch "+expresion(GetRT(),(*i).par1));
-	++q;++p;
-	while (++p!=r) {
-		i=*q;
-		if ((*i).par1=="DE OTRO MODO")
-			insertar(prog,tabs+"otherwise");
+	insertar(prog, tabs+"switch "+getImpl<IT_SEGUN>(*(its[0])).expresion);
+	for (size_t i=1; i+1<its.size(); ++i) {
+		if (its[i]->type==IT_DEOTROMODO)
+			insertar(prog, tabs+"otherwise");
 		else {
-			string e=expresion(GetRT(),(*i).par1); int en=1;
-			bool comillas=false; int parentesis=0, j=0,l=e.size();
-			while(j<l) {
-				if (e[j]=='\''||e[j]=='\"') comillas=!comillas;
-				else if (!comillas) {
-					if (e[j]=='['||e[j]=='(') parentesis++;
-					else if (e[j]==']'||e[j]==')') parentesis--;
-					else if (parentesis==0 && e[j]==',') {
-						e.replace(j,1,","); l+=5; en++;
-					}
-				}
-				j++;
-			}
-			if (en>1) e=string("{")+e+"}";
-			insertar(prog,tabs+"case "+e);
+			auto &vexprs = getImpl<IT_OPCION>(*(its[i])).expresiones;
+			string e;
+			for(size_t j=0;j<vexprs.size();++j)
+				e += (j==0 ? "" :", ") + expresion(vexprs[j]);
+			if (vexprs.size()>1) e = string("{")+e+"}";
+			insertar(prog, tabs+"case "+e);
 		}
-		bloque(prog,++i,*p,tabs+"\t");
-		++q;
+		bloque(prog, std::next(its[i]), its[i+1], tabs+"\t");
 	}
-	insertar(prog,tabs+"end");
+	insertar(prog, tabs+"end");
 }
 
-void MatLabExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
-	string auxvar=get_aux_varname("aux_logica_");
-	insertar(prog,tabs+auxvar+"=true;");
-	insertar(prog,tabs+"while "+auxvar);
-	bloque(prog,++r,q,tabs+"\t");
-	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"\t"+auxvar+"="+expresion(GetRT(),invert_expresion((*q).par1))+";");
+void MatLabExporter::repetir(t_output &prog, t_proceso_it it_repetir, t_proceso_it it_hasta, std::string tabs){
+	string auxvar = get_aux_varname("aux_logica_");
+	insertar(prog, tabs+auxvar+"=true;");
+	insertar(prog, tabs+"while "+auxvar);
+	bloque(prog, std::next(it_repetir), it_hasta, tabs+"\t");
+	auto &impl = getImpl<IT_HASTAQUE>(*it_hasta);
+	if (impl.mientras_que)
+		insertar(prog, tabs+"\t"+auxvar+"="+expresion(impl.condicion)+";");
 	else
-		insertar(prog,tabs+"\t"+auxvar+"="+expresion(GetRT(),(*q).par1)+";");
-	insertar(prog,tabs+"end");
+		insertar(prog, tabs+"\t"+auxvar+"="+expresion(invert_expresion(impl.condicion))+";");
+	insertar(prog, tabs+"end");
 	release_aux_varname(auxvar);
 }
 
-void MatLabExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) {
-	string var=expresion(GetRT(),(*r).par1), ini=expresion(GetRT(),(*r).par2), fin=expresion(GetRT(),(*r).par3), paso=(*r).par4;
-	if (paso=="1")
-		insertar(prog,tabs+"for "+var+"="+ini+":"+fin);
+void MatLabExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs) {
+	auto &impl = getImpl<IT_PARA>(*it_para);
+	string var = expresion(impl.contador), ini = expresion(impl.val_ini), 
+		   fin = expresion(impl.val_fin), paso = impl.paso;
+	if (paso=="1" or paso.empty())
+		insertar(prog, tabs+"for "+var+"="+ini+":"+fin);
 	else
-		insertar(prog,tabs+"for "+var+"="+ini+":"+expresion(GetRT(),paso)+":"+fin);
-	bloque(prog,++r,q,tabs+"\t");
-	insertar(prog,tabs+"end");
+		insertar(prog, tabs+"for "+var+"="+ini+":"+expresion(paso)+":"+fin);
+	bloque(prog, std::next(it_para), it_fin, tabs+"\t");
+	insertar(prog, tabs+"end");
 }
 
-void MatLabExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs){
-	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
-	const int *dims=memoria->LeerDims(var);
-	if (!dims) { insertar(out,string("ERROR: ")+var+" NO ES UN ARREGLO"); return; }
+void MatLabExporter::paracada(t_output &out, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
+	auto &impl = getImpl<IT_PARACADA>(*it_para);
+	string arreglo = ToLower(impl.arreglo), identif = ToLower(impl.identificador);
+	const int *dims = memoria->LeerDims(arreglo);
+	if (!dims) { insertar(out,string("ERROR: ")+arreglo+" NO ES UN ARREGLO"); return; }
 	int n=dims[0];
 	
 	string *auxvars=new string[n];
 	for(int i=0;i<n;i++) auxvars[i]=get_aux_varname("aux_index_");
 	
-	string vname=var, sep="(";
+	string vname=arreglo, sep="(";
 	for(int i=0;i<n;i++) { 
 		string idx=auxvars[i];
-		insertar(out,tabs+"for "+idx+"=1:size("+var+","+IntToStr(i+1)+")");
+		insertar(out,tabs+"for "+idx+"=1:size("+arreglo+","+IntToStr(i+1)+")");
 		vname+=sep+idx; sep=",";
 		tabs+="\t";
 	}
@@ -173,8 +161,8 @@ void MatLabExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std
 	delete []auxvars;
 	
 	t_output aux_out;
-	bloque(aux_out,++r,q,tabs);
-	replace_var(aux_out,aux,vname);
+	bloque(aux_out, std::next(it_para), it_fin, tabs);
+	replace_var(aux_out,identif,vname);
 	insertar_out(out,aux_out);
 	for(int i=0;i<n;i++) { 
 		tabs.erase(tabs.size()-1);
@@ -261,7 +249,8 @@ void MatLabExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso 
 	if (!for_test) out.push_back("");
 }
 
-void MatLabExporter::translate(t_output &out, t_programa &prog) {
+void MatLabExporter::translate(t_output &out, Programa &prog) {
+	load_subs_in_funcs_manager(prog);
 	// cppcheck-suppress unusedScopedObject
 	TiposExporter(prog,false); // para que se cargue el mapa_memorias con memorias que tengan ya definidos los tipos de variables que correspondan
 	
@@ -363,16 +352,11 @@ string MatLabExporter::make_string (string cont) {
 	return string("\'")+cont+"\'";
 }
 
-void MatLabExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
-	ExporterBase::dimension(prog,args,tabs);
-	t_arglist_it it=args.begin();
-	while (it!=args.end()) {
+void MatLabExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) {
+	ExporterBase::dimension(prog,nombres,tamanios,tabs);
+	for(size_t i=0;i<nombres.size();++i) {
 		// obtener nombre y dimensiones
-		string name=*it, dims=*it;
-		name.erase(name.find("("));
-		dims.erase(0,dims.find("(")+1);
-		dims.erase(dims.size()-1,1);
-		dims=expresion(GetRT(),dims);
+		std::string name = nombres[i], dims = expresion(tamanios[i]);
 		if (dims.find(",")==string::npos) dims=string("1,")+dims;
 		// armar la linea que hace el new
 		if (memoria->LeerTipo(name)==vt_caracter) {
@@ -381,24 +365,18 @@ void MatLabExporter::dimension(t_output &prog, t_arglist &args, std::string tabs
 		} else {
 			insertar(prog,tabs+ToLower(name)+"=zeros("+dims+");");
 		}
-		++it;
 	}
 }
 
-void MatLabExporter::definir(t_output &prog, t_arglist &arglist, string tipo, std::string tabs) {
-	if (tipo=="ENTERO") tipo="0";
-	else if (tipo=="REAL") tipo="0";
-	else if (tipo=="LOGICO") tipo="false";
-	else tipo="\'\'";
-	t_arglist_it it=arglist.begin();
-	while (it!=arglist.end()) {
-		insertar(prog,tabs+expresion(GetRT(),*it)+"="+tipo+";");
-		++it;
-	}
+void MatLabExporter::definir(t_output &prog, t_arglist &variables, tipo_var tipo, std::string tabs) {
+	std::string str_tipo = "0";
+	if (tipo==vt_numerica) str_tipo="0";
+	else if (tipo==vt_logica) str_tipo="false";
+	else if (tipo==vt_caracter) str_tipo="\'\'";
+	for(auto &var : variables)
+		insertar(prog,tabs+expresion(var)+"="+str_tipo+";");
 }
 
 void MatLabExporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"% "+text);
 }
-
-#endif

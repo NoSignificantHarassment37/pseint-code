@@ -34,7 +34,7 @@ void CExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::strin
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		if (es_cadena_constante(*it)) {
 			format+=varname.substr(1,varname.size()-2);
 		} else {
@@ -60,7 +60,7 @@ void CExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+"scanf(\"%i\", &"+varname+");");
 		else if (t==vt_numerica) insertar(prog,tabs+"scanf(\"%f\", &"+varname+");");
 		else if (t==vt_logica) insertar(prog,tabs+"scanf(\"%i\", &"+varname+");");
@@ -73,18 +73,18 @@ void CExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 
 void CExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs) {
 	auto &impl = getImpl<IT_PARA>(*it_para);
-	string var = expresion(GetRT(),impl.contador), ini = expresion(GetRT(),impl.val_ini), 
-		   fin = expresion(GetRT(),impl.val_fin), paso = impl.paso;
+	string var = expresion(impl.contador), ini = expresion(impl.val_ini), 
+		   fin = expresion(impl.val_fin), paso = impl.paso;
 	if ((not paso.empty()) and paso[0]=='-') {
 		if (paso=="-1")
 			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; --"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; "+var+"-="+expresion(GetRT(),paso.substr(1,paso.size()-1))+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+">="+fin+"; "+var+"-="+expresion(paso.substr(1,paso.size()-1))+") {");
 	} else {
 		if (paso=="1" or paso.empty())
 			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; ++"+var+") {");
 		else
-			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; "+var+"+="+expresion(GetRT(),paso)+") {");
+			insertar(prog,tabs+"for ("+var+"="+ini+"; "+var+"<="+fin+"; "+var+"+="+expresion(paso)+") {");
 	}
 	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
 	insertar(prog,tabs+"}");

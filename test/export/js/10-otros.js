@@ -3,5 +3,5 @@ function otros() {
 	prompt();
 	prompt();
 	prompt();
-	document.write(Math.PI,'<BR/>');
+	document.write(Math.PI, '<BR/>');
 }

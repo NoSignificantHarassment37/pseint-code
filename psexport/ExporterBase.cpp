@@ -111,8 +111,8 @@ void ExporterBase::bloque(t_output &prog, t_proceso_it r, t_proceso_it q, std::s
 	}
 }
 
-void ExporterBase::definir(t_output &prog, t_arglist &arglist, tipo_var tipo, std::string tabs) {
-	for(auto &var:arglist)
+void ExporterBase::definir(t_output &prog, t_arglist &variables, tipo_var tipo, std::string tabs) {
+	for(auto &var:variables)
 		memoria->DefinirTipo(ToUpper(var),tipo,tipo.rounded);
 }
 
@@ -257,23 +257,6 @@ void ExporterBase::set_memoria(string key) {
 	}
 }
 
-void ExporterBase::sep_args(const string &args, t_arglist &out) {
-	int parentesis=0; bool comillas=false; int i0=0;
-	for(int i=0,l=args.size();i<l;i++) {
-		if (args[i]=='\''||args[i]=='\"') comillas=!comillas;
-		else if (!comillas) {
-			if (args[i]=='('||args[i]=='[') parentesis++;
-			else if (args[i]==')'||args[i]==']') parentesis--;
-			else if (parentesis==0 && args[i]==',') {
-				insertar(out,args.substr(i0,i-i0));
-				i0=i+1;
-			}
-			
-		}
-	}
-	insertar(out,args.substr(i0));
-}
-
 string ExporterBase::get_aux_varname(string pref) {
 	stringstream ss; ss<<pref<<(aux_varnames.size()+(output_base_zero_arrays?0:1));
 	aux_varnames.push_back(ss.str());
@@ -285,21 +268,24 @@ void ExporterBase::release_aux_varname(string vname) {
 	aux_varnames.pop_back();
 }
 
-void ExporterBase::crop_name_and_dims(string decl, string &name, string &dims, string c1, string c2, string c3) {
+void ExporterBase::crop_name_and_dims(string decl, string &name, string &dims, string par_open, string comma, string par_close) {
 	name=decl; dims=decl;
 	name.erase(name.find("("));
 	dims.erase(0,dims.find("(")+1);
 	dims.erase(dims.size()-1,1);
-	t_arglist dimlist;
-	sep_args(dims,dimlist);
-	dims=c1; int n=0;
+	fix_dims(dims,par_open,comma,par_close);
+}
+
+void ExporterBase::fix_dims(string &dims, string par_open, string comma, string par_close) {
+	t_arglist dimlist = splitArgsList(dims,true);
+	dims=par_open; int n=0;
 	t_arglist_it it2=dimlist.begin();
 	while (it2!=dimlist.end()) {
-		if ((n++)) dims+=c2;
-		dims+=expresion(GetRT(),*it2);
+		if ((n++)) dims+=comma;
+		dims+=expresion(*it2);
 		++it2;
 	}
-	dims+=c3;
+	dims+=par_close;
 }
 
 bool ExporterBase::replace_all(string &str, string from, string to) {
@@ -352,6 +338,7 @@ void ExporterBase::load_subs_in_funcs_manager (Programa & prog) {
 		if (inst.type!=IT_PROCESO) continue;
 		auto &impl = getImpl<IT_PROCESO>(inst);
 		GetRT().funcs.AddSub( MakeFuncionForSubproceso(GetRT(),{impl.ret_id,impl.nombre,impl.args},impl.principal) );
+		if (impl.principal) GetRT().funcs.SetMain(impl.nombre);
 	}
 }
 

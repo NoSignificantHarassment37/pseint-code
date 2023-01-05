@@ -4,7 +4,7 @@ namespace PSeInt {
 		static void Main(string[] args) {
 			double c;
 			Console.WriteLine(funciondoble(5));
-			noretornanada(3,9);
+			noretornanada(3, 9);
 			c = 0;
 			porreferencia(ref c);
 			Console.WriteLine(c);

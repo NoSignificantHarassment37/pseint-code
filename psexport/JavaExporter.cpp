@@ -1,8 +1,5 @@
-#if 0
-#include "export_java.h"
+#include "JavaExporter.hpp"
 #include "exportexp.h"
-#include "../pseint/utils.h"
-#include "../pseint/FuncsManager.hpp"
 
 #define _buf_reader_line "\t\tBufferedReader bufEntrada = new BufferedReader(new InputStreamReader(System.in));"
 
@@ -32,7 +29,7 @@ void JavaExporter::esperar_tecla(t_output &prog, std::string tabs) {
 }
 
 void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
-	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
+	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
 	use_esperar_tiempo=true;
 	stringstream inst;
 	inst<<"Thread.sleep(";
@@ -53,7 +50,7 @@ void JavaExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::st
 	while (it!=args.end()) {
 		if (arglist.size()) arglist+="+";
 		tipo_var t;
-		arglist+=expresion(GetRT(),*it,t);
+		arglist+=expresion(*it,t);
 		++it;
 	}
 	if (saltar)
@@ -67,7 +64,7 @@ void JavaExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = Integer.parseInt(bufEntrada.readLine());");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Double.parseDouble(bufEntrada.readLine());");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean.parseBoolean(bufEntrada.readLine());");
@@ -77,26 +74,27 @@ void JavaExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 }
 
 
-void JavaExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::string tabs) {
-	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
-	const int *dims=memoria->LeerDims(var);
-	if (!dims) { insertar(out,string("ERROR: ")+var+" NO ES UN ARREGLO"); return; }
+void JavaExporter::paracada(t_output &out, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs) {
+	auto &impl = getImpl<IT_PARACADA>(*it_para);
+	string arreglo = ToLower(impl.arreglo), identif = ToLower(impl.identificador);
+	const int *dims=memoria->LeerDims(arreglo);
+	if (!dims) { insertar(out,string("ERROR: ")+arreglo+" NO ES UN ARREGLO"); return; }
 	int n=dims[0];
 	
 	if (n==1) { // en java, el reemplazo de foreach anda solo para la primer dimension (las demas parecen no ser referencias a la matriz original, sirven para solo lectura)
-		string stipo=translate_tipo(memoria->LeerTipo(var));
-		insertar(out,tabs+"for ("+stipo+" "+aux+":"+var+") {");
-		bloque(out,++r,q,tabs+"\t");
+		string stipo=translate_tipo(memoria->LeerTipo(arreglo));
+		insertar(out,tabs+"for ("+stipo+" "+identif+":"+arreglo+") {");
+		bloque(out,std::next(it_para),it_fin,tabs+"\t");
 		insertar(out,tabs+"}");
 	} else {
 		
 		string *auxvars=new string[n];
 		for(int i=0;i<n;i++) auxvars[i]=get_aux_varname("aux_index_");
 		
-		string vname=var;
+		string vname=arreglo;
 		for(int i=0;i<n;i++) { 
 			string idx=auxvars[i];
-			insertar(out,tabs+"for (int "+idx+"=0;"+idx+"<"+vname+".length;"+idx+"++) {");
+			insertar(out,tabs+"for (int "+idx+"=0; "+idx+"<"+vname+".length; "+idx+"++) {");
 			vname+="["+idx+"]";
 			tabs+="\t";
 		}
@@ -105,16 +103,16 @@ void JavaExporter::paracada(t_output &out, t_proceso_it r, t_proceso_it q, std::
 		delete []auxvars;
 		
 		t_output aux_out;
-		bloque(aux_out,++r,q,tabs);
-		replace_var(aux_out,aux,vname);
+		bloque(aux_out,std::next(it_para),it_fin,tabs);
+		replace_var(aux_out,identif,vname);
 		insertar_out(out,aux_out);
-		for(int i=0;i<n;i++) { 
+		for(int i=0;i<n;++i) { 
 			tabs.erase(tabs.size()-1);
 			insertar(out,tabs+"}");
 		}
 	}
+	memoria->RemoveVar(identif);
 }
-
 
 
 string JavaExporter::function(string name, string args) {
@@ -173,7 +171,7 @@ string JavaExporter::function(string name, string args) {
 		if (!input_base_zero_arrays) desde=sumarOrestarUno(desde,false);
 		string hasta=get_arg(args,3);
 		if (input_base_zero_arrays) hasta=sumarOrestarUno(hasta,true);
-		return get_arg(args,1)+".substring("+desde+","+hasta+")";
+		return get_arg(args,1)+".substring("+desde+", "+hasta+")";
 	} else if (name=="CONVERTIRATEXTO") {
 		return string("Double.toString")+args;
 	} else if (name=="CONVERTIRANUMERO") {
@@ -309,22 +307,21 @@ string JavaExporter::get_operator(string op, bool for_string) {
 			if (op==">=") return "func arg1.compareTo(arg2)>=0"; 
 		}
 	} else {
-		if (op=="^") { include_cmath=true; return "func Math.pow(arg1,arg2)"; }
+		if (op=="^") { include_cmath=true; return "func Math.pow(arg1, arg2)"; }
 	}
 	return CppExporter::get_operator(op,false);
 }
 
 
-void JavaExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
-	ExporterBase::dimension(prog,args,tabs);
-	t_arglist_it it=args.begin();
-	while (it!=args.end()) {
+void JavaExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) {
+	ExporterBase::dimension(prog,nombres,tamanios,tabs);
+	for(size_t i=0;i<nombres.size();++i) {
 		// obtener nombre y dimensiones
-		string name,dims; crop_name_and_dims(*it,name,dims,"[","][","]");
+		string name = nombres[i], dims = tamanios[i];
+		fix_dims(dims,"[","][","]");
 		// armar la linea que hace el new
-		string stipo=translate_tipo(memoria->LeerTipo(name));
+		string stipo = translate_tipo(memoria->LeerTipo(name));
 		insertar(prog,tabs+ToLower(name)+" = new "+stipo+dims+";");
-		++it;
 	}
 }
 
@@ -342,7 +339,7 @@ string JavaExporter::get_constante(string name) {
 	return name;
 }
 
-void JavaExporter::translate(t_output &out, t_programa &prog) {
+void JavaExporter::translate(t_output &out, Programa &prog) {
 	CppExporter::translate(out,prog);
 	int c=0;
 	t_output_it it=out.begin();
@@ -369,7 +366,6 @@ void JavaExporter::translate(t_output &out, t_programa &prog) {
 	}
 }
 
-void JavaExporter::translate_all_procs (t_output & out, t_programa & prog, std::string tabs) {
+void JavaExporter::translate_all_procs (t_output & out, Programa & prog, std::string tabs) {
 	ExporterBase::translate_all_procs(out,prog,"\t");
 }
-#endif

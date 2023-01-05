@@ -7,16 +7,16 @@
 #include "exportexp.h"
 #include "CppExporter.hpp"
 #include "CExporter.hpp"
-//#include "export_vb.h"
-//#include "export_php.h"
-//#include "export_java.h"
-//#include "export_python3.h"
-//#include "export_pascal.h"
-//#include "export_javascript.h"
-//#include "export_html.h"
-//#include "export_matlab.h"
-//#include "export_cs.h"
-//#include "export_qbasic.h"
+#include "JavaExporter.hpp"
+#include "JSExporter.hpp"
+#include "HTMLExporter.hpp"
+#include "VBExporter.hpp"
+#include "QBasicExporter.hpp"
+#include "PythonExporter.hpp"
+#include "PhpExporter.hpp"
+#include "PascalExporter.hpp"
+#include "MatLabExporter.hpp"
+#include "CSharpExporter.hpp"
 #include "ProgramaDump.hpp"
 
 LangSettings lang(LS_DO_NOT_INIT);
@@ -75,19 +75,19 @@ int main(int argc, char *argv[]){
 			return 1;
 		} else if (s.substr(0,7)=="--lang=") {
 			s.erase(0,7); 
-			if (s=="c" || s=="c99") exporter=new CExporter();
-			else if (s=="c++" || s=="cpp" || s=="c++98" || s=="cpp98" || s=="c++03" || s=="cpp03") exporter=new CppExporter();
-//			else if (s=="c#" || s=="cs" || s=="csharp") exporter=new CSharpExporter();
-//			else if (s=="htm" || s=="html") exporter=new HTMLExporter();
-//			else if (s=="java") exporter=new JavaExporter();
-//			else if (s=="js" || s=="javascript") exporter=new JavaScriptExporter();
-//			else if (s=="m" || s=="matlab") exporter=new MatLabExporter();
-//			else if (s=="pas" || s=="pascal") exporter=new PascalExporter();
-//			else if (s=="php") exporter=new PhpExporter();
-//			else if (s=="py" || s=="pyton" || s=="py3" || s=="python3") exporter=new Python3Exporter(3);
-//			else if (s=="py2" || s=="python2") exporter=new Python3Exporter(2);
-//			else if (s=="vb" || s=="visualbasic") exporter=new VbExporter();
-//			else if (s=="bas" || s=="qb" || s=="qbasic" || s=="quickbasic") exporter=new QBasicExporter();
+			if (s=="c" || s=="c99") exporter = new CExporter();
+			else if (s=="c++" || s=="cpp" || s=="c++98" || s=="cpp98" || s=="c++03" || s=="cpp03") exporter = new CppExporter();
+			else if (s=="c#" || s=="cs" || s=="csharp") exporter = new CSharpExporter();
+			else if (s=="htm" || s=="html") exporter=new HTMLExporter();
+			else if (s=="java") exporter = new JavaExporter();
+			else if (s=="js" || s=="javascript") exporter=new JSExporter();
+			else if (s=="m" || s=="matlab") exporter = new MatLabExporter();
+			else if (s=="pas" || s=="pascal") exporter=new PascalExporter();
+			else if (s=="php") exporter=new PhpExporter();
+			else if (s=="py" || s=="pyton" || s=="py3" || s=="python3") exporter=new PythonExporter(3);
+			else if (s=="py2" || s=="python2") exporter=new PythonExporter(2);
+			else if (s=="vb" || s=="visualbasic") exporter=new VbExporter();
+			else if (s=="bas" || s=="qb" || s=="qbasic" || s=="quickbasic") exporter = new QBasicExporter();
 			else {
 				if (s=="ook") { 
 					char s[]="Uû!op!fsft!vo!psbohvuâo-!qfsp!upnb!vob!cbobob;"; int i=0; while(s[i]!='\0') s[i++]--; cout<<s<<endl;

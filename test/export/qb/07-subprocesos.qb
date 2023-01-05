@@ -1,6 +1,6 @@
 DIM c AS DOUBLE
 PRINT funciondoble(5)
-CALL noretornanada(3,9)
+CALL noretornanada(3, 9)
 c = 0
 CALL porreferencia(c)
 PRINT c

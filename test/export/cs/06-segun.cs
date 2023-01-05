@@ -8,7 +8,9 @@ namespace PSeInt {
 			case 1:
 				Console.WriteLine("1");
 				break;
-			case 3: case 5: case 9:
+			case 3:
+			case 5:
+			case 9:
 				Console.WriteLine("3, 5 o 9");
 				break;
 			case 7:

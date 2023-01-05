@@ -1,23 +1,25 @@
-#ifndef EXPORT_JAVASCRIPT_H
-#define EXPORT_JAVASCRIPT_H
-#include "export_cpp.h"
+#ifndef CSHARP_EXPORTER_HPP
+#define CSHARP_EXPORTER_HPP
+#include "CppExporter.hpp"
 
-class JavaScriptExporter : public CppExporter {
+class CSharpExporter : public CppExporter {
 	
-	bool for_html;
+	bool use_random;
+	bool use_threading;
+	bool have_subprocesos;
+	bool use_reference;
 	
-//	string get_tipo(map<string,tipo_var>::iterator &mit, bool for_func=false, bool by_ref=false); // se usa tanto desde el otro get_tipo como desde declarar_variables
-	void declarar_variables(t_output &prog, string tab);
-//	string get_tipo(string name, bool by_ref=false); // solo se usa para cabeceras de funciones
+	string get_tipo(string name, bool by_ref, bool do_erase); // se usa para argumentos de funciones
+	string get_tipo(map<string,tipo_var>::iterator &mit, bool for_func=false, bool by_ref=false); // se usa tanto desde el otro get_tipo como desde declarar_variables
 	void header(t_output &out);
 	void footer(t_output &out);
 	void translate_single_proc(t_output &out, Funcion *f, t_proceso &proc) override;
-	void translate_all_procs(t_output &out, t_programa &prog, std::string tabs) override;
+	void translate_all_procs(t_output &out, Programa &prog, std::string tabs) override;
+	string translate_tipo(const tipo_var &t);
 	
-	void definir(t_output &prog, t_arglist &arglist, string tipo, std::string tabs) override;
-	void dimension(t_output &prog, t_arglist &args, std::string tabs) override;
+	void dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) override;
 	void esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) override;
-	void esperar_tecla(t_output &prog, string param, std::string tabs) override;
+	void esperar_tecla(t_output &prog, std::string tabs) override;
 	void borrar_pantalla(t_output &prog, std::string tabs) override;
 //	void invocar(t_output &prog, string param, std::string tabs) override;
 	void escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs) override;
@@ -31,12 +33,12 @@ class JavaScriptExporter : public CppExporter {
 	void paracada(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) override;
 	
 public:
-//	string make_string(string cont);
-	string function(string name, string args);
-	string get_constante(string name);
-	string get_operator(string op, bool for_string=false);	
-//	void translate(t_output &out, t_programa &prog);
-	JavaScriptExporter(bool for_html=false);
+	string function(string name, string args) override;
+	string get_constante(string name) override;
+	string get_operator(string op, bool for_string=false) override;
+//	void translate(t_output &out, t_programa &prog) override;
+	std::string referencia(const std::string &exp) override;
+	CSharpExporter();
 	
 };
 

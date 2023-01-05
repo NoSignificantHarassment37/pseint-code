@@ -1,14 +1,13 @@
-#if 0
 /**
 * @file export_vb.cpp
 *
 * Las traducciones están basadas en los ejemplos enviados por el Prof. Tito Sánchez
 **/
-#include "ExporterBase.h"
-#include "export_vb.h"
 #include "version.h"
 #include "exportexp.h"
-#include "export_tipos.h"
+#include "ExporterBase.hpp"
+#include "TiposExporter.hpp"
+#include "VBExporter.hpp"
 
 VbExporter::VbExporter() {
 	output_base_zero_arrays=false;
@@ -19,7 +18,7 @@ void VbExporter::esperar_tecla(t_output &prog, std::string tabs){
 }
 
 void VbExporter::esperar_tiempo(t_output &prog, string tiempo, bool milis, std::string tabs){
-	tipo_var t; tiempo=expresion(GetRT(),tiempo,t); // para que arregle los nombres de las variables
+	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
 	stringstream inst;
 	inst<<"Thread.Sleep(";
 	if (milis) inst<<tiempo; 
@@ -34,11 +33,10 @@ void VbExporter::borrar_pantalla(t_output &prog, std::string tabs) {
 	insertar(prog,tabs+"Console.Clear()");
 }
 
-void VbExporter::invocar(t_output &prog, string param, std::string tabs){
-	string linea=expresion(GetRT(),param);
-	if (linea[linea.size()-1]!=')') 
-		linea+="()";
-		insertar(prog,tabs+linea);
+void VbExporter::invocar(t_output &prog, std::string func_name, std::string args, std::string tabs){
+	if (args.empty()) args = "()";
+	string linea = expresion(func_name+args);
+	insertar(prog,tabs+linea);
 }
 
 void VbExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
@@ -46,7 +44,7 @@ void VbExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::stri
 	string linea;
 	while (it!=args.end()) {
 		if (linea.size()) linea+=",";
-		linea+=expresion(GetRT(),*it);
+		linea+=expresion(*it);
 		++it;
 	}
 	if (saltar) linea=string("Console.WriteLine(")+linea+")"; 
@@ -58,7 +56,7 @@ void VbExporter::leer(t_output &prog, t_arglist args, std::string tabs){
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(GetRT(),*it,t);
+		string varname=expresion(*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = Integer.Parse(Console.ReadLine())");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Double.Parse(Console.ReadLine())");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean.Parse(Console.ReadLine())");
@@ -68,81 +66,84 @@ void VbExporter::leer(t_output &prog, t_arglist args, std::string tabs){
 }
 
 void VbExporter::asignacion(t_output &prog, string param1, string param2, std::string tabs){
-	insertar(prog,tabs+expresion(GetRT(),param1)+" = "+expresion(GetRT(),param2));
+	insertar(prog,tabs+expresion(param1)+" = "+expresion(param2));
 }
 
-void VbExporter::si(t_output &prog, t_proceso_it r, t_proceso_it q, t_proceso_it s, std::string tabs){
-	insertar(prog,tabs+"If "+expresion(GetRT(),(*r).par1)+" Then");
-	bloque(prog,++r,q,tabs+"\t");
-	if (q!=s) {
+void VbExporter::si(t_output &prog, t_proceso_it it_si, t_proceso_it it_sino, t_proceso_it it_fin, std::string tabs){
+	insertar(prog,tabs+"If "+expresion(getImpl<IT_SI>(*it_si).condicion)+" Then");
+	bloque(prog,std::next(it_si),it_sino,tabs+"\t");
+	if (it_sino!=it_fin) {
 		insertar(prog,tabs+"Else");
-		bloque(prog,++q,s,tabs+"\t");
+		bloque(prog,std::next(it_sino),it_fin,tabs+"\t");
 	}
 	insertar(prog,tabs+"End If");
 }
 
-void VbExporter::mientras(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
-	insertar(prog,tabs+"While "+expresion(GetRT(),(*r).par1));
-	bloque(prog,++r,q,tabs+"\t");
+void VbExporter::mientras(t_output &prog, t_proceso_it it_mientras, t_proceso_it it_fin, std::string tabs){
+	insertar(prog,tabs+"While "+expresion(getImpl<IT_MIENTRAS>(*it_mientras).condicion));
+	bloque(prog,std::next(it_mientras),it_fin,tabs+"\t");
 	insertar(prog,tabs+"End While");
 }
 
 void VbExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
-	list<t_proceso_it>::iterator p,q,r;
-	q=p=its.begin();r=its.end();
-	t_proceso_it i=*q;
-	insertar(prog,tabs+"Select Case "+expresion(GetRT(),(*i).par1));
-	++q;++p;
-	while (++p!=r) {
-		i=*q;
-		if ((*i).par1=="DE OTRO MODO")
+	
+	insertar(prog,tabs+"Select Case "+expresion(getImpl<IT_SEGUN>(*(its[0])).expresion));
+	for (size_t i=1; i+1<its.size(); ++i) {
+		if (its[i]->type==IT_DEOTROMODO)
 			insertar(prog,tabs+"Case Else");
 		else {
-			string e="Case "+expresion(GetRT(),(*i).par1);
-			bool comillas=false; int parentesis=0, j=0,l=e.size();
-			while(j<l) {
-				if (e[j]=='\''||e[j]=='\"') comillas=!comillas;
-				else if (!comillas) {
-					if (e[j]=='['||e[j]=='(') parentesis++;
-					else if (e[j]==']'||e[j]==')') parentesis--;
-					else if (parentesis==0 && e[j]==',') {
-						e.replace(j,1,", "); l+=6;
-					}
-				}
-				j++;
-			}
-			insertar(prog,tabs+e);
+			auto &exps = getImpl<IT_OPCION>(*(its[i])).expresiones;
+			string case_line;
+			for(size_t j=0;j<exps.size();++j)
+				case_line += (j==0?"Case ":", ") + expresion(exps[j]);
+//			bool comillas=false; int parentesis=0, j=0,l=case_line.size();
+//			while(j<l) {
+//				if (case_line[j]=='\''||case_line[j]=='\"') comillas=!comillas;
+//				else if (!comillas) {
+//					if (case_line[j]=='['||case_line[j]=='(') parentesis++;
+//					else if (case_line[j]==']'||case_line[j]==')') parentesis--;
+//					else if (parentesis==0 && case_line[j]==',') {
+//						case_line.replace(j,1,", "); l+=6;
+//					}
+//				}
+//				j++;
+//			}
+			insertar(prog,tabs+case_line);
 		}
-		bloque(prog,++i,*p,tabs+"\t");
-		++q;
+		bloque(prog,std::next(its[i]),its[i+1],tabs+"\t");
 	}
 	insertar(prog,tabs+"End Select");
 }
 
-void VbExporter::repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
+void VbExporter::repetir(t_output &prog, t_proceso_it it_repetir, t_proceso_it it_hasta, std::string tabs){
 	insertar(prog,tabs+"Do");
-	bloque(prog,++r,q,tabs+"\t");
-	if ((*q).nombre=="HASTAQUE")
-		insertar(prog,tabs+"Loop Until "+expresion(GetRT(),(*q).par1));
+	bloque(prog,std::next(it_repetir),it_hasta,tabs+"\t");
+	auto &impl = getImpl<IT_HASTAQUE>(*it_hasta);
+	if (impl.mientras_que)
+		insertar(prog,tabs+"Loop While "+expresion(impl.condicion));
 	else
-		insertar(prog,tabs+"Loop While "+expresion(GetRT(),(*q).par1));
+		insertar(prog,tabs+"Loop Until "+expresion(impl.condicion));
 }
 
-void VbExporter::para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
-	string var=expresion(GetRT(),(*r).par1), ini=expresion(GetRT(),(*r).par2), fin=expresion(GetRT(),(*r).par3), paso=(*r).par4;
-	if (paso=="1")
+void VbExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
+	auto &impl = getImpl<IT_PARA>(*it_para);
+	std::string var = expresion(impl.contador), ini = expresion(impl.val_ini),
+		        fin = expresion(impl.val_fin), paso = impl.paso;
+	if (paso=="1" or paso.empty())
 		insertar(prog,tabs+"For "+var+"="+ini+" To "+fin);
 	else
-		insertar(prog,tabs+"For "+var+"="+ini+" To "+fin+" Step "+expresion(GetRT(),paso));
-	bloque(prog,++r,q,tabs+"\t");
+		insertar(prog,tabs+"For "+var+"="+ini+" To "+fin+" Step "+expresion(paso));
+	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
 	insertar(prog,tabs+"Next "+var);
 }
 
-void VbExporter::paracada(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs){
-	string var=ToLower((*r).par2), aux=ToLower((*r).par1);
-	insertar(prog,tabs+"For Each "+aux+" In "+var);
-	bloque(prog,++r,q,tabs+"\t");
+void VbExporter::paracada(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs){
+	auto &impl = getImpl<IT_PARACADA>(*it_para);
+	std::string arreglo = ToLower(impl.arreglo), identif = ToLower(impl.identificador);
+	insertar(prog,tabs+"For Each "+identif+" In "+arreglo);
+	bloque(prog,++it_para,it_fin,tabs+"\t");
 	insertar(prog,tabs+"Next");
+	memoria->RemoveVar(identif);
 }
 
 string VbExporter::function(string name, string args) {
@@ -279,7 +280,9 @@ void VbExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pro
 	
 }
 
-void VbExporter::translate(t_output &out, t_programa &prog) {
+void VbExporter::translate(t_output &out, Programa &prog) {
+	
+	load_subs_in_funcs_manager(prog);
 	
 	// cppcheck-suppress unusedScopedObject
 	TiposExporter(prog,false); // para que se cargue el mapa_memorias con memorias que tengan ya definidos los tipos de variables que correspondan
@@ -343,22 +346,19 @@ string VbExporter::make_string (string cont) {
 	return string("\"")+cont+"\"";
 }
 
-void VbExporter::dimension(t_output &prog, t_arglist &args, std::string tabs) {
-	t_arglist_it it=args.begin();
-	while (it!=args.end()) {
-		string name=*it;
-		name.erase(name.find("("));
-		tipo_var t = memoria->LeerTipo(name);
+void VbExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) {
+	for(size_t i=0;i<nombres.size();++i) { 
+		tipo_var t = memoria->LeerTipo(nombres[i]);
 		string stipo="String";
-		if (t==vt_caracter) { stipo="String"; }
+		if      (t==vt_caracter) stipo="String";
 		else if (t==vt_numerica) stipo=t.rounded?"Integer":"Double";
-		else if (t==vt_logica) stipo="Boolean";
-		insertar(prog,tabs+"Dim "+expresion(GetRT(),*it)+" As "+stipo);
-		++it;
+		else if (t==vt_logica)   stipo="Boolean";
+		std::string dims = "("+tamanios[i];
+		if (dims[dims.size()-1]==',') dims[dims.size()-1] = ')'; else dims += ")";
+		insertar(prog,tabs+"Dim "+expresion(nombres[i]+dims)+" As "+stipo);
 	}
 }
 
 void VbExporter::comentar (t_output & prog, string text, std::string tabs) {
 	if (!for_test) insertar(prog,tabs+"' "+text);
 }
-#endif

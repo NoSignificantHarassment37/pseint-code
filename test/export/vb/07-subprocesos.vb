@@ -2,7 +2,7 @@ Module SIN_TITULO
 	Sub Main()
 		Dim c As Double
 		Console.WriteLine(funciondoble(5))
-		noretornanada(3,9)
+		noretornanada(3, 9)
 		c = 0
 		porreferencia(c)
 		Console.WriteLine(c)

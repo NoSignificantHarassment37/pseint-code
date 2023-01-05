@@ -18,7 +18,7 @@ namespace PSeInt {
 			Console.WriteLine(a*b);
 			Console.WriteLine(a/b);
 			Console.WriteLine(a-b);
-			Console.WriteLine(Math.Pow(a,b));
+			Console.WriteLine(Math.Pow(a, b));
 			Console.WriteLine(a%b);
 			Console.WriteLine(a==b);
 			Console.WriteLine(a!=b);
