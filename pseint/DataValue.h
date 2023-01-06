@@ -3,10 +3,11 @@
 #include <string>
 #include <cstdlib>
 #include <cstdio>
-#include "Variant.h"
+#include <variant>
 
 #define FALSO "FALSO"
 #define VERDADERO "VERDADERO"
+#include "debug.h"
 
 
 inline double StrToDbl(const std::string &s) {
@@ -131,18 +132,18 @@ extern tipo_var vt_numerica_entera;
 struct DataValue {
 
 	tipo_var type;
-	Variant4<double,std::string,int,bool> value;
+	std::variant<std::monostate,double,std::string,int,bool> value; // monostate equivale a vacio
 	
 	DataValue() {}
 	DataValue(tipo_var t) : type(t) {}
-	DataValue(tipo_var t, int v) : type(t) { value.Set<int>(v); }
-	DataValue(tipo_var t, double v) : type(t) { value.Set<double>(v); }
-	DataValue(tipo_var t, bool v) : type(t) { value.Set<bool>(v); }
-	DataValue(tipo_var t, const std::string &v) : type(t) { value.Set<std::string>(v); }
+	DataValue(tipo_var t, int v) : type(t) { value = v; }
+	DataValue(tipo_var t, double v) : type(t) { value = v; }
+	DataValue(tipo_var t, bool v) : type(t) { value = v; }
+	DataValue(tipo_var t, const std::string &v) : type(t) { value = v; }
 	
 	bool IsOk() const { return type!=vt_error; } // tipo
 	bool IsError() const { return type==vt_error; } // tipo
-	bool IsEmpty() const { return value.IsDefined(); } // valor
+	bool IsEmpty() const { return std::holds_alternative<std::monostate>(value); } // valor
 	
 	bool CanBeLogic() const  { return type.cb_log; }
 	bool CanBeReal() const   { return type.cb_num; }
@@ -152,34 +153,33 @@ struct DataValue {
 	bool IsString() const { return !type.cb_log && !type.cb_num &&  type.cb_car; }
 	
 	bool GetAsBool() const {
-//		Assert(!value.IsDefined()||value.Is<bool>());
-		if (value.Is<bool>()) return value.As<bool>();
-		else if (value.Is<std::string>()) {
-			const std::string &str = value.As<std::string>();
+		if (std::holds_alternative<bool>(value)) return std::get<bool>(value);
+		else if (std::holds_alternative<std::string>(value)) {
+			const std::string &str = std::get<std::string>(value);
 			return !str.empty() && (str[0]=='1'||toupper(str[0]=='V'));
 		}
-		else if (value.Is<double>()) return value.As<double>()==1;
-		else if (value.Is<int>()) return value.As<int>()==1;
+		else if (std::holds_alternative<double>(value)) return std::get<double>(value)==1;
+		else if (std::holds_alternative<int>(value)) return std::get<int>(value)==1;
 		else return false;
 	}
 	
 	double GetAsReal() const {
-		_expects(!value.IsDefined()||!value.Is<bool>());
-		if (value.Is<double>()) return value.As<double>();
-		if (value.Is<int>()) return double(value.As<int>());
-		if (value.Is<std::string>()) return StrToDbl(value.As<std::string>());
+		_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
+		if (std::holds_alternative<double>(value))      return std::get<double>(value);
+		if (std::holds_alternative<int>(value))         return double(std::get<int>(value));
+		if (std::holds_alternative<std::string>(value)) return StrToDbl(std::get<std::string>(value));
 		return 0.0;
 	}
 	int GetAsInt() const {
-		_expects(!value.IsDefined()||!value.Is<bool>());
-		if (value.Is<double>()) return int(value.As<double>());
-		if (value.Is<int>()) return value.As<int>();
-		if (value.Is<std::string>()) return StrToInt(value.As<std::string>());
+		_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
+		if (std::holds_alternative<double>(value))      return int(std::get<double>(value));
+		if (std::holds_alternative<int>(value))         return std::get<int>(value);
+		if (std::holds_alternative<std::string>(value)) return StrToInt(std::get<std::string>(value));
 		return 0;
 	}
 	std::string GetAsString() const {
-		_expects(!value.IsDefined()||value.Is<std::string>());
-		if (value.Is<std::string>()) return value.As<std::string>();
+		_expects(IsEmpty()||std::holds_alternative<std::string>(value));
+		if (std::holds_alternative<std::string>(value)) return std::get<std::string>(value);
 		return "";
 	}
 	std::string GetForUser() const {
@@ -188,11 +188,11 @@ struct DataValue {
 		return GetAsString();
 	}
 	
-	void SetFromString(const std::string &s) { _expects(type.cb_car); value.ForceSet(s); }
-	void SetFromInt(int i) { _expects(type.cb_num); value.ForceSet(i); }
+	void SetFromString(const std::string &s) { _expects(type.cb_car); value = s; }
+	void SetFromInt(int i) { _expects(type.cb_num); value = i; }
 	void SetValue(const DataValue &other) { value = other.value; } /// @todo: ver quien usa esto para ver si se copia tambien el tipo
 	
-	void Reset() { type.reset(); value.Clear(); }
+	void Reset() { type.reset(); value = std::monostate(); }
 	
 	static DataValue MakeEmpty(tipo_var t) { return DataValue(t); }
 	static DataValue MakeInt(int i) { return DataValue(vt_numerica_entera,i); }
