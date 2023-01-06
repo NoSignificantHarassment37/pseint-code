@@ -8,6 +8,8 @@
 #include "Events.h"
 #include "ProcessSelector.h"
 #include "../wxPSeInt/CommonParsingFunctions.h"
+#include "../pseint/Programa.hpp"
+#include "../pseint/ProgramaDump.hpp"
 using namespace std;
 
 
@@ -90,178 +92,156 @@ static void ReemplazarOperadores(string &str) {
 	}
 }
 
-#define _new_this(e) if (cur_pos.size()) g_code.code2draw[cur_pos]=LineInfo(cur_proc,e)
-#define _new_prev()  if (cur_pos.size()) g_code.code2draw[cur_pos]=LineInfo(nullptr,cur_proc)
-#define _new_none()  if (cur_pos.size()) g_code.code2draw[cur_pos]=LineInfo(nullptr,nullptr)
+std::string join(const std::vector<std::string> &v) {
+	std::string s;
+	for (size_t i=0; i<v.size(); ++i) { 
+		if (i) s += ", ";
+		s += v[i];
+	}
+	return s;
+}
 
-void LoadProc(vector<string> &vproc) {
+std::string join(const std::vector<std::string> &v1, const std::vector<std::string> &v2) {
+	_expects(v1.size()==v2.size());
+	std::string s;
+	for (size_t i=0; i<v1.size(); ++i) { 
+		if (i) s += ", ";
+		s += v1[i]+v2[i];
+	}
+	return s;
+}
+
+#define cur_pos std::to_string(inst.loc.linea)+":"+std::to_string(inst.loc.instruccion)
+#define _new_this(e) g_code.code2draw[cur_pos] = LineInfo(cur_proc,e)
+#define _new_prev()  g_code.code2draw[cur_pos] = LineInfo(nullptr,cur_proc)
+#define _new_none()  g_code.code2draw[cur_pos] = LineInfo(nullptr,nullptr)
+
+void LoadProc(Programa &prog, int &i_inst) {
 	g_code.code2draw.clear();
-	string cur_pos; Entity *cur_proc; // para llenar code2draw
-	bool start_done=false;
+	Entity *cur_proc; // para llenar code2draw
+	bool start_done = false;
 	cur_proc = g_code.start = new Entity(ET_PROCESO,"SinTitulo");
 	Entity *aux = g_code.start, *aux_end = g_code.start;
 	// child_id guarda en qué lugar de los hijos de la entidad anterior hay que
 	// enlazar la próxima, o -1 si la próxima va como next y no como hijo
-	stack<int> children_stack; children_stack.push(-1);
-	for(size_t iv=0;iv<vproc.size();iv++) { 
-		string str = vproc[iv];
-		if (str.size() && str[str.size()-1]==';') str=str.substr(0,str.size()-1);
-		if (g_lang[LS_WORD_OPERATORS]) ReemplazarOperadores(str);
-		bool comillas=false;
-		for (unsigned int i=0;i<str.size();i++) {
-			if (str[i]=='\''||str[i]=='\"') comillas=!comillas;
-			else if (!comillas) {
-				if (str[i]=='&') { str.replace(i,1," & "); i+=2; }
-				else if (str[i]=='|') { str.replace(i,1," | "); i+=2; }
-			}
-		}
-		if (StartsWith(str,"#pos ")) {
-			cur_pos=str.substr(5);
-		}
-		else if (StartsWith(str,"PROCESO ")||StartsWith(str,"SUBPROCESO ")) {
-			string s1=str.substr(0,str.find(' '));
-			string s2=str.substr(str.find(' ')+1);
-			if (s1=="PROCESO") { 
+	std::stack<int> children_stack; children_stack.push(-1);
+	for (; prog[i_inst].type!=IT_FINPROCESO; ++i_inst) {
+		auto inst = prog[i_inst];
+		switch(inst.type) {
+		case IT_PROCESO: {
+			auto &impl = getImpl<IT_PROCESO>(inst);
+			if (impl.principal) { 
 				g_code.start->lpre = g_lang[LS_PREFER_ALGORITMO]?"Algoritmo ":"Proceso "; 
-				g_code.start->SetLabel(s2); 
-			} else if (s1=="SUBPROCESO") { 
+				g_code.start->SetLabel(impl.nombre); 
+			} else { 
 				g_code.start->lpre = g_lang[LS_PREFER_FUNCION]?"Funcion ":(g_lang[LS_PREFER_ALGORITMO]?"SubAlgoritmo ":"SubProceso "); 
-				g_code.start->SetLabel(s2); 
+				std::string proto = (impl.ret_id.empty() ? "" : (impl.ret_id + " <- ")) + impl.nombre + impl.args;
+				g_code.start->SetLabel(proto); 
 			}
 			_new_this(g_code.start); /*cur_proc=g_code.start;*/ start_done=true;
-			continue;
-		}
-		else if (str=="FINPROCESO") {
-			aux_end=aux;
-			_new_none();
-			continue;
-		}
-		else if (!str.size()||str=="FINSUBPROCESO"||str=="ENTONCES") {
-			aux_end=aux;
-			_new_prev();
-			continue;
-		}
-		else if (StartsWith(str,"INVOCAR ")) {
-			aux=Add(children_stack,aux,new Entity(ET_ASIGNAR,str.substr(8)));
-			aux->variante=true;
+		} break;
+		case IT_ENTONCES:
+			aux_end = aux;
+			if (inst.type==IT_FINPROCESO and getImpl<IT_FINPROCESO>(inst).principal) 
+				_new_none();
+			else
+				_new_prev();
+		break;
+		case IT_INVOCAR: {
+			auto &impl = getImpl<IT_INVOCAR>(inst);
+			aux = Add(children_stack,aux,new Entity(ET_ASIGNAR,impl.nombre+impl.args));
+			aux->variante = true;
 			_new_this(aux);
-		}
-		else if (StartsWith(str,"#comment") && aux && aux->type==ET_SEGUN) {
-			// no puedo poner comentarios a las opciones del segun... por ahora el 
-			// parche es bajarlos hasta despues de la opcion, o sea ponerlos dentro
-			// de su rama, para al menos no perderlos
-			if (StartsWith(str,"#comment-inline ")) vproc[iv].erase(8,7);
-			int j = iv+1;
-			while (StartsWith(vproc[j],"#comment")) ++j;
-			string opcion = vproc[j];
-			vproc.erase(vproc.begin()+j);
-			vproc.insert(vproc.begin()+iv,opcion);
-			--iv; continue;
-		}
-		else if (StartsWith(str,"#comment ")) {
-			aux=Add(children_stack,aux,new Entity(ET_COMENTARIO,str.substr(9)));
-			if (not start_done) { g_code.start->UnLink(); aux->LinkNext(g_code.start); aux = g_code.start; }
-		}
-		else if (StartsWith(str,"#comment-inline ")) {
-			if (aux && aux->type==ET_SEGUN) continue;
-			aux=Add(children_stack,aux,new Entity(ET_COMENTARIO,str.substr(16)));
-			aux->variante=true;
-			if (not start_done) { g_code.start->UnLink(); aux->LinkNext(g_code.start); aux = g_code.start; }
-		}
-		else if (StartsWith(str,"ESCRIBIR ")) {
-			aux=Add(children_stack,aux,new Entity(ET_ESCRIBIR,str.substr(9)));
-			_new_this(aux);
-		}
-		else if (StartsWith(str,"ESCRIBNL ")) {
-			aux=Add(children_stack,aux,new Entity(ET_ESCRIBIR,str.substr(9)));
-			aux->variante=true;
-			_new_this(aux);
-		}
-		else if (StartsWith(str,"LEER ")) {
-			aux=Add(children_stack,aux,new Entity(ET_LEER,str.substr(5)));
-			_new_this(aux);
-		}
-		else if (StartsWith(str,"HASTA QUE ")) {
-			aux=Up(children_stack,aux); aux->SetLabel(str.substr(10),false);
-			_new_this(aux);
-		}
-		else if (StartsWith(str,"MIENTRAS QUE ")) {
-			aux=Up(children_stack,aux); aux->SetLabel(str.substr(13),false);
-			aux->variante=true;
-			_new_this(aux);
-		}
-		else if (StartsWith(str,"MIENTRAS ")) {
-			aux=Add(children_stack,aux,new Entity(ET_MIENTRAS,str.substr(9,str.size()-15)),0);
-			_new_this(aux);
-		}
-		else if (str=="REPETIR") {
-			aux=Add(children_stack,aux,new Entity(ET_REPETIR,""),0);
-			_new_prev();
-		}
-		else if (StartsWith(str,"PARA ")) {
-			str=str.substr(5,str.size()-11);
-			size_t i=str.find("<-");
-			string var=str.substr(0,i);
-			str=str.substr(i+2);
-			i=str.find(" HASTA ");
-			string ini=str.substr(0,i);
-			str=str.substr(i+7);
-			i=str.find(" CON PASO ");
-			string paso,fin;
-			if (i==string::npos) {
-				paso=""; fin=str;
+		} break;
+		case IT_COMMENT: {
+			auto &impl = getImpl<IT_COMMENT>(inst);
+			if (aux && aux->type==ET_SEGUN) {
+				// no puedo poner comentarios a las opciones del segun... por ahora el 
+				// parche es bajarlos hasta despues de la opcion, o sea ponerlos dentro
+				// de su rama, para al menos no perderlos
+				int j = i_inst+1;
+				while (inst.loc.instruccion==1) ++j;
+				auto opcion = prog[j];
+				prog.Erase(j);
+				prog.Insert(i_inst,opcion);
+				--i_inst;
 			} else {
-				fin=str.substr(0,i);
-				paso=str.substr(i+10);
-				if (paso.size()&&paso[0]==' ') paso=paso.substr(1); // a veces viene con doble espacio
+				if (inst.loc.instruccion!=1) {
+					if (aux && aux->type==ET_SEGUN) continue;
+					aux=Add(children_stack,aux,new Entity(ET_COMENTARIO,impl.text));
+					aux->variante=true;
+				} else {
+					aux=Add(children_stack,aux,new Entity(ET_COMENTARIO,impl.text));
+				}
+				if (not start_done) { g_code.start->UnLink(); aux->LinkNext(g_code.start); aux = g_code.start; }
 			}
-			RemoveParentesis(ini);
-			aux=Add(children_stack,aux,new Entity(ET_PARA,var),0);
-			aux->GetChild(1)->SetLabel(ini);
-			aux->GetChild(2)->SetLabel(paso);
-			aux->GetChild(3)->SetLabel(fin);
+		} break;
+		case IT_ESCRIBIR: {
+			auto &impl = getImpl<IT_ESCRIBIR>(inst);
+			aux = Add(children_stack,aux,new Entity(ET_ESCRIBIR,join(impl.expresiones)));
+			aux->variante = not impl.saltar;
 			_new_this(aux);
-		}
-		else if (StartsWith(str,"PARACADA ")) {
-			str=str.substr(9,str.size()-15);
-			size_t i=str.find(" ");
-			string var=str.substr(0,i);
-			str=str.substr(i+1);
-			i=str.find(" ");
-//			string ini=str.substr(0,i);
-			str=str.substr(i+1);
-			aux=Add(children_stack,aux,new Entity(ET_PARA,var),0);
-			aux->variante=true;
-//			aux->child[1]->SetLabel("");
-			aux->GetChild(2)->SetLabel(str);
-//			aux->child[3]->SetLabel("");
+		} break;
+		case IT_LEER: {
+			auto &impl = getImpl<IT_LEER>(inst);
+			aux=Add(children_stack,aux,new Entity(ET_LEER,join(impl.variables)));
 			_new_this(aux);
-		}
-		else if (StartsWith(str,"SI ")) {
-			aux=Add(children_stack,aux,new Entity(ET_SI,str.substr(3)),1);
+		} break;
+		case IT_HASTAQUE: {
+			auto &impl = getImpl<IT_HASTAQUE>(inst);
+			aux = Up(children_stack,aux); aux->SetLabel(impl.condicion,false);
+			aux->variante = impl.mientras_que;
 			_new_this(aux);
-		}
-		else if (StartsWith(str,"SINO")) {
-			aux=aux->GetParent(); children_stack.pop(); children_stack.push(0);
+		} break;
+		case IT_MIENTRAS: {
+			auto &impl = getImpl<IT_MIENTRAS>(inst);
+			aux = Add(children_stack,aux,new Entity(ET_MIENTRAS,impl.condicion),0);
+			_new_this(aux);
+		} break;
+		case IT_REPETIR: {
+			aux = Add(children_stack,aux,new Entity(ET_REPETIR,""),0);
 			_new_prev();
-		}
-		else if (StartsWith(str,"SEGUN ")) {
-			aux=Add(children_stack,aux,new Entity(ET_SEGUN,str.substr(6,str.size()-6-5)),0);
+		} break;
+		case IT_PARA: {
+			auto &impl = getImpl<IT_PARA>(inst);
+			aux = Add(children_stack,aux,new Entity(ET_PARA,impl.contador),0);
+			aux->GetChild(1)->SetLabel(impl.val_ini);
+			aux->GetChild(2)->SetLabel(impl.paso);
+			aux->GetChild(3)->SetLabel(impl.val_fin);
+			aux->variante = false;
 			_new_this(aux);
-		}
-		else if (str.size() && str[str.size()-1]==':') {
-			str.erase(str.size()-1,1);
-			if (aux->type==ET_SEGUN && children_stack.top()!=-1) { // si esta despues del segun, es el primer hijo
-				aux=Add(children_stack,aux,new Entity(ET_OPCION,str),0);
-			} else {
+		} break;
+		case IT_PARACADA: {
+			auto &impl = getImpl<IT_PARACADA>(inst);
+			aux=Add(children_stack,aux,new Entity(ET_PARA,impl.identificador),0);
+			aux->GetChild(2)->SetLabel(impl.arreglo);
+			aux->variante = true;
+			_new_this(aux);
+		} break;
+		case IT_SI: {
+			auto &impl = getImpl<IT_SI>(inst);
+			aux = Add(children_stack,aux,new Entity(ET_SI,impl.condicion),1);
+			_new_this(aux);
+		} break;
+		case IT_SINO: {
+			aux = aux->GetParent(); children_stack.pop(); children_stack.push(0);
+			_new_prev();
+		} break;
+		case IT_SEGUN: {
+			auto &impl = getImpl<IT_SEGUN>(inst);
+			aux=Add(children_stack,aux,new Entity(ET_SEGUN,impl.expresion),0);
+			_new_this(aux);
+		} break;
+		case IT_OPCION: case IT_DEOTROMODO: {
+			std::string str = inst.type==IT_DEOTROMODO ? "De Otro Modo" : join(getImpl<IT_OPCION>(inst).expresiones);
+			if (aux->type!=ET_SEGUN or children_stack.top()==-1) { // si no es el 1er hijo (no esta despues del segun)
 				aux=Up(children_stack,aux); // sube a la opcion
 				aux=Up(children_stack,aux); // sube al segun
-				if (str=="DE OTRO MODO") str="De Otro Modo";
-				aux=Add(children_stack,aux,new Entity(ET_OPCION,str),0);
 			}
+			aux = Add(children_stack,aux,new Entity(ET_OPCION,str),0);
 			_new_this(aux);
-		}
-		else if (str=="FINPARA"||str=="FINSI"||str=="FINMIENTRAS"||str=="FINSEGUN") {
+		} break;
+		case IT_FINPARA: case IT_FINSI: case IT_FINMIENTRAS: case IT_FINSEGUN: {
 			// En el caso normal, del segun cuelgan como hijos las opciones, y las opciones
 			// tienen como 1ros hijos a otras instrucciones... Entonces en ese caso, cuando
 			// termina el segun hay que subir a la opcion, y luego al segun... eso hace el 
@@ -271,70 +251,75 @@ void LoadProc(vector<string> &vproc) {
 			// finseguns seguidos, luego del 1er fin segun aux queda en el 2do segun (el que
 			// le corresponde a ese finsegun), y entonces cuando venga el 2do finsegun sí
 			// hay que subir, para eso se mira children_stack
-			if (str=="FINSEGUN" && (aux->type!=ET_SEGUN or children_stack.top()==-1)) { aux=Up(children_stack,aux); aux=Up(children_stack,aux); }
+			if (inst.type==IT_FINSEGUN && (aux->type!=ET_SEGUN or children_stack.top()==-1)) { aux=Up(children_stack,aux); aux=Up(children_stack,aux); }
 			aux=Up(children_stack,aux);
 			_new_prev();
-		}
-		else { // asignacion, dimension, definicion
-			if (str=="ESPERARTECLA") str="Esperar Tecla";
-			else if (str=="BORRARPANTALLA") str="Borrar Pantalla";
-			else if (str.find(' ')!=string::npos) {
-				size_t p=str.find(' '); string aux=str.substr(0,p);
-				if (aux=="DEFINIR") {
-					size_t p2=str.rfind("COMO "); string aux2=str.substr(p2);
-					if (aux2=="COMO CARACTER") aux2="Como Caracter";
-					else if (aux2=="COMO LOGICO") aux2="Como Logico";
-					else if (aux2=="COMO ENTERO") aux2="Como Entero";
-					else if (aux2=="COMO REAL") aux2="Como Real";
-					str.erase(p2);
-					str=string("Definir ")+str.substr(p+1)+aux2;
+		} break;
+		default: {
+			std::string str;
+			switch (inst.type) {
+			case IT_BORRARPANTALLA: str="Borrar Pantalla"; break;
+			case IT_ESPERARTECLA: str="Esperar Tecla"; break;
+			case IT_ESPERAR: {
+				auto &impl = getImpl<IT_ESPERAR>(inst);
+				str = "Esperar " + impl.tiempo + (impl.factor==1?" Segundos":" Milisegundos"); 
+			} break;
+			case IT_DEFINIR: {
+				str = string("Definir ") + join(getImpl<IT_DEFINIR>(inst).variables);
+				auto &impl = getImpl<IT_DEFINIR>(inst);
+				if      (impl.tipo==vt_caracter) str += " Como Caracter";
+				else if (impl.tipo==vt_logica)   str += " Como Logico";
+				else { _expects(impl.tipo==vt_numerica);
+					if (impl.tipo.rounded)       str += " Como Entero";
+					else                         str += " Como Real";
 				}
-				else if (aux=="DIMENSION") str=string("Dimension ")+str.substr(p+1);
+			} break;
+			case IT_DIMENSION: {
+				auto &impl = getImpl<IT_DIMENSION>(inst);
+				str = string("Dimension ") + join(impl.nombres, impl.tamanios);
+			} break;
+			case IT_ASIGNAR: {
+				auto &impl = getImpl<IT_ASIGNAR>(inst);
+				str = impl.variable + "<-" +  impl.valor;
+			} break;
 			}
-			aux=Add(children_stack,aux,new Entity(ET_ASIGNAR,str));
+			aux = Add(children_stack,aux,new Entity(ET_ASIGNAR,str));
 			_new_this(aux);
-		}
+		} break;
+		} // main switch
 	}
-	Entity *efin=new Entity(ET_PROCESO,""); 
-	efin->variante=true;
-	efin->lpre=string("Fin")+g_code.start->lpre.substr(0,g_code.start->lpre.size()-1);
+	Entity *efin = new Entity(ET_PROCESO,""); 
+	efin->variante = true;
+	efin->lpre = string("Fin")+g_code.start->lpre.substr(0,g_code.start->lpre.size()-1);
 	efin->SetLabel("");
-	aux_end->LinkNext(efin);
+	aux->LinkNext(efin);
 }
 
-bool Load(const char *filename) {
-	// cargar todo el algoritmo en un vector
-	g_state.loading = true;
-	if (filename) g_state.fname = filename;
-	else { New(); return false; }
-	ifstream file(filename);
-	if (!file.is_open()) { New(); return false; }
-	string str; 
-	vector<string> vfile; while (getline(file,str)) vfile.push_back(str);
-	file.close();
+bool Load(std::string filename) {
+	if (filename.empty()) filename = g_state.fname;
+	else g_state.fname = filename;
 	
+	Programa prog = LoadPrograma(filename);
+	if (prog.GetInstCount()==0) { New(); return false; }
+	
+	g_state.loading = true;
 	// separar por procesos/subprocesos
 	int imain=0;
-	int i0=0; // posición en el vector donde empieza el proceso
-	for(unsigned int i=0;i<vfile.size();i++) {
-		string &str=vfile[i];
-		if (StartsWith(str,"PROCESO ")||StartsWith(str,"SUBPROCESO ")||StartsWith(str,"FUNCION ")||StartsWith(str,"FUNCIÓN ")) {
-			if (StartsWith(str,"PROCESO ")) imain = g_code.procesos.size();
+	int i0 = 0; // posición en el vector donde empieza el proceso
+	for (size_t i_inst=0; i_inst<prog.GetInstCount(); ++i_inst) {
+		if (prog[i_inst].type==IT_PROCESO) {
+			auto &impl = getImpl<IT_PROCESO>(prog[i_inst]);
+			if (impl.principal) imain = g_code.procesos.size();
+			
 			Entity::AllSet(g_code.start=nullptr);
-			vector<string> vproc;
-			for(int j=i0;;j++) {
-				string &str=vfile[j];
-				vproc.push_back(str);
-				if (str=="FINPROCESO"||str=="FINSUBPROCESO"||str=="FINFUNCION"||str=="FINFUNCIÓN") { i0=j+1; break; }
-			}
-			LoadProc(vproc);
-			Entity::AllIterator it = Entity::AllBegin();
-			while (it!=Entity::AllEnd()) {
-				it->EditLabel(0);
-				++it;
+			LoadProc(prog,i0); i_inst = i0++;
+			for(Entity &entity : AllEntities()) {
+				ReemplazarOperadores(entity.label);
+				entity.EditLabel(0);
 			}
 			g_code.procesos.push_back(g_code.start);
 		}
+		/// @todo: se pierden los comentarios que haya despues del ultimo proceso
 	}
 	SetProc(g_code.procesos[imain]);
 	g_state.loading = g_state.modified = false;
@@ -344,9 +329,11 @@ bool Load(const char *filename) {
 	return true;
 }
 
-bool Save(const char *filename) {
-	if (filename) g_state.fname=filename;
-	ofstream fout(g_state.fname);
+bool Save(std::string filename) {
+	if (filename.empty()) filename = g_state.fname;
+	else g_state.fname = filename;
+	
+	ofstream fout(filename);
 	if (!fout.is_open()) return false;
 	g_code.code2draw.clear(); g_state.debug_current = nullptr;
 	int line=1;

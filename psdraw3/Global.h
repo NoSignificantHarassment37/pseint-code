@@ -48,7 +48,7 @@ struct GColors {
 struct GState {
 	bool big_icons = false;
 	
-	string fname; // archivo que recibe como argumento
+	std::string fname; // archivo que recibe como argumento
 	bool edit_on = true; // indica si se puede editar el diagrama
 	bool debugging = false; // indica si el programa se esta ejecutando paso a paso (en ese caso no se puede modificar edit_on)
 	bool loading = false; // indica si se esta cargando un nuevo algoritmo desde un archivo para desactivar el evento de modificacion

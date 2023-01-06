@@ -62,7 +62,7 @@ bool mxApplication::OnInit() {
 	ProcessSelector::Initialize();
 	
 	if (port!=-1 && id!=-1) {
-		if (!::Connect(port,id)) g_state.edit_on=false;
+		if (!::Connect(port,id)) g_state.edit_on = false;
 	}
 	if (fname.length()) Load(fname.c_str());
 	else Load();

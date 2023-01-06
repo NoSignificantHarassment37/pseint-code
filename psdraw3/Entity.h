@@ -109,5 +109,10 @@ static const int vf_size=5;
 static const int shadow_delta_x=4; // diferencia entre la posicion de un objeto y su sombra
 static const int shadow_delta_y=5; // diferencia entre la posicion de un objeto y su sombra
 
+struct AllEntities {
+	auto begin() const { return Entity::AllBegin(); }
+	auto end() const { return Entity::AllEnd(); }
+};
+
 #endif
 

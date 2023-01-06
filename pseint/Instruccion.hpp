@@ -117,6 +117,7 @@ struct Instruccion {
 	
 	struct IComentario {
 		std::string text;
+		// bool is_inline; // no es necesario, se puede preguntar si inst.loc.instruccion!=1
 	};
 	
 	std::variant<INull,IComentario,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,IDimension,IDefinir,IEsperar,IInvocar,

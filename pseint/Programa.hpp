@@ -14,9 +14,11 @@ public:
 	const Instruccion &operator[](int i) const { 
 		return v[i];
 	}
-	void Insert(int pos,const std::string &inst, CodeLocation loc) { 
-//		cant_lines++;
-		v.insert(v.begin()+pos,Instruccion(inst,loc));
+	void Insert(int pos, const Instruccion &inst) {
+		v.insert(v.begin()+pos, inst);
+	}
+	void Insert(int pos,const std::string &inst, CodeLocation loc) {
+		Insert(pos,Instruccion(inst,loc));
 	}
 	void Insert(int pos,const std::string &inst) {
 		Insert(pos,inst,{pos?v[pos-1].loc.linea:-1,pos?v[pos-1].loc.instruccion+1:-1});

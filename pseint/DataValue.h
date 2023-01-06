@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include "Variant.h"
-#include <cassert>
 
 #define FALSO "FALSO"
 #define VERDADERO "VERDADERO"
@@ -165,21 +164,21 @@ struct DataValue {
 	}
 	
 	double GetAsReal() const {
-		Assert(!value.IsDefined()||!value.Is<bool>());
+		_expects(!value.IsDefined()||!value.Is<bool>());
 		if (value.Is<double>()) return value.As<double>();
 		if (value.Is<int>()) return double(value.As<int>());
 		if (value.Is<std::string>()) return StrToDbl(value.As<std::string>());
 		return 0.0;
 	}
 	int GetAsInt() const {
-		Assert(!value.IsDefined()||!value.Is<bool>());
+		_expects(!value.IsDefined()||!value.Is<bool>());
 		if (value.Is<double>()) return int(value.As<double>());
 		if (value.Is<int>()) return value.As<int>();
 		if (value.Is<std::string>()) return StrToInt(value.As<std::string>());
 		return 0;
 	}
 	std::string GetAsString() const {
-		Assert(!value.IsDefined()||value.Is<std::string>());
+		_expects(!value.IsDefined()||value.Is<std::string>());
 		if (value.Is<std::string>()) return value.As<std::string>();
 		return "";
 	}
@@ -189,8 +188,8 @@ struct DataValue {
 		return GetAsString();
 	}
 	
-	void SetFromString(const std::string &s) { Assert(type.cb_car); value.ForceSet(s); }
-	void SetFromInt(int i) { Assert(type.cb_num); value.ForceSet(i); }
+	void SetFromString(const std::string &s) { _expects(type.cb_car); value.ForceSet(s); }
+	void SetFromInt(int i) { _expects(type.cb_num); value.ForceSet(i); }
 	void SetValue(const DataValue &other) { value = other.value; } /// @todo: ver quien usa esto para ver si se copia tambien el tipo
 	
 	void Reset() { type.reset(); value.Clear(); }

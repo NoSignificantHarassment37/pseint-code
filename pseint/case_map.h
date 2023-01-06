@@ -19,5 +19,10 @@ void CaseMapPurge();
 void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis);
 void InitCaseMap();
 
+#ifndef _FOR_PSEXPORT
+class Programa;
+void CaseMapApply(const RunTime &rt, Programa &programa, bool for_export);
+#endif
+
 #endif
 

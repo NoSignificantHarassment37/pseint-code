@@ -1435,7 +1435,7 @@ void Instrucciones(RunTime &rt) {
 					if (args!="();" && !ignore_logic_errors) err_handler.SyntaxError(265,string("El subproceso (")+fname+") no debe recibir argumentos.");
 				} else if (args[0]!='(' && !ignore_logic_errors) err_handler.SyntaxError(266,"Los argumentos para invocar a un subproceso deben ir entre paréntesis.");
 				else { // entonces tiene argumentos, y requiere argumentos, ver que la cantidad esté bien
-					int args_last_pos=BuscarComa(args,1,args.length()-1,')');
+					int args_last_pos = BuscarComa(args,1,args.length()-1,')');
 					if (args_last_pos!=-1) { // si faltaban cerrar parentesis, el error salto antes
 						int pos_coma=0, last_pos_coma=0, cant_args=0;
 						do {

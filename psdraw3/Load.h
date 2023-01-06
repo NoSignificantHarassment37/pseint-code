@@ -4,8 +4,8 @@
 #include <string>
 using namespace std;
 class Entity;
-bool Save(const char *filename=nullptr);
-bool Load(const char *filename=nullptr);
+bool Save(std::string filename = "");
+bool Load(std::string filename = "");
 void SetProc(Entity *proc);
 void CreateEmptyProc(string type);
 void New();

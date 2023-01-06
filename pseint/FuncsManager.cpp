@@ -8,6 +8,7 @@ using namespace std;
 
 void FuncsManager::UnloadSubprocesos() {
 	m_subs.clear();
+	m_main_name.clear();
 }
 
 void FuncsManager::UnloadPredefs() {

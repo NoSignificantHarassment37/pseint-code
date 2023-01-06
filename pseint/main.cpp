@@ -84,7 +84,6 @@ int main(int argc, char* argv[]) {
 		error=false, 
 		for_draw=false, // generar entrada para psdraw
 		for_export=false, // generar entrada para psexport
-		write_positions=false,
 		real_time_syntax=false; // indica que espera eternamente codigo desde std, para usar de fondo para el checkeo de sintaxis en tiempo real en la gui
 	int 
 		forced_seed=-1; // semilla a utilizar para inicializar la generación de números aleatorios (si es -1 se usa el reloj)
@@ -134,8 +133,6 @@ int main(int argc, char* argv[]) {
 				real_time_syntax=true;
 			} else if (str=="--forpseintterminal") {
 				for_pseint_terminal=true;
-			} else if (str=="--writepositions") {
-				write_positions=true;
 			} else if (str=="--withioreferences") {
 				with_io_references=true;
 			} else if (str=="--foreval") {

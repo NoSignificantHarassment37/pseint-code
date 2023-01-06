@@ -1,15 +1,8 @@
 #ifndef VARIANT_H
 #define VARIANT_H
 
-#include <cassert>
 #include <iostream>
-
-#if defined(NDEBUG) || defined(__APPLE__)
-#	define Assert(x) 
-#else
-    /// para usar como el assert de c, pero "int3" da paso al depurador
-#	define Assert(x) if(!(x)) { asm("int3"); asm("nop"); } else asm("nop")
-#endif
+#include "debug.h"
 
 /**
 * Esta clase auxiliar me da el indice de un tipo del Variant4 (en qué posicion
@@ -72,10 +65,10 @@ public:
 	
 	/// setea el tipo de contenido actual al tipo T, inicializando el objeto con 
 	/// el ctor por defecto de T (no debe contener nada al invocar este método)
-	template<typename T> void Set() { Assert(m_type==0); m_type = TypeIndex<T>(); new (m_data) T(); }
+	template<typename T> void Set() { _expects(m_type==0); m_type = TypeIndex<T>(); new (m_data) T(); }
 	/// setea el tipo de contenido actual al tipo T, inicializando el objeto con 
 	/// el ctor de copia de T (no debe contener nada al invocar este método)
-	template<typename T> void Set(const T &value) { Assert(m_type==0); m_type = TypeIndex<T>(); new (m_data) T(value); }
+	template<typename T> void Set(const T &value) { _expects(m_type==0); m_type = TypeIndex<T>(); new (m_data) T(value); }
 	/// asigna un valor de tipo T, ajustando el tipo de contenido si no coincide con T
 	template<typename T> void ForceSet(const T &value) { 
 		if (Variant4<T1,T2,T3,T4>::template Is<T>()) Variant4<T1,T2,T3,T4>::template As<T>()=value;
@@ -83,9 +76,9 @@ public:
 	}
 	
 	/// retorna el contenido, suponiendo que sea de tipo T (debe serlo, sino será comportamiento indefinido)
-	template<typename T> T &As() { Assert(m_type==TypeIndex<T>()); T *p = reinterpret_cast<T*>(m_data); return *p; }
+	template<typename T> T &As() { _expects(m_type==TypeIndex<T>()); T *p = reinterpret_cast<T*>(m_data); return *p; }
 	/// retorna el contenido, suponiendo que sea de tipo T (debe serlo, sino será comportamiento indefinido)
-	template<typename T> const T &As() const{ Assert(m_type==TypeIndex<T>()); const T* p =reinterpret_cast<const T*>(m_data); return *p; }
+	template<typename T> const T &As() const{ _expects(m_type==TypeIndex<T>()); const T* p =reinterpret_cast<const T*>(m_data); return *p; }
 	
 	/// destruye el contenido, y vuelve al estado inicial, donde no contiene nada
 	void Clear() { 
@@ -104,7 +97,7 @@ public:
 		else if (other.Is<T2>()) { ForceSet<T2>(other.As<T2>()); }
 		else if (other.Is<T3>()) { ForceSet<T3>(other.As<T3>()); }
 		else if (other.Is<T4>()) { ForceSet<T4>(other.As<T4>()); }
-		else { Assert(!other.IsDefined()); Clear(); }
+		else { _expects(!other.IsDefined()); Clear(); }
 		return *this;
 	}
 	

@@ -84,7 +84,7 @@ bool mxApplication::OnInit() {
 	g_config.nassi_shneiderman = g_lang[LS_USE_NASSI_SHNEIDERMAN];
 	g_config.alternative_io = g_lang[LS_USE_ALTERNATIVE_IO_SHAPES];
 	GlobalInitPre(); GlobalInitPost();
-	if (!Load(fin)) {
+	if (!Load(fin.ToStdString())) {
 		wxMessageBox(_Z("Error al leer pseudocódigo")); return false;
 	}
 	g_state.edit_on=false;
