@@ -32,9 +32,8 @@ bool PalabraReservada(const string &str) {
 }
 
 int BuscarComa(const string &expresion, int p1, int p2, char coma) {
-	if (p2==-1) p2 = expresion.size();
 	int parentesis = 0;
-	while (p1<p2) {
+	while (p1<=p2) {
 		char c = expresion[p1];
 		if (c=='\'' || c=='\"') {
 			do {
@@ -732,7 +731,7 @@ bool CheckDims(RunTime &rt, string &str) {
 	nombre+="(";
 	str[str.size()-1]=',';
 	for (int i=0;i<ca;i++) {
-		int np=BuscarComa(str,++pp,p2)-1;
+		int np = BuscarComa(str,++pp,p2)-1;
 		DataValue ret = Evaluar(rt,str,pp,np,vt_numerica);
 		if (!ret.IsOk()) return false;
 		int idx = ret.GetAsInt();

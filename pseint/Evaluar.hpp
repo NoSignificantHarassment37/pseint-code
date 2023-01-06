@@ -7,7 +7,7 @@ class Funcion;
 class RunTime;
 
 bool CheckDims(RunTime &rt, string &str); // recibe una cadena del tipo "lala(1,x)" y verifica que lala sea un arreglo y los indices sean correctos (la modifica y la vuelve a dejar como estaba, por eso no es const, pero a fines practicos si)
-int BuscarComa(const string &expresion, int p1, int p2=-1, char coma=',');
+int BuscarComa(const string &expresion, int p1, int p2, char coma=','); // busca en [p1,p2], retorna -1 si no esta
 int BuscarOperador(const string &expresion, int &p1, int &p2);
 tipo_var DeterminarTipo(RunTime &rt, const string &expresion, int p1, int p2);
 bool AplicarTipo(RunTime &rt, const string &expresion, int &p1, int &p2, tipo_var tipo);
