@@ -74,7 +74,7 @@ void CSharpExporter::paracada(t_output &out, t_proceso_it it_para, t_proceso_it 
 	string vname=arreglo;
 	for(int i=0;i<n;i++) { 
 		string idx=auxvars[i];
-		insertar(out,tabs+"for (int "+idx+"=0; "+idx+"<"+IntToStr(memoria->LeerDims(vname)[i+1])+"; "+idx+"++) {");
+		insertar(out,tabs+"for (int "+idx+"=0; "+idx+"<"+IntToStr(memoria->LeerDims(vname)[i+1])+"; ++"+idx+") {");
 		vname+="["+idx+"]";
 		tabs+="\t";
 	}

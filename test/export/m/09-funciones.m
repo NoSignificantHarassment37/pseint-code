@@ -18,8 +18,8 @@ function sin_titulo()
 	disp(lower(s));
 	disp(upper(s));
 	disp(s(2:3));
-	disp([s,' Mundo']);
-	disp(['Mundo ',s]);
+	disp([s, ' Mundo']);
+	disp(['Mundo ', s]);
 	disp(str2num('15.5'));
 	disp(num2str(15.5));
 end

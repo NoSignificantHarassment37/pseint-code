@@ -18,7 +18,7 @@ ${OBJS_DIR}/Entity.o: ../psdraw3/Entity.cpp ../psdraw3/GLstuff.h GLtoWX.h ../psd
 ${OBJS_DIR}/Global.o: ../psdraw3/Global.cpp ../psdraw3/Global.h ../psdraw3/Entity.h ../psdraw3/EntityLinking.h ../psdraw3/Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h
 	${GPP} ${CXXFLAGS} -c ../psdraw3/Global.cpp -o $@
 
-${OBJS_DIR}/Load.o: ../psdraw3/Load.cpp ../psdraw3/Load.h ../psdraw3/Global.h ../psdraw3/Entity.h ../psdraw3/EntityLinking.h ../psdraw3/Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h ../psdraw3/Events.h ../psdraw3/ProcessSelector.h ../wxPSeInt/CommonParsingFunctions.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Variant.h ../pseint/Code.h ../pseint/ProgramaDump.hpp
+${OBJS_DIR}/Load.o: ../psdraw3/Load.cpp ../psdraw3/Load.h ../psdraw3/Global.h ../psdraw3/Entity.h ../psdraw3/EntityLinking.h ../psdraw3/Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h ../psdraw3/Events.h ../psdraw3/ProcessSelector.h ../wxPSeInt/CommonParsingFunctions.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Code.h ../pseint/ProgramaDump.hpp
 	${GPP} ${CXXFLAGS} -c ../psdraw3/Load.cpp -o $@
 
 ${OBJS_DIR}/LangSettings.o: ../pseint/LangSettings.cpp ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h ../wxPSeInt/Logger.h ../wxPSeInt/version.h ../pseint/version_common.h
@@ -36,9 +36,9 @@ ${OBJS_DIR}/osdep.o: ../wxPSeInt/osdep.cpp ../wxPSeInt/osdep.h
 ${OBJS_DIR}/string_conversions.o: ../wxPSeInt/string_conversions.cpp
 	${GPP} ${CXXFLAGS} -c ../wxPSeInt/string_conversions.cpp -o $@
 
-${OBJS_DIR}/DataValue.o: ../pseint/DataValue.cpp ../pseint/DataValue.h ../pseint/Variant.h ../pseint/debug.h ../pseint/utils.h ../pseint/new_memoria.h ../pseint/new_memoria_inter.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/Code.h ../pseint/global.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h
+${OBJS_DIR}/DataValue.o: ../pseint/DataValue.cpp ../pseint/DataValue.h ../pseint/debug.h ../pseint/utils.h ../pseint/new_memoria.h ../pseint/new_memoria_inter.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/Code.h ../pseint/global.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h
 	${GPP} ${CXXFLAGS} -c ../pseint/DataValue.cpp -o $@
 
-${OBJS_DIR}/ProgramaDump.o: ../pseint/ProgramaDump.cpp ../pseint/ProgramaDump.hpp ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Variant.h ../pseint/Code.h ../pseint/case_map.h
+${OBJS_DIR}/ProgramaDump.o: ../pseint/ProgramaDump.cpp ../pseint/ProgramaDump.hpp ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Code.h ../pseint/case_map.h
 	${GPP} ${CXXFLAGS} -c ../pseint/ProgramaDump.cpp -o $@
 

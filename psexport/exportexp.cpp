@@ -332,7 +332,7 @@ string expresion(RunTime &rt, string exp) {
 	tipo_var t;
 	return expresion(rt, exp,t);
 }
-std::vector<std::string> splitArgsList(const std::string &args, bool allow_trailing_comma) {
+std::vector<std::string> splitArgsList(const std::string &args) {
 	std::vector<std::string> out;
 	int parentesis=0; bool comillas=false; int i0=0;
 	for(int i=0,l=args.size();i<l;i++) {
@@ -347,7 +347,6 @@ std::vector<std::string> splitArgsList(const std::string &args, bool allow_trail
 			
 		}
 	}
-	if (i0!=args.size() or (not allow_trailing_comma))
-		insertar(out,args.substr(i0));
+	insertar(out,args.substr(i0));
 	return out;
 }

@@ -1,6 +1,6 @@
 OBJS=${OBJS_DIR}/Load.o ${OBJS_DIR}/Canvas.o ${OBJS_DIR}/MainWindow.o ${OBJS_DIR}/Comm.o ${OBJS_DIR}/DClasico.o ${OBJS_DIR}/DNassiSchne.o ${OBJS_DIR}/Draw.o ${OBJS_DIR}/Entity.o ${OBJS_DIR}/Events.o ${OBJS_DIR}/Global.o ${OBJS_DIR}/Application.o ${OBJS_DIR}/Textures.o ${OBJS_DIR}/zockets.o ${OBJS_DIR}/Text.o ${OBJS_DIR}/LangSettings.o ${OBJS_DIR}/osdep.o ${OBJS_DIR}/EntityLinking.o ${OBJS_DIR}/ShapesBar.o ${OBJS_DIR}/ToolBar.o ${OBJS_DIR}/Trash.o ${OBJS_DIR}/ProcessSelector.o ${OBJS_DIR}/ProgramaDump.o ${OBJS_DIR}/DataValue.o 
 
-${OBJS_DIR}/Load.o: Load.cpp Load.h Global.h Entity.h EntityLinking.h Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h Events.h ProcessSelector.h ../wxPSeInt/CommonParsingFunctions.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Variant.h ../pseint/Code.h ../pseint/ProgramaDump.hpp
+${OBJS_DIR}/Load.o: Load.cpp Load.h Global.h Entity.h EntityLinking.h Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h Events.h ProcessSelector.h ../wxPSeInt/CommonParsingFunctions.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Code.h ../pseint/ProgramaDump.hpp
 	${GPP} ${CXXFLAGS} -c Load.cpp -o $@
 
 ${OBJS_DIR}/Canvas.o: Canvas.cpp GLstuff.h gl_lite.h Events.h Draw.h Global.h Entity.h EntityLinking.h Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h Textures.h Canvas.h
@@ -63,9 +63,9 @@ ${OBJS_DIR}/Trash.o: Trash.cpp ../wxPSeInt/string_conversions.h Trash.h Textures
 ${OBJS_DIR}/ProcessSelector.o: ProcessSelector.cpp ProcessSelector.h Trash.h Textures.h GLstuff.h gl_lite.h Global.h Entity.h EntityLinking.h Vector.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h Text.h Load.h Events.h Draw.h
 	${GPP} ${CXXFLAGS} -c ProcessSelector.cpp -o $@
 
-${OBJS_DIR}/ProgramaDump.o: ../pseint/ProgramaDump.cpp ../pseint/ProgramaDump.hpp ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Variant.h ../pseint/Code.h ../pseint/case_map.h
+${OBJS_DIR}/ProgramaDump.o: ../pseint/ProgramaDump.cpp ../pseint/ProgramaDump.hpp ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/debug.h ../pseint/DataValue.h ../pseint/Code.h ../pseint/case_map.h
 	${GPP} ${CXXFLAGS} -c ../pseint/ProgramaDump.cpp -o $@
 
-${OBJS_DIR}/DataValue.o: ../pseint/DataValue.cpp ../pseint/DataValue.h ../pseint/Variant.h ../pseint/debug.h ../pseint/utils.h ../pseint/new_memoria.h ../pseint/new_memoria_inter.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/Code.h ../pseint/global.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h
+${OBJS_DIR}/DataValue.o: ../pseint/DataValue.cpp ../pseint/DataValue.h ../pseint/debug.h ../pseint/utils.h ../pseint/new_memoria.h ../pseint/new_memoria_inter.h ../pseint/Programa.hpp ../pseint/Instruccion.hpp ../pseint/Code.h ../pseint/global.h ../pseint/LangSettings.h ../wxPSeInt/string_conversions.h
 	${GPP} ${CXXFLAGS} -c ../pseint/DataValue.cpp -o $@
 

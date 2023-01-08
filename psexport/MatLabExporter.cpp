@@ -95,7 +95,7 @@ void MatLabExporter::mientras(t_output &prog, t_proceso_it it_mientras, t_proces
 }
 
 void MatLabExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::string tabs){
-	insertar(prog, tabs+"switch "+getImpl<IT_SEGUN>(*(its[0])).expresion);
+	insertar(prog, tabs+"switch "+expresion(getImpl<IT_SEGUN>(*(its[0])).expresion));
 	for (size_t i=1; i+1<its.size(); ++i) {
 		if (its[i]->type==IT_DEOTROMODO)
 			insertar(prog, tabs+"otherwise");

@@ -27,6 +27,6 @@ string expresion(RunTime &rt, string exp);
 
 string invert_expresion(std::string expr);
 
-std::vector<std::string> splitArgsList(const std::string &args, bool allow_trailing_comma=false);
+std::vector<std::string> splitArgsList(const std::string &args);
 
 #endif

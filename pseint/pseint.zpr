@@ -14,6 +14,7 @@ tab_width=4
 tab_use_spaces=0
 explorer_path=.
 inherits_from=
+current_source=SynCheck.cpp
 path_char=/
 [source]
 path=main.cpp
@@ -24,9 +25,10 @@ path=intercambio.cpp
 cursor=15:0
 [source]
 path=SynCheck.cpp
-cursor=1437:25
+cursor=991:35
 breakpoint=1158
 marker=807
+open=true
 [source]
 path=Ejecutar.cpp
 cursor=43:18
@@ -131,10 +133,10 @@ path=LangSettings.h
 cursor=12:12
 [header]
 path=DataValue.h
-cursor=132:15
+cursor=29:15
 [header]
-path=Variant.h
-cursor=78:40
+path=ProgramaDump.hpp
+cursor=0:0
 [header]
 path=debug.h
 cursor=13:35
@@ -150,9 +152,6 @@ cursor=10:20
 [header]
 path=RunTime.hpp
 cursor=13:13
-[header]
-path=ProgramaDump.hpp
-cursor=0:0
 [other]
 path=../bin/help/cambios.html
 cursor=13:111
@@ -164,7 +163,7 @@ name=Linux_Debug
 toolchain=
 working_folder=../test
 always_ask_args=0
-args=export/psc/07-subprocesos.psc --preservecomments --draw /mnt/rm/foo.psd
+args=export/psc/04-arreglos.psc --preservecomments --draw /mnt/rm/foo.psd
 exec_method=0
 exec_script=
 env_vars=LANG=es_ES.iso8859-1

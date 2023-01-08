@@ -18,7 +18,7 @@ current_source=Load.cpp
 path_char=/
 [source]
 path=Load.cpp
-cursor=233:10
+cursor=271:45
 open=true
 [source]
 path=Canvas.cpp
@@ -45,8 +45,7 @@ marker=173
 marker=174
 [source]
 path=Entity.cpp
-cursor=14:12
-breakpoint=625
+cursor=630:10
 marker=328
 [source]
 path=Events.cpp
@@ -94,7 +93,7 @@ path=Trash.cpp
 cursor=22:32
 [source]
 path=ProcessSelector.cpp
-cursor=63:53
+cursor=63:3
 [source]
 path=../pseint/ProgramaDump.cpp
 cursor=170:2
@@ -136,7 +135,7 @@ path=Textures.h
 cursor=25:29
 [header]
 path=Version.h
-cursor=2:0
+cursor=0:24
 [header]
 path=gl_lite.h
 cursor=8:0
@@ -180,7 +179,6 @@ cursor=4:0
 [header]
 path=../pseint/Instruccion.hpp
 cursor=175:0
-open=true
 [header]
 path=../pseint/Programa.hpp
 cursor=20:13
@@ -268,7 +266,7 @@ name=Linux_Debug
 toolchain=
 working_folder=../bin
 always_ask_args=0
-args=--darktheme /mnt/rm/pseint/temp_6.psd
+args=../test/export/temp/10-otros.psd
 exec_method=0
 exec_script=fasds
 env_vars=
@@ -331,8 +329,6 @@ dont_generate_exe=0
 arguments=
 suppressions=/mnt/ex/motogt2/src/valgrind.spr
 [inspections]
-expr=children_stack.top()
-expr=str
-expr=aux->type
+expr=aux_end->lpre
 [custom_tools]
 [end]

@@ -30,7 +30,7 @@ void PythonExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &ta
 	for(size_t i=0;i<nombres.size();++i) {
 		// obtener nombre y dimensiones
 		string name = nombres[i], dims = tamanios[i];
-		t_arglist dimlist = splitArgsList(dims,true);
+		t_arglist dimlist = splitArgsList(dims);
 		// obtener un elemento del tipo adecuado (para replicar por todo el arreglo)	
 		string stipo = "str()";
 		tipo_var tipo = memoria->LeerTipo(name);

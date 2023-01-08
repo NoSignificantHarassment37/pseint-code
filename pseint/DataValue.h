@@ -16,7 +16,7 @@ inline double StrToDbl(const std::string &s) {
 
 inline std::string DblToStr(double d) {
 	char buf[512]; // DBL_MAX ocupa 310 caracteres
-	sprintf(buf,"%.50f",d); // version de baja presición, se debería usar solo para mostrar
+	sprintf(buf,"%.50f",d);
 	// eliminar los ceros que sobren y el punto si era entero
 	int i=0; while (buf[i]!=0) i++;
 	while (buf[--i]=='0'); // contar ceros de atras para adelante
@@ -27,6 +27,7 @@ inline std::string DblToStr(double d) {
 }
 
 inline std::string DblToStr(double d, bool low) {
+	_expects(low);
 	char buf[512]; // DBL_MAX ocupa 310 caracteres
 	sprintf(buf,"%.10f",d); // version de baja presición, se debería usar solo para mostrar
 	// eliminar los ceros que sobren y el punto si era entero

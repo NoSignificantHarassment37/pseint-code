@@ -187,7 +187,7 @@ void JSExporter::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamani
 	for(size_t i=0;i<nombres.size();++i) {
 		// obtener nombre y dimensiones
 		std::string name = nombres[i], dims = tamanios[i];
-		t_arglist dimlist = splitArgsList(dims,true);
+		t_arglist dimlist = splitArgsList(dims);
 		dims="";
 		t_arglist_it it2=dimlist.begin();
 		

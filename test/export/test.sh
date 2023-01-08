@@ -12,7 +12,7 @@ else
   if ! test -e $LANGCODE; then
     mkdir $LANGCODE
   fi
-  cd psc
+  cd psc >/dev/null
   
   ibin=../../../bin/bin/pseint
   mkdir -p ../temp

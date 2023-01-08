@@ -183,7 +183,7 @@ cursor=0:0
 path=HTMLExporter.hpp
 cursor=0:0
 [header]
-path=../pseint/Variant.h
+path=MatLabExporter.hpp
 cursor=0:0
 [header]
 path=../pseint/new_memoria.h
@@ -200,9 +200,6 @@ cursor=23:74
 [header]
 path=PascalExporter.hpp
 cursor=23:1
-[header]
-path=MatLabExporter.hpp
-cursor=0:0
 [other]
 path=../bin/help/cambios.html
 cursor=8:50

@@ -1,6 +1,6 @@
 function sin_titulo()
 	disp(funciondoble(5));
-	noretornanada(3,9);
+	noretornanada(3, 9);
 	c=0;
 	porreferencia(c);
 	disp(c);

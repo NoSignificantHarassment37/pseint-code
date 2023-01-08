@@ -1,6 +1,6 @@
 #!/bin/bash
 if  [ "$1" = "" ]; then
-  make -f Makefile ARCH=lnx -C ../pseint -j 2 || exit 1
+  make -f Makefile ARCH=lnx -C ../../pseint -j 2 || exit 1
   BIN=
 else
   BIN="-bin $1"

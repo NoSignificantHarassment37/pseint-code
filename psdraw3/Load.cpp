@@ -101,16 +101,6 @@ std::string join(const std::vector<std::string> &v) {
 	return s;
 }
 
-std::string join(const std::vector<std::string> &v1, const std::vector<std::string> &v2) {
-	_expects(v1.size()==v2.size());
-	std::string s;
-	for (size_t i=0; i<v1.size(); ++i) { 
-		if (i) s += ", ";
-		s += v1[i]+v2[i];
-	}
-	return s;
-}
-
 #define cur_pos std::to_string(inst.loc.linea)+":"+std::to_string(inst.loc.instruccion)
 #define _new_this(e) g_code.code2draw[cur_pos] = LineInfo(cur_proc,e)
 #define _new_prev()  g_code.code2draw[cur_pos] = LineInfo(nullptr,cur_proc)
@@ -262,7 +252,7 @@ void LoadProc(Programa &prog, int &i_inst) {
 			case IT_ESPERARTECLA: str="Esperar Tecla"; break;
 			case IT_ESPERAR: {
 				auto &impl = getImpl<IT_ESPERAR>(inst);
-				str = "Esperar " + impl.tiempo + (impl.factor==1?" Segundos":" Milisegundos"); 
+				str = "Esperar " + impl.tiempo + (impl.factor==1?" Milisegundos":" Segundos"); 
 			} break;
 			case IT_DEFINIR: {
 				str = string("Definir ") + join(getImpl<IT_DEFINIR>(inst).variables);
@@ -276,11 +266,15 @@ void LoadProc(Programa &prog, int &i_inst) {
 			} break;
 			case IT_DIMENSION: {
 				auto &impl = getImpl<IT_DIMENSION>(inst);
-				str = string("Dimension ") + join(impl.nombres, impl.tamanios);
+				str = string("Dimension ");
+				for (size_t i=0; i<impl.nombres.size(); ++i) { 
+					if (i) str += ", ";
+					str += impl.nombres[i]+"("+impl.tamanios[i]+")";
+				}
 			} break;
 			case IT_ASIGNAR: {
 				auto &impl = getImpl<IT_ASIGNAR>(inst);
-				str = impl.variable + "<-" +  impl.valor;
+				str = impl.variable + "<-" + impl.valor;
 			} break;
 			}
 			aux = Add(children_stack,aux,new Entity(ET_ASIGNAR,str));

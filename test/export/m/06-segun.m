@@ -3,7 +3,7 @@ function sin_titulo()
 	switch c
 	case 1
 		disp('1');
-	case {3,5,9}
+	case {3, 5, 9}
 		disp('3, 5 o 9');
 	case 7
 		disp('7');

@@ -991,12 +991,12 @@ void Instrucciones(RunTime &rt) {
 								str.erase(0,str.find("(",i0)+1);
 								if (str[str.size()-1]==')')
 									str.erase(str.size()-1,1);
-								str=str+",";
 								
 								inst_impl.nombres.push_back(aname);
 								inst_impl.tamanios.push_back(str);
 								
 								// contar dimensiones y reservar espacio para el arreglo dims
+								str=str+",";
 								int parentesis=0, len=str.size(), ndims=0; bool comillas=false;
 								for(int i=0;i<len;i++) { 
 									if (str[i]=='\'') comillas=!comillas;

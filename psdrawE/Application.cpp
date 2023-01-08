@@ -51,7 +51,7 @@ bool mxApplication::OnInit() {
 	OSDep::AppInit();
 	
 	if (argc==1) {
-		cerr<<"Use: "<<argv[0]<<" [--use_nassi_shneiderman=1] [--use_alternative_io_shapes=1] [--shape_colors] <input_file> <output_file>"<<endl;
+		cerr<<"Use: "<<argv[0]<<" [--use_nassi_shneiderman=1] [--use_alternative_io_shapes=1] [--shape_colors] [--nogui] <input_file> <output_file>"<<endl;
 	}
 
 	g_lang.Reset();
@@ -61,14 +61,14 @@ bool mxApplication::OnInit() {
 	wxImage::AddHandler(new wxBMPHandler);
 	
 	// cargar el diagrama
-	bool force=false;
+	bool nogui = false;
 	g_config.enable_partial_text=false;
 	g_config.show_comments=false;
 	wxString fin,fout;
 	for(int i=1;i<argc;i++) { 
 		wxString arg(argv[i]);
-		if (arg=="--force") {
-			force=true;
+		if (arg=="--nogui") {
+			nogui = true;
 		} else if (arg=="--shapecolors") {
 			g_config.shape_colors=true;
 		} else if (arg=="--nocroplabels") {
@@ -88,7 +88,8 @@ bool mxApplication::OnInit() {
 		wxMessageBox(_Z("Error al leer pseudocódigo")); return false;
 	}
 	g_state.edit_on=false;
-	if ((new mxConfig())->ShowModal()==wxID_CANCEL) return 0; // opciones del usuairo
+	if (nogui) mxConfig();
+	else if ((new mxConfig())->ShowModal()==wxID_CANCEL) return 0; // opciones del usuairo
 	
 	if (not g_config.shape_colors) {
 #warning REVISAR
@@ -146,7 +147,7 @@ bool mxApplication::OnInit() {
 	} while (aux);
 	
 	// guardar
-	if (!force) {
+	if (not nogui) {
 		wxFileName fn(fout);
 		wxFileDialog fd(NULL,_Z("Guardar imagen"),fn.GetPath(),fn.GetName()+".png",
 			_Z( _IF_PNG("Imagen PNG|*.png;*.PNG|") _IF_JPG("Imagen jpeg|*.jpg;*.jpeg;*.JPG;*.JPEG|") "Imagen BMP|*.bmp;*.BMP"),
@@ -160,7 +161,7 @@ bool mxApplication::OnInit() {
 	_IF_PNG(if (fout.Lower().EndsWith(".png")) type=wxBITMAP_TYPE_PNG;)
 	_IF_JPG(else if (fout.Lower().EndsWith(".jpg")||fout.Lower().EndsWith(".jpeg")) type=wxBITMAP_TYPE_JPEG;)
 	if (bmp.SaveFile(fout,type)) {
-		if (force) cerr << _Z("Guardado: ")<<fout<<endl;
+		if (nogui) cerr << _Z("Guardado: ")<<fout<<endl;
 		else wxMessageBox(_Z("Diagrama guardado"),_Z("PSeInt"));
 	}
 	

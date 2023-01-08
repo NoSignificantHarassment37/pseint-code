@@ -119,7 +119,7 @@ void ExporterBase::definir(t_output &prog, t_arglist &variables, tipo_var tipo, 
 void ExporterBase::dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) {
 	for(size_t iarg=0;iarg<nombres.size();++iarg) { 
 		string arr = tamanios[iarg];
-		arr[arr.size()-1]=',';
+		arr += ",";
 		unsigned int c = 0, pars = 0;
 		for (int i=0;i<arr.size();i++)
 			if (arr[i]=='(' && pars==0) { 
@@ -277,7 +277,7 @@ void ExporterBase::crop_name_and_dims(string decl, string &name, string &dims, s
 }
 
 void ExporterBase::fix_dims(string &dims, string par_open, string comma, string par_close) {
-	t_arglist dimlist = splitArgsList(dims,true);
+	t_arglist dimlist = splitArgsList(dims);
 	dims=par_open; int n=0;
 	t_arglist_it it2=dimlist.begin();
 	while (it2!=dimlist.end()) {
