@@ -32,7 +32,7 @@ path=../pseint/zcurlib.cpp
 cursor=60:0
 [source]
 path=../pseint/Evaluar.cpp
-cursor=67:1
+cursor=711:21
 [source]
 path=../pseint/DataValue.cpp
 cursor=0:0
@@ -44,10 +44,10 @@ path=../pseint/FuncsPredefs.cpp
 cursor=0:0
 [source]
 path=ExporterBase.cpp
-cursor=32:9
+cursor=234:15
 [source]
 path=exportexp.cpp
-cursor=194:0
+cursor=256:48
 [source]
 path=../pseint/zcurlib_lnx.cpp
 cursor=0:0
@@ -56,7 +56,7 @@ path=../pseint/zcurlib_win.cpp
 cursor=0:0
 [source]
 path=TiposExporter.cpp
-cursor=42:1
+cursor=114:15
 [source]
 path=../pseint/new_memoria.cpp
 cursor=0:0
@@ -65,14 +65,14 @@ path=psexport.cpp
 cursor=0:0
 [source]
 path=CppExporter.cpp
-cursor=39:22
+cursor=4:16
 breakpoint=39
 [source]
 path=../pseint/ErrorHandler.cpp
 cursor=0:0
 [source]
 path=CSharpExporter.cpp
-cursor=22:20
+cursor=0:15
 [source]
 path=QBasicExporter.cpp
 cursor=40:78
@@ -84,10 +84,10 @@ path=JavaExporter.cpp
 cursor=31:20
 [source]
 path=JSExporter.cpp
-cursor=31:11
+cursor=189:40
 [source]
 path=PythonExporter.cpp
-cursor=0:0
+cursor=31:43
 [source]
 path=CExporter.cpp
 cursor=36:17
@@ -105,11 +105,17 @@ path=PascalExporter.cpp
 cursor=198:0
 [source]
 path=MatLabExporter.cpp
+cursor=97:81
+[source]
+path=../pseint/Keywords.cpp
+cursor=0:0
+[source]
+path=../pseint/strFuncs.cpp
 cursor=0:0
 [header]
 path=exportexp.h
-cursor=29:0
-marker=25
+cursor=12:35
+marker=26
 [header]
 path=version.h
 cursor=0:24
@@ -200,6 +206,12 @@ cursor=23:74
 [header]
 path=PascalExporter.hpp
 cursor=23:1
+[header]
+path=../pseint/Keywords.hpp
+cursor=7:0
+[header]
+path=../pseint/strFuncs.hpp
+cursor=0:0
 [other]
 path=../bin/help/cambios.html
 cursor=8:50
@@ -208,7 +220,7 @@ name=Linux_Debug
 toolchain=
 working_folder=../test/export/temp
 always_ask_args=0
-args=--for-testing --lang=pas 07-subprocesos.psd /mnt/rm/foo.cpp
+args=--for-testing --lang=cpp 04-arreglos.psd /mnt/rm/foo.cpp
 exec_method=0
 exec_script=
 env_vars=
@@ -365,7 +377,7 @@ inline_suppr=1
 additional_files=
 exclude_list=
 [inspections]
-expr=line
+expr=arr
 [custom_tools]
 name_0=Run tests
 command_0=sh ./test_debug.sh ${PROJECT_BIN} qb

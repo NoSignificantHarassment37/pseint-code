@@ -6,6 +6,7 @@
 #include<stack>
 #include "new_memoria.h"
 #include "RunTime.hpp"
+#include "strFuncs.hpp"
 
 class ExpIntrucciones;
 

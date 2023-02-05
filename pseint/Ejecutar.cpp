@@ -9,6 +9,7 @@
 #include "zcurlib.h"
 #include "FuncsManager.hpp"
 #include "Evaluar.hpp"
+#include "strFuncs.hpp"
 using namespace std;
 
 // ********************* Ejecutar un Bloque de Instrucciones **************************

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstdlib>
+#include "Keywords.hpp"
 #ifdef FOR_WXPSEINT
 #	include <wx/string.h>
 #	include "../wxPSeInt/string_conversions.h"
@@ -88,7 +89,8 @@ struct LangSettings {
 		descripcion.clear();
 		version=init_version;
 		for(int i=0;i<LS_COUNT;i++) 
-			settings[i]=data[i].default_value;
+			settings[i] = data[i].default_value;
+		initKeywords(keywords);
 	}
 	LangSettings(LS_INIT_ENUM init_mode) { 
 		if (init_mode==LS_DO_NOT_INIT) return; 
@@ -148,6 +150,8 @@ public:
 	
 	std::string GetKeywords() const;
 	std::string GetFunctions() const;
+	
+	KeywordsList keywords;
 };
 
 #endif

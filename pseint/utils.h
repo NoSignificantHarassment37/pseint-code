@@ -43,24 +43,9 @@ bool CheckVariable(RunTime &rt, string str, int errcode=-1) ;
 bool LeftCompare(string a, string b) ;
 
 // ----------------------------------------------------------------------
-//    Compara las terminaciones de dos cadenas (case sensitve)
-// ----------------------------------------------------------------------
-bool RightCompare(string a, string b) ;
-
-// ----------------------------------------------------------------------
 //    Compara parte de una cadena con otra (case insensitve)
 // ----------------------------------------------------------------------
 bool MidCompareNC(string a, string b, int from) ;
-
-// ----------------------------------------------------------------------
-//    Pasa una cadena a mayusculas
-// ----------------------------------------------------------------------
-string ToUpper(string a) ;
-
-// ----------------------------------------------------------------------
-//    Pasa una cadena a mayusculas
-// ----------------------------------------------------------------------
-string ToLower(string a) ;
 
 // ----------------------------------------------------------------------
 //    Averigua el tipo de variable para un dato
@@ -87,22 +72,6 @@ bool parteDePalabra(char c) ;
 // corrige diferencias entre la codificación que usa pseint (ascii pelado) y la de la consola de windows
 void fixwincharset(string &s, bool reverse=false);
 
-inline char ToUpper(const char c) {
-	if (c>96 && c<123) return c-32;
-	if (c=='á') return 'Á';
-	if (c=='é') return 'É';
-	if (c=='í') return 'Í';
-	if (c=='ó') return 'Ó';
-	if (c=='ú') return 'Ú';
-	if (c=='ü') return 'Ü';
-	if (c=='ñ') return 'Ñ';
-	return c;
-}
-
-// determina si un caracter (que debe venir en mayúsculas es letra (incluye acentos y ñs)
-inline bool EsLetra(const char &_c, bool incluir_numeros=false) {
-	return (_c>='A' && _c<='Z') || (lang[LS_ALLOW_ACCENTS] && (_c=='Á'||_c=='É'||_c=='Í'||_c=='Ó'||_c=='Ú'||_c=='Ñ'||_c=='Ü') ) || _c=='_'  || (incluir_numeros && _c>='0' && _c<='9');
-}
 
 // "extrae" una palabra, una constante, o un operador, desde la pos p, no modifica la cadena, sino que avanza el indice p
 std::string NextToken(const std::string &cadena, int &p);
@@ -113,7 +82,6 @@ FuncStrings SepararCabeceraDeSubProceso(string cadena);
 std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const std::string &cadena, bool es_proceso);
 std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings &parts, bool es_proceso);
 
-string FirstWord(const string &s);
 
 #endif
 

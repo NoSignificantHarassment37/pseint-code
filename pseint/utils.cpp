@@ -7,6 +7,7 @@
 #include "zcurlib.h"
 #include "FuncsManager.hpp"
 #include "RunTime.hpp"
+#include "strFuncs.hpp"
 
 void show_user_info(string msg) {
 	if (fix_win_charset) fixwincharset(msg);
@@ -106,10 +107,8 @@ bool CheckVariable(RunTime &rt, string str, int errcode) {
 		str.erase(pi,str.size()-pi); // si es arreglo corta los subindices
 	}
 	bool ret=true;
-	if (!EsLetra(str[0]))
-		ret=false;
-	for (int x=0;x<(int)str.size();x++) {
-		if (!EsLetra(str[x]) && (str[x]<'0' || str[x]>'9') && str[x]!='_')
+	for (size_t x=0;x<str.size();x++) {
+		if (!EsLetra(str[x],x!=0,lang[LS_ALLOW_ACCENTS]))
 			ret=false;
 	}
 	// Comprobar que no sea palabra reservada
@@ -154,17 +153,6 @@ bool LeftCompare(string a, string b) {
 //	return ret; 
 //}
 
-// ----------------------------------------------------------------------
-//    Compara las terminaciones de dos cadenas (case sensitve)
-// ----------------------------------------------------------------------
-bool RightCompare(string a, string b) { 
-	// compara los caracteres de la derecha de a con b
-	bool ret;
-	if (a.size()<b.size()) ret=false; else {
-		a.erase(0,a.size()-b.size());
-		if (a==b) ret=true; else ret=false; }
-	return ret; 
-}
 
 // ----------------------------------------------------------------------
 //    Compara las terminaciones de dos cadenas (case insensitve)
@@ -201,26 +189,6 @@ bool MidCompareNC(string a, string b, int from) {
 		a.erase(0,a.size()-b.size());
 		if (a==b) ret=true; else ret=false; }
 	return ret; 
-}
-
-// ----------------------------------------------------------------------
-//    Pasa una cadena a mayusculas
-// ----------------------------------------------------------------------
-string ToUpper(string a) { 
-	int l=a.size();
-	for (int x=0;x<l;x++)
-		a[x]=toupper(a[x]);
-	return a; 
-}
-
-// ----------------------------------------------------------------------
-//    Pasa una cadena a mayusculas
-// ----------------------------------------------------------------------
-string ToLower(string a) { 
-	int l=a.size();
-	for (int x=0;x<l;x++)
-		a[x]=tolower(a[x]);
-	return a; 
 }
 
 // ----------------------------------------------------------------------
@@ -453,9 +421,4 @@ FuncStrings SepararCabeceraDeSubProceso(string cadena) {
 	return ret;
 }
 
-string FirstWord(const string & s) {
-	size_t i=0, l=s.size();
-	while (i<l && EsLetra(s[i],i!=0)) i++;
-	return s.substr(0,i);
-}
 

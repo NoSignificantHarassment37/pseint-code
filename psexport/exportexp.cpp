@@ -9,6 +9,7 @@
 #include "ExporterBase.hpp"
 #include "exportexp.h"
 #include "CppExporter.hpp"
+#include "strFuncs.hpp"
 using namespace std;
 
 bool input_base_zero_arrays=false;

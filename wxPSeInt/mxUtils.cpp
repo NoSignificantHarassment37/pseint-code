@@ -154,8 +154,7 @@ wxString mxUtils::GetExportLangName(int id) {
 	case mxID_FILE_EXPORT_LANG_VB: 		return _Z("Código Visual Basic .NET (vb)");
 	case mxID_FILE_EXPORT_LANG_C: 		return _Z("Código C (c)");
 	case mxID_FILE_EXPORT_LANG_CSHARP: 	return _Z("Código C# (cs)");
-	case mxID_FILE_EXPORT_LANG_CPP03: 	return _Z("Código C++98/03 (cpp)");
-//	case mxID_FILE_EXPORT_LANG_CPP11: 	return _Z("Código C++11 (cpp)");
+	case mxID_FILE_EXPORT_LANG_CPP03: 	return _Z("Código C++ (cpp)");
 	case mxID_FILE_EXPORT_LANG_PHP: 	return _Z("Código PHP (php)");
 	case mxID_FILE_EXPORT_LANG_PY2: 	return _Z("Código Python 2 (py)");
 	case mxID_FILE_EXPORT_LANG_PY3: 	return _Z("Código Python 3 (py)");

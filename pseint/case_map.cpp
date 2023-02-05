@@ -3,6 +3,7 @@
 #include "FuncsManager.hpp"
 #include "RunTime.hpp"
 #include "Programa.hpp"
+#include "strFuncs.hpp"
 
 map<string,string> *case_map = nullptr;
 

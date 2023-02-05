@@ -12,6 +12,7 @@
 #include "Ejecutar.hpp"
 #include "ErrorHandler.hpp"
 #include "SynCheck.hpp"
+#include "strFuncs.hpp"
 using namespace std;
 
 bool PalabraReservada(const string &str) {

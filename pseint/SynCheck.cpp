@@ -11,9 +11,10 @@
 #include "case_map.h"
 #include "debug.h"
 #include "ErrorHandler.hpp"
+#include "strFuncs.hpp"
 using namespace std;
 
-// ULTIMO NRO DE ERROR UTILIZADO: 323
+// ULTIMO NRO DE ERROR UTILIZADO: 322
 
 static int PSeudoFind(const string &s, char x, int from=0, int to=-1) {
 	if (to==-1) to=s.size();
@@ -47,15 +48,9 @@ static bool IsNumericConstant(string &str) {
 	return true;
 }
 
-static string Trim(const string &str) {
-	size_t ini=0, len=str.size(), last=str.size();
-	while (ini<len && str[ini]==' ') ++ini;
-	while (last>0 && str[last-1]==' ') --last;
-	return str.substr(ini,last);
-}
 
 // pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y quita espacios extras
-std::pair<std::string,bool> Normalizar(string &cadena) {
+std::pair<std::string,bool> Normalizar(std::string &cadena) {
 	string rest; bool is_comment = true;
 	// corregir saltos de linea win/linux
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
@@ -108,7 +103,7 @@ std::pair<std::string,bool> Normalizar(string &cadena) {
 		}
 	}
 	// Borrar espacios en blanco al principio y al final
-	cadena = Trim(cadena);
+	Trim(cadena);
 	// agregar espacios para evitar que cosas como "SI(x<2)ENTONCES" generen un error
 //	comillas=false;
 //	for(int i=0;i<len;i++) {
@@ -173,7 +168,7 @@ vector<coloquial_aux> &GetColoquialConditions() {
 void Condiciones(RunTime &rt, string &cadena) {
 	ErrorHandler &err_handler = rt.err;
 	if (!cadena.size() || !lang[LS_COLOQUIAL_CONDITIONS]) return;
-	if (cadena[cadena.size()-1]!=' ') cadena+=" ";
+	if (not LastCharIs(cadena,' ')) cadena += ' ';
 	bool comillas=false;
 	for (int y=0;y<int(cadena.size());y++) {
 		if (cadena[y]=='\'' || cadena[y]=='\"') comillas=!comillas;
@@ -484,13 +479,12 @@ void Instrucciones(RunTime &rt) {
 	memoria=&global_memory;
 	std::vector<int> bucles; // Para controlar los bucles que se abren y cierran... guarda un stack de indices a instrucciones que abren bloques en el arreglo programa
 	bool in_process=false;
-	string cadena, str;
 	Funcion *current_func = NULL; // funcion actual, necesito el puntero para setear line_end cuando encuentre el FinProceso/FinSubProceso
 	
 	// Checkear sintaxis y reorganizar el codigo
 	for (int prog_idx=0; prog_idx<programa.GetInstCount(); ++prog_idx){
 		Inter.SetLocation(programa[prog_idx].loc);
-		cadena = programa[prog_idx].instruccion;
+		std::string cadena = programa[prog_idx].instruccion;
 		auto this_instruction_is_ok = 
 			[prev_count=err_handler.GetErrorsCount(),&err_handler](){
 				return prev_count==err_handler.GetErrorsCount();
@@ -502,25 +496,14 @@ void Instrucciones(RunTime &rt) {
 			#define inst programa[prog_idx] // no usar referencia porque al modificar el vector se invalida
 			
 			// puede haber que trimear las cadenas que surgieron de separar lineas con mas de una instrucción
-			int pt1=0,pt2=cadena.size(), l=cadena.size();
-			while (pt1<l && cadena[pt1]==' ') pt1++;
-			while (pt2>0 && cadena[pt2-1]==' ') pt2--;
-			if (pt1!=0||pt2!=l) cadena=cadena.substr(pt1,pt2-pt1);
+			Trim(cadena);
 			
 			if (inst.type==IT_COMMENT) continue;
 			_expects(inst.type==IT_NULL);
 			
-			int len = cadena.size();
-			if (lang[LS_LAZY_SYNTAX] && LeftCompare(cadena,"FIN ")) { cadena="FIN"+cadena.substr(4); len--; }
-			if (LeftCompare(cadena,"BORRAR ")) { cadena="BORRAR"+cadena.substr(7); len--; }
-			// poner un espacio al final para evitar casos especiales cuando no hay punto y coma y la instrucción es una sola palabra (ej: borrarpantalla; finalgo )
-			if (len>2 && cadena[len-1]==';' && cadena[len-2]!=' ') { cadena.insert(len-1," "); len++; }
-			else if (len>1 && cadena[len-1]!=';') { cadena+=" "; len++; } 
-			
 			// extraer la primer palabra clave para ver qué instrucción es
-			string full_cadena=cadena, first_word = FirstWord(cadena);
-			cadena.erase(0,first_word.size()); FixAcentos(first_word);
-			if (cadena.size()>1&&cadena[0]==' ') cadena.erase(0,1); 
+			auto first = BestMatch(lang.keywords,cadena, true);
+			auto first_word_id = first.first; auto &first_word_str = first.second;
 			
 			// en esta parte (chorrera de if {} else if {} else if...) se identifica la instrucción... 
 			//       primero se busca si empieza con alguna palabra clave
@@ -528,94 +511,80 @@ void Instrucciones(RunTime &rt) {
 			//       sino, se mira si puede asignacion buscando alguno de los operadores de asignacion
 			//       sino, se mira si puede ser la nueva definicion (x es entero), mirando si la anteultima palabra es ES o SON
 			// si se identifica la instrucción, se quita del string cadena y se guarda en el string instrucción
-			if (first_word=="ENTONCES") {
+			if (first_word_id==KW_ENTONCES) {
 				if (/*programa[bucles.back()]!=IT_SI || */programa[prog_idx-1]!=IT_SI)
-					err_handler.SyntaxError(1,"ENTONCES mal colocado.");
-				if (cadena.size()) programa.Insert(prog_idx+1,cadena);
+					err_handler.SyntaxError(1,first_word_str+" mal colocado.");
+				if (not cadena.empty()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_ENTONCES); cadena="";
-			} else if (first_word=="SINO") {
-				if (cadena.size()) programa.Insert(prog_idx+1,cadena);
+			} else if (first_word_id==KW_SINO) {
+				if (not cadena.empty()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_SINO); cadena="";
-			} else if (first_word=="ESCRIBIR" || (lang[LS_LAZY_SYNTAX] && (first_word=="IMPRIMIR" || first_word=="MOSTRAR" || first_word=="INFORMAR")) ) {
+			} else if (first_word_id==KW_ESCRIBIR) {
 				inst.setType(IT_ESCRIBIR);
 				if (ReplaceIfFound(cadena,"SIN SALTAR","",true)||ReplaceIfFound(cadena,"SIN BAJAR","",true)||ReplaceIfFound(cadena,"SINBAJAR","",true)||ReplaceIfFound(cadena,"SINSALTAR","",true))
 					get<Instruccion::IEscribir>(inst.impl).saltar = false;
-			} else if (first_word=="LEER") {
+			} else if (first_word_id==KW_LEER) {
 				inst.setType(IT_LEER);
-			} else if (first_word=="SI" && FirstWord(cadena)!="ES") {
+			} else if (first_word_id==KW_SI) {
 				inst.setType(IT_SI);
 				bucles.push_back(prog_idx);
 				// cortar el entonces si esta en la misma linea
-				if (RightCompareFix(cadena," ENTONCES ")) {
-					cadena.erase(cadena.size()-10,10);
+				if (RightCompare(cadena,lang.keywords[KW_ENTONCES],true)) {
 					programa.Insert(prog_idx+1,"ENTONCES");
 				} else {
 					bool comillas=false;
 					for (int y=0; y<(int)cadena.size()-10;y++) {
 						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
 						if ((!comillas) && MidCompareNC(" ENTONCES ",cadena,y)) {
-							str=cadena;
-							cadena.erase(y+1,cadena.size()-y);
+							std::string str = cadena;
+							cadena.erase(y+1);
 							// borrar los espacios en medio
-							while (cadena[cadena.size()-1]==' ' && cadena.size()!=0) cadena.erase(cadena.size()-1,1);
+							RightTrim(cadena); /// @todo: revisar si esto es necesario
 							str.erase(0,y+1);
 							programa.Insert(prog_idx+1,str);
 							break;
 						}
 					}
 				}
-			} else if (first_word=="MIENTRAS"&&(!lang[LS_ALLOW_REPEAT_WHILE]||FirstWord(cadena)!="QUE")) { 
+			} else if (first_word_id==KW_MIENTRAS) { 
 				inst.setType(IT_MIENTRAS);
 				bucles.push_back(prog_idx);
-			} else if (first_word=="SEGUN") {
+			} else if (first_word_id==KW_SEGUN) {
 				inst.setType(IT_SEGUN);
 				bucles.push_back(prog_idx);
-			} else if (first_word=="DE" && (LeftCompare(cadena,"OTRO MODO:") || LeftCompare(cadena,"OTRO MODO "))) {
-				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,"DE OTRO MODO mal colocado.");
-				cadena.erase(0,10); programa.Insert(prog_idx+1,cadena);
+			} else if (first_word_id==KW_DEOTROMODO) {
+				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,first_word_str+" mal colocado.");
+				programa.Insert(prog_idx+1,cadena.substr(1)); // cortar los ':'
 				inst.setType(IT_DEOTROMODO); cadena="";
-			} else if (first_word=="DIMENSION") {
+			} else if (first_word_id==KW_DIMENSIONAR) {
 				inst.setType(IT_DIMENSION);
-			} else if (first_word=="HASTA" && FirstWord(cadena)=="QUE") {
-				inst.setType(IT_HASTAQUE); cadena.erase(0,3);
-			} else if (lang[LS_ALLOW_REPEAT_WHILE]&& (first_word=="MIENTRAS" && FirstWord(cadena)=="QUE")) {
+			} else if (first_word_id==KW_HASTAQUE) {
+				inst.setType(IT_HASTAQUE);
+			} else if (first_word_id==KW_MIENTRASQUE) {
 				inst.setType(IT_HASTAQUE); 
 				getImpl<IT_HASTAQUE>(inst).mientras_que = true;
-				cadena.erase(0,3);
-			} else if (first_word=="FINSI") {
+			} else if (first_word_id==KW_FINSI) {
 				inst.setType(IT_FINSI);
-			} else if (first_word=="FINPARA") {
+			} else if (first_word_id==KW_FINPARA) {
 				inst.setType(IT_FINPARA);
-			} else if (first_word=="FINMIENTRAS") {
+			} else if (first_word_id==KW_FINMIENTRAS) {
 				inst.setType(IT_FINMIENTRAS);
-			} else if (first_word=="FINSEGUN") {
+			} else if (first_word_id==KW_FINSEGUN) {
 				inst.setType(IT_FINSEGUN);
-			} else if (first_word=="ESPERARTECLA") {
+			} else if (first_word_id==KW_ESPERARTECLA) {
 				inst.setType(IT_ESPERARTECLA);
-			} else if (first_word=="ESPERAR") {
-				if (LeftCompare(cadena,"UNA TECLA ")) {
-					inst.setType(IT_ESPERARTECLA); cadena.erase(0,9);
-				} else if (first_word=="ESPERAR" && LeftCompare(cadena,"TECLA ")) {
-					inst.setType(IT_ESPERARTECLA); cadena.erase(0,6);
-				} else
-					inst.setType(IT_ESPERAR);
-			} else if (first_word=="LIMPIARPANTALLA") {
+			} else if (first_word_id==KW_ESPERARTIEMPO) {
+				inst.setType(IT_ESPERAR);
+			} else if (first_word_id==KW_LIMPIARPANTALLA) {
 				inst.setType(IT_BORRARPANTALLA);
-			} else if (first_word=="BORRARPANTALLA") {
-				inst.setType(IT_BORRARPANTALLA);
-			} else if ((first_word=="BORRAR"||first_word=="LIMPIAR") && FirstWord(cadena)=="PANTALLA") {
-				inst.setType(IT_BORRARPANTALLA); cadena.erase(0,8);
-			} else if (first_word=="PROCESO"||first_word=="ALGORITMO") {
+			} else if (first_word_id==KW_ALGORITMO) {
 				inst.setType(IT_PROCESO); getImpl<IT_PROCESO>(inst).principal = true;
-			} else if (first_word=="SUBPROCESO"||first_word=="SUBALGORITMO"||first_word=="FUNCION") {
+			} else if (first_word_id==KW_SUBALGORITMO) {
 				inst.setType(IT_PROCESO); getImpl<IT_PROCESO>(inst).principal = false;
-			} else if (lang[LS_ALLOW_FOR_EACH] && first_word=="PARACADA") {
+			} else if (first_word_id==KW_PARACADA) {
 				inst.setType(IT_PARACADA);
 				bucles.push_back(prog_idx);
-			} else if (lang[LS_ALLOW_FOR_EACH] && first_word=="PARA" && FirstWord(cadena)=="CADA") {
-				inst.setType(IT_PARACADA); cadena.erase(0,4);
-				bucles.push_back(prog_idx);
-			} else if (first_word=="PARA") {
+			} else if (first_word_id==KW_PARA) {
 				inst.setType(IT_PARA);
 				bucles.push_back(prog_idx);
 				// si se puede asignar con igual, reemplazar aca
@@ -641,18 +610,18 @@ void Instrucciones(RunTime &rt) {
 						}
 					}
 				}
-			} else if (first_word=="FINPROCESO"||first_word=="FINALGORITMO") {
+			} else if (first_word_id==KW_FINALGORITMO) {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = true;
-				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,"FINPROCESO/FINALGORITMO no lleva punto y coma.");
-			} else if (first_word=="FINFUNCION"||first_word=="FINSUBPROCESO"||first_word=="FINSUBALGORITMO") {
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,first_word_str+" no lleva punto y coma.");
+			} else if (first_word_id==KW_FINSUBALGORITMO) {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = false;
-				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,"FINSUBPROCESO/FINFUNCION no lleva punto y coma.");
-			} else if (first_word=="REPETIR" || (lang[LS_LAZY_SYNTAX] && first_word=="HACER")) {
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,first_word_str+" no lleva punto y coma.");
+			} else if (first_word_id==KW_REPETIR) {
 				inst.setType(IT_REPETIR); bucles.push_back(prog_idx);
-			} else if (first_word=="DEFINIR") {
+			} else if (first_word_id==KW_DEFINIR) {
 				inst.setType(IT_DEFINIR);
 			} else {
-				cadena = full_cadena;
+				cadena = inst.instruccion;
 				int flag_segun=0;
 				if (!bucles.empty()) {
 					// comentado el 20121013 para que siempre diga que lo que esta antes del : es una instrucción y lo que esta despues otra.
@@ -722,7 +691,7 @@ void Instrucciones(RunTime &rt) {
 						} 
 					}
 					if ((not cadena.empty()) and lang[LS_LAZY_SYNTAX] and inst.type!=IT_ASIGNAR) { // definición de tipos alternativa (x es entero)
-						size_t pos = cadena.rfind(' ',cadena.size()-(cadena[cadena.size()-1]==';'?3:2));
+						size_t pos = cadena.rfind(' ',cadena.size()-(LastCharIs(cadena,';')?3:2));
 						if (pos!=string::npos) {
 							pos = cadena.rfind(' ',pos-1);
 							if (pos!=string::npos && cadena.substr(pos+1,4)=="SON ") {
@@ -757,15 +726,15 @@ void Instrucciones(RunTime &rt) {
 				}
 			}
 			
-			if (cadena.size()&&cadena[cadena.size()-1]==',') 
+			if (LastCharIs(cadena,','))
 				err_handler.SyntaxError(31,"Parametro nulo.");
 			while (cadena[0]==';' && cadena.size()>1) cadena.erase(0,1); // para que caso esta esto?
 			// Controlar que el si siempre tenga un entonces
 			if (prog_idx&&programa[prog_idx-1]==IT_SI)
 				if (inst.type!=IT_ENTONCES && inst.type!=IT_NULL && inst.type!=IT_ERROR) {
 					if (lang[LS_LAZY_SYNTAX]) {
-						programa.Insert(prog_idx,"ENTONCES",programa[prog_idx].loc);
-						programa[prog_idx].setType(IT_ENTONCES);
+						programa.Insert(prog_idx,"ENTONCES",inst.loc);
+						inst.setType(IT_ENTONCES);
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
 					} else 
@@ -784,16 +753,14 @@ void Instrucciones(RunTime &rt) {
 							 inst.type==IT_ASIGNAR || inst.type==IT_LEER || inst.type==IT_ESPERAR || 
 							 inst.type==IT_ESPERARTECLA || inst.type==IT_BORRARPANTALLA || inst.type==IT_INVOCAR;
 			if (lleva_pyc) {
-				if (cadena.empty() or cadena[cadena.size()-1]!=';') {
+				if (not LastCharIs(cadena,';')) {
 					if (lang[LS_FORCE_SEMICOLON])
 						err_handler.SyntaxError(38,"Falta punto y coma.");
-					cadena=cadena+';';
+					cadena += ';';
 				}
 			}
-			if (cadena.size()&&cadena[cadena.size()-1]==' ') cadena.erase(cadena.size()-1,1); // Borrar espacio en blanco al final
 			// Cortar instrucciones despues de sino o entonces
-			while (cadena.size()&&cadena[cadena.size()-1]==' ') // Borrar espacios en blanco al final
-				cadena.erase(cadena.size()-1,1);
+			RightTrim(cadena);
 			// arreglar problemas con valores negativos en para y mientras
 			ReplaceIfFound(cadena," HASTA-"," HASTA -");
 			ReplaceIfFound(cadena," PASO-"," PASO -");
@@ -843,7 +810,7 @@ void Instrucciones(RunTime &rt) {
 						}
 					}
 				} else {
-					err_handler.SyntaxError(308,sub?"FINSUBPROCESO mal colocado.":"FINPROCESO mal colocado.");
+					err_handler.SyntaxError(308,first_word_str+" mal colocado.");
 				}
 				memoria=&global_memory;
 			}
@@ -853,8 +820,8 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_DEFINIR>(inst);
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(44,"Faltan parámetros.");
 				else {
-					if (cadena[cadena.size()-1]!=';') {
-						cadena=cadena+";";
+					if (not LastCharIs(cadena,';')) {
+						cadena += ';';
 						if (!ignore_logic_errors) err_handler.SyntaxError(45,"Falta punto y coma.");
 					}
 					// extraer la ultima palabra (deberia ser el tipo) y normalizarla
@@ -889,7 +856,7 @@ void Instrucciones(RunTime &rt) {
 								if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
 									err_handler.SyntaxError(47,"Se esperaba fin de expresión (fin de la instrucción, o coma para separar).");
 							if (parentesis==0 && cadena[i]==',') { // comprobar validez
-								str=cadena;
+								std::string str=cadena;
 								str.erase(i,str.size()-i);
 								str.erase(0,i0);
 								if (str.find("(",0)==string::npos) {
@@ -913,10 +880,10 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_ESCRIBIR>(inst);
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(53,"Faltan parámetros.");
 				else {
-					if (cadena[cadena.size()-1]==';')
+					if (LastCharIs(cadena,';'))
 						cadena[cadena.size()-1]=',';
 					else
-						cadena=cadena+",";
+						cadena += ',';
 					bool comillas=false; // cortar parámetros
 					int parentesis=0;
 					for (int last_i=0, i=0;i<(int)cadena.size();i++) {
@@ -930,7 +897,7 @@ void Instrucciones(RunTime &rt) {
 								err_handler.SyntaxError(54,"Se esperaba fin de expresión.");
 						}
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
-							str=cadena.substr(last_i,i-last_i);
+							std::string str=cadena.substr(last_i,i-last_i);
 							if (this_instruction_is_ok()) EvaluarSC(rt,str);
 							last_i=i+1;
 							inst_impl.expresiones.push_back(str);
@@ -944,11 +911,10 @@ void Instrucciones(RunTime &rt) {
 				else {
 					auto &inst_impl = getImpl<IT_ESPERAR>(inst);
 					string &tiempo = inst_impl.tiempo = cadena;
+					if (LastCharIs(tiempo,';')) EraseLastChar(tiempo);
 					int &factor = inst_impl.factor;
-					if      (RightCompare(tiempo," SEGUNDOS;"))     { tiempo.erase(tiempo.size()-10); factor = 1000; }
-					else if (RightCompare(tiempo," SEGUNDO;"))      { tiempo.erase(tiempo.size()-9);  factor = 1000; }
-					else if (RightCompare(tiempo," MILISEGUNDOS;")) { tiempo.erase(tiempo.size()-14); factor = 1;    }
-					else if (RightCompare(tiempo," MILISEGUNDO;"))  { tiempo.erase(tiempo.size()-13); factor = 1;    }
+					if      (RightCompare(tiempo,lang.keywords[KW_SEGUNDOS],true)) factor = 1000;
+					else if (RightCompare(tiempo,lang.keywords[KW_MILISEGUNDOS],true)) factor = 1;
 					else if (!ignore_logic_errors) err_handler.SyntaxError(218,"Falta unidad o unidad desconocida.");
 					DataValue res = EvaluarSC(rt,tiempo,vt_numerica);
 					if (!res.CanBeReal()) err_handler.SyntaxError(219,"La longitud del intervalo debe ser numérica."); 
@@ -961,10 +927,10 @@ void Instrucciones(RunTime &rt) {
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(56,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_DIMENSION>(inst);
-					if (cadena[cadena.size()-1]==';')
+					if (LastCharIs(cadena,';'))
 						cadena[cadena.size()-1]=',';
 					else
-						cadena=cadena+",";
+						cadena += ',';
 					int parentesis=0,i0=0;
 					for (int i=0;i<(int)cadena.size();i++) {
 						if (cadena[i]=='(') parentesis++;
@@ -973,7 +939,7 @@ void Instrucciones(RunTime &rt) {
 							if ((!comillas) && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
 								err_handler.SyntaxError(57,"Se esperaba fin de expresión.");
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
-							str=cadena;
+							std::string str=cadena;
 							str.erase(i,str.size()-i);
 							str.erase(0,i0);
 							if (str.find("(",0)==string::npos){ 
@@ -989,14 +955,13 @@ void Instrucciones(RunTime &rt) {
 								str=cadena;
 								str.erase(i,str.size()-i);
 								str.erase(0,str.find("(",i0)+1);
-								if (str[str.size()-1]==')')
-									str.erase(str.size()-1,1);
+								if (LastCharIs(str,')')) EraseLastChar(str);
 								
 								inst_impl.nombres.push_back(aname);
 								inst_impl.tamanios.push_back(str);
 								
 								// contar dimensiones y reservar espacio para el arreglo dims
-								str=str+",";
+								str += ',';
 								int parentesis=0, len=str.size(), ndims=0; bool comillas=false;
 								for(int i=0;i<len;i++) { 
 									if (str[i]=='\'') comillas=!comillas;
@@ -1043,10 +1008,10 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_LEER>(inst);
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(63,"Faltan parámetros.");
 				else {
-					if (cadena[cadena.size()-1]==';')
+					if (LastCharIs(cadena,';'))
 						cadena[cadena.size()-1]=',';
 					else
-						cadena=cadena+",";
+						cadena += ',';
 					size_t parentesis=0, expr_start=0;
 					for (size_t i=0;i<cadena.size();i++) {
 						if (cadena[i]=='(') parentesis++;
@@ -1081,10 +1046,9 @@ void Instrucciones(RunTime &rt) {
 								var_name.erase(i,var_name.size()-i);
 								var_name.erase(0,expr_start);
 								var_name.erase(0,var_name.find("(",0));
-								if (var_name[var_name.size()-1]==')')
-									var_name.erase(var_name.size()-1,1);
+								if (LastCharIs(var_name,')')) EraseLastChar(var_name); /// @todo: ver si esto es necesario
 								var_name.erase(0,1);
-								var_name=var_name+",";
+								var_name += ',';
 								string str2;
 								// comprobar los indices
 								int ca=0;
@@ -1114,7 +1078,7 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_PARA>(inst);
 				
 				string &contador = inst_impl.contador = cadena;
-				if (contador.find(" ",0)==string::npos) err_handler.SyntaxError(70,"Faltan parámetros.");
+				if (contador.find(' ',0)==string::npos) err_handler.SyntaxError(70,"Faltan parámetros.");
 				if (!RightCompareFix(contador," HACER")) {
 					if (lang[LS_LAZY_SYNTAX]) { contador+=" HACER"; cadena+=" HACER";}
 					else err_handler.SyntaxError(71,"Falta HACER.");
@@ -1143,7 +1107,7 @@ void Instrucciones(RunTime &rt) {
 									err_handler.SyntaxError(77,"No coinciden los tipos.");
 								else { // comprobar hasta y variable final
 									
-									str=cadena;
+									std::string str=cadena;
 									size_t pos_hasta = p_space;
 									str.erase(0,pos_hasta);
 									if (lang[LS_LAZY_SYNTAX] && LeftCompare(str," CON PASO ")) { // si esta el "CON PASO" antes del "HASTA", dar vuelta
@@ -1196,7 +1160,7 @@ void Instrucciones(RunTime &rt) {
 			
 			if (inst.type==IT_PARACADA){  // ------------ PARA CADA -----------//
 				auto &inst_impl = getImpl<IT_PARACADA>(inst);
-				str=cadena; // cortar instrucción
+				std::string str=cadena; // cortar instrucción
 				if (str.find(" ",0)==string::npos)
 					err_handler.SyntaxError(70,"Faltan parámetros.");
 				if (!RightCompareFix(str," HACER")) {
@@ -1252,7 +1216,7 @@ void Instrucciones(RunTime &rt) {
 					err_handler.SyntaxError(85,"Asignación incompleta.");
 				else {
 					CheckVariable(rt,var,86);
-					str = cadena.substr(pos_arrow+2);
+					std::string str = cadena.substr(pos_arrow+2);
 					bool comillas=false; int parentesis=0;
 					for (int y=0;y<(int)str.size();y++){ // comprobar que se un solo parametro
 						if (str[y]=='(') parentesis++;
@@ -1314,7 +1278,7 @@ void Instrucciones(RunTime &rt) {
 					 err_handler.SyntaxError(93,"Falta la condición en la estructura Repetir."); 
 					 cadena+=" ";
 				} else {
-					str=cadena; // Comprobar la condición
+					std::string str=cadena; // Comprobar la condición
 					// comprobar que no halla espacios
 					bool comillas=false;
 					for (int tmp1=0;tmp1<(int)str.size();tmp1++) {
@@ -1323,7 +1287,7 @@ void Instrucciones(RunTime &rt) {
 							if ((!comillas) && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|')
 								err_handler.SyntaxError(94,"Se esperaba fin de expresión.");
 					}
-					if (str[str.size()-1]==';') {
+					if (LastCharIs(str,';')) {
 						str=str.substr(0,str.size()-1);
 						cadena=cadena.substr(0,cadena.size()-1);
 					}
@@ -1363,7 +1327,7 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_MIENTRAS>(inst);
 				if (cadena==""||cadena=="HACER") err_handler.SyntaxError(101,"Falta la condición en la estructura Mientras.");
 				else {
-					if (RightCompare(cadena,";")) {
+					if (LastCharIs(cadena,';')) {
 						if (!ignore_logic_errors) err_handler.SyntaxError(262,"MIENTRAS no lleva punto y coma luego de la condición.");
 						cadena.erase(cadena.size()-1,1);
 					}
@@ -1506,7 +1470,7 @@ void Instrucciones(RunTime &rt) {
 				if (!ignore_logic_errors) err_handler.SyntaxError(113,"Debe haber acciones en la salida por verdadero.");
 			}
 			
-			programa[prog_idx].type = inst.type;
+			inst.type = inst.type;
 			if ((inst.type==IT_NULL||inst.type==IT_ERROR) && (cadena.size()==0 || cadena==";")) {
 				programa.Erase(prog_idx);prog_idx--;
 			} // Borra cadenas vacias
@@ -1521,7 +1485,7 @@ void Instrucciones(RunTime &rt) {
 bool ParseInspection(RunTime &rt, string &cadena) {
 	auto ret = Normalizar(cadena); // acomodar caracteres
 	if (!ret.first.empty()) rt.err.SyntaxError(271,"No puede haber más de una expresión ni comentarios.");
-	if (cadena.size() && cadena[cadena.size()-1]==';') cadena.erase(cadena.size()-1,1);
+	if (LastCharIs(cadena,';')) EraseLastChar(cadena);
 	Condiciones(rt,cadena); // word_operators
 	Operadores(rt,-1,cadena,IT_ASIGNAR); // verificar operadores
 	return rt.err.IsOk();

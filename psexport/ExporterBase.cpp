@@ -4,6 +4,7 @@
 #include "exportexp.h"
 #include "version.h"
 #include "Evaluar.hpp"
+#include "strFuncs.hpp"
 using namespace std;
 
 //map<string,Memoria*> ExporterBase::mapa_memorias;
