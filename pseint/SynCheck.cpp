@@ -14,7 +14,7 @@
 #include "strFuncs.hpp"
 using namespace std;
 
-// ULTIMO NRO DE ERROR UTILIZADO: 327
+// ULTIMO NRO DE ERROR UTILIZADO: 328
 
 static int PSeudoFind(const string &s, char x, int from=0, int to=-1) {
 	if (to==-1) to=s.size();
@@ -536,8 +536,9 @@ void Instrucciones(RunTime &rt) {
 				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,MkErrorMsg("$ mal colocado.",first_word_str));
 				programa.Insert(prog_idx+1,cadena.substr(1)); // cortar los ':'
 				inst.setType(IT_DEOTROMODO); cadena="";
-			} else if (first_word_id==KW_DIMENSIONAR) {
+			} else if (first_word_id==KW_DIMENSIONAR or first_word_id==KW_REDIMENSIONAR) {
 				inst.setType(IT_DIMENSION);
+				getImpl<IT_DIMENSION>(inst).redimension = first_word_id==KW_REDIMENSIONAR;
 			} else if (first_word_id==KW_HASTAQUE) {
 				inst.setType(IT_HASTAQUE);
 			} else if (first_word_id==KW_MIENTRASQUE) {
@@ -900,7 +901,7 @@ void Instrucciones(RunTime &rt) {
 					}
 				}
 			}
-			if (inst.type==IT_DIMENSION){  // ------------ DIMENSION -----------//
+			if (inst.type==IT_DIMENSION){  // ------------ DIMENSION/REDIMENSION -----------//
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(56,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_DIMENSION>(inst);
@@ -1082,7 +1083,7 @@ void Instrucciones(RunTime &rt) {
 					}
 					
 					// validar contador y valor inicial
-					size_t pos_flecha = asignacion.find("<-",0);
+					size_t pos_flecha = asignacion.find("<-",0); /// @todo: contemplar los otros operadores de asignacion alternativos (:= e =)
 					int pos_corte = -1;
 					if (pos_flecha==string::npos) {
 						if (lang[LS_LAZY_SYNTAX]) pos_corte = FindKeyword(asignacion,lang.keywords[KW_DESDE],true);
@@ -1094,6 +1095,8 @@ void Instrucciones(RunTime &rt) {
 					if (pos_corte!=-1) {
 						inst_impl.contador = asignacion.substr(0,pos_corte);
 						inst_impl.val_ini = asignacion.substr(pos_corte);
+						if (pos_flecha!=-1) // antes se encerró el valor entre parentesis para evitar generar un error por -- si el val iniciar es negativo (x<--1)
+							inst_impl.val_ini = inst_impl.val_ini.substr(1,inst_impl.val_ini.size()-2);
 						// contador
 						if (inst_impl.contador.empty() or inst_impl.val_ini.empty())
 							err_handler.SyntaxError(73,"Asignacion incompleta.");
@@ -1218,8 +1221,7 @@ void Instrucciones(RunTime &rt) {
 						if (res.IsOk()&&!res.type.can_be(tipo_left)) {
 							err_handler.SyntaxError(125,"No coinciden los tipos.");
 							if (!memoria->EstaDefinida(str)) memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
-						}
-						else {
+						} else {
 							res.type.rounded = false; // no forzar a entero la variable asignada
 							memoria->DefinirTipo(inst_impl.variable,res.type);
 						}

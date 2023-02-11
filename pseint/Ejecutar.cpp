@@ -162,7 +162,7 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 				}
 			} break;
 			
-			// ------------- DIMENSION --------------- //
+			// ------------- DIMENSION/REDIMENSION --------------- //
 			case IT_DIMENSION: {
 				_pos(line);
 				const auto &inst_impl = getImpl<IT_DIMENSION>(inst);
@@ -171,41 +171,39 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 					const string tamanios = inst_impl.tamanios[i];
 					
 					// Separar indices
-					int anid_parent=0, cant_dims=0;
-					for(size_t i=0;i<tamanios.size();i++) {
-						while (i<tamanios.size() && !(anid_parent==0 && (tamanios[i]==','||tamanios[i]==')'))) {
-							if (tamanios[i]=='(') anid_parent++;
-							else if (tamanios[i]==')') anid_parent--;
-							i++;
-						}
-						cant_dims++;
-					}
-					int *dim = new int[cant_dims+1]; dim[0]=cant_dims; // arreglo para las dimensiones
-					int last=0, num_idx=0; anid_parent = 0;
+					auto dims_str = splitArgsList(tamanios); // expresiones de las dimensiones
+					int *dims = new int[dims_str.size()+1]; dims[0] = dims_str.size(); // arreglo para las dimensiones
 					if (lang[LS_ALLOW_DINAMYC_DIMENSIONS]) { _sub(line,string("Se evalúan las expresiones para cada dimensión del arreglo ")+nombre); }
-					for(size_t i=0;i<tamanios.size();i++) {
-						while (i<tamanios.size() && !(anid_parent==0 && tamanios[i]==',')) {
-							if (tamanios[i]=='(') anid_parent++;
-							else if (tamanios[i]==')') anid_parent--;
-							i++;
-						}
-						DataValue index = Evaluar(rt,tamanios.substr(last,i-last));
+					for(size_t i=0;i<dims_str.size();i++) {
+						DataValue index = Evaluar(rt,dims_str[i]);
 						if (!index.CanBeReal()) err_handler.ExecutionError(122,"No coinciden los tipos.");
-						dim[++num_idx] = index.GetAsInt();
-						if (dim[num_idx]<=0) {
-							err_handler.ExecutionError(274,"Las dimensiones deben ser mayores a 0.");
-						}
-						last=i+1;
+						dims[i+1] = index.GetAsInt();
+						if (dims[i+1]<=0) err_handler.ExecutionError(274,"Las dimensiones deben ser mayores a 0.");
+					}
+					if (inst_impl.redimension) {
+						const int *old_dims = memoria->LeerDims(nombre);
+						if (!old_dims) 
+							err_handler.ExecutionError(327,nombre+" no estaba previamente dimensionado.");
+						else if (dims[0]!=old_dims[0])
+							err_handler.ExecutionError(328,"La nueva cantidad de dimensiones de "+nombre+"("+std::to_string(dims[0])+") no coincide con la previa("+std::to_string(old_dims[0])+").");
+						else 
+							memoria->RedimensionarArreglo(nombre, dims);
+					} else { 
+						if (memoria->HaSidoUsada(nombre)||memoria->LeerDims(nombre))
+							err_handler.ExecutionError(123,"Identificador en uso.");
+						else
+							memoria->AgregarArreglo(nombre, dims);
 					}
 					if (Inter.subtitles_on) {
 						string aux;
-						for(int i=1;i<=dim[0];i++) aux+="x"+IntToStr(dim[i]);
+						for(int i=1;i<=dims[0];i++) aux+="x"+IntToStr(dims[i]);
 						aux[0]=' ';
-						_sub(line,string("Se crea el arreglo ")+nombre+" de"+aux+" elementos");
+						if (inst_impl.redimension) {
+							_sub(line,"El arreglo "+nombre+" cambia de tamaño, a"+aux+" elementos");
+						} else {
+							_sub(line,"Se crea el arreglo "+nombre+" de"+aux+" elementos");
+						}
 					}
-					if (memoria->HaSidoUsada(nombre)||memoria->LeerDims(nombre))
-						err_handler.ExecutionError(123,"Identificador en uso.");
-					if (dim!=0) memoria->AgregarArreglo(nombre, dim);
 				}
 			} break;
 			

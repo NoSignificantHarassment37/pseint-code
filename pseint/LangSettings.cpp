@@ -54,6 +54,11 @@ void LangSettings::init() {
 			"arreglo). Este suele ser el caso de los lenguajes interpretados, mientras que los lenguajes compilados suelen exigir que el "
 			"tamaño de los arreglos estáticos sea una constante (por ejemplo, C y C++)."
 		);
+	data[LS_ALLOW_RESIZE_ARRAYS     ].Set("allow_resize_arrays",		true,
+		"Permitir redimensionar arreglos",
+			"Si esta opción está seleccionada se puede utilizar la palabra clave redimensión (o redimensionar) para cambiarle el tamaño "
+			"a un arreglo preexistente."
+		);
 	data[LS_OVERLOAD_EQUAL			 ].Set("overload_equal",			false,
 		"Permitir asignar con el signo igual (=)",
 			"Esta opcion habilita la asignación con el signo igual (Ej: x=0;). En muchos casos esta sintaxis de asignación no se"
@@ -260,7 +265,7 @@ bool LangSettings::SetFromSingleString (const std::string & str) {
 // IMPORTANTE, todos los char* de abajo con las keywords tienen que terminar con un espacio por si se concatenan entre si
 
 static const char *mxSourceWords1 =
-	"leer proceso definir como dimension si entonces sino segun hacer hasta que para con paso "
+	"leer proceso definir como dimension dimensionar redimension redimensionar si entonces sino segun hacer hasta que para con paso "
 	"repetir mientras de otro modo escribir finpara "
 	"fin finproceso finsi finmientras finsegun "
 	"verdadero falso algoritmo finalgoritmo "
@@ -269,7 +274,7 @@ static const char *mxSourceWords1 =
 	"caracter carácter caracteres texto cadena cadenas "
 	"logico lógico logica lógica logicos lógicos logicas lógicas "
 	"borrar limpiar pantalla borrarpantalla limpiarpantalla esperar tecla esperartecla segundos milisegundos segundo milisegundo sinsaltar sin saltar sinbajar bajar "
-	"según finsegún dimensión ";
+	"según finsegún dimensión dimensión redimensión";
 
 static const char *mxSourceWords1_op =
 	"y no o mod ";

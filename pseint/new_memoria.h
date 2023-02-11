@@ -83,6 +83,29 @@ public:
 		tipo_var &v = var_info[nombre];
 		v.dims=dims;
 	}
+	
+	void RedimensionarAux(string nombre, int *odims, int *ndims, int idim, int cur=0) {
+		if (cur++==odims[0]) 
+			var_value.erase(nombre+")");
+		for (int i = cur==idim+1?ndims[cur]:0; i < odims[cur]; ++i)
+			RedimensionarAux(nombre+(cur==1?"(":",")+std::to_string(i+1),odims,ndims,idim,cur);
+	}
+	
+	void RedimensionarArreglo(string nombre, int *dims) {
+#ifdef _FOR_PSEXPORT
+		for(unsigned int i=0;i<nombre.size();i++) nombre[i]=toupper(nombre[i]);
+#endif
+		tipo_var &v = var_info[nombre];
+		for(int i=0;i<dims[0];++i) {
+			if (dims[i+1]<v.dims[i+1]) {
+				RedimensionarAux(nombre,v.dims,dims,i);
+				v.dims[i+1]=dims[i+1];
+			}
+		}
+		_expects(v.dims and v.dims[0]==dims[0]);
+		delete v.dims;
+		v.dims = dims;
+	}
 	// esta version de definir tipo se usa en las definiciones implicitas
 	void AgregarAlias(const string &nom_here, const string &nom_orig, Memoria *mem) {
 		var_alias[nom_here]=alias(nom_orig,mem);

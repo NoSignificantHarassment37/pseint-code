@@ -74,6 +74,7 @@ struct Instruccion {
 	struct IDimension {
 		std::vector<std::string> nombres;
 		std::vector<std::string> tamanios;
+		bool redimension = false;
 	};
 	
 	struct IPara {
