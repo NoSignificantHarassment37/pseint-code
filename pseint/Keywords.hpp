@@ -7,9 +7,10 @@
 #include "debug.h"
 
 enum KeywordType {
-	KW_ALGORITMO, KW_FINALGORITMO, KW_SUBALGORITMO, KW_FINSUBALGORITMO,
+	KW_ALGORITMO, KW_FINALGORITMO, KW_SUBALGORITMO, KW_FINSUBALGORITMO, KW_POR_COPIA, KW_POR_REFERENCIA,
 	KW_LEER, KW_ESCRIBIR, KW_SIN_SALTAR,
-	KW_DIMENSIONAR, KW_REDIMENSIONAR, KW_DEFINIR, KW_ES,
+	KW_DIMENSIONAR, KW_REDIMENSIONAR, 
+	KW_DEFINIR, KW_ES, KW_COMO, KW_TIPO_ENTERO, KW_TIPO_REAL, KW_TIPO_LOGICO, KW_TIPO_CARACTER,
 	KW_SI, KW_ENTONCES, KW_SINO, KW_FINSI,
 	KW_MIENTRAS, KW_HACER, KW_FINMIENTRAS,
 	KW_REPETIR, KW_HASTAQUE, KW_MIENTRASQUE,
@@ -42,6 +43,10 @@ void initKeywords(KeywordsList &keywords);
 std::pair<KeywordType,std::string> BestMatch(const KeywordsList &keywords, std::string &src, bool remove);
 
 bool RightCompare(std::string &src, const Keyword &keyw, bool remove);
+bool LeftCompare(std::string &src, const Keyword &keyw, bool remove);
+	
+// retorna la pos donde la encuentra, o -1 si no estaba
+int FindKeyword(std::string &src, const Keyword &keyw, bool remove); 
 
 
 #endif

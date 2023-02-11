@@ -9,6 +9,8 @@ std::pair<std::string,bool> Normalizar(std::string &cadena);
 void initKeywords(KeywordsList &keywords) {
 	keywords[KW_ALGORITMO] += "Algoritmo, Proceso";
 	keywords[KW_FINALGORITMO] += "FinAlgoritmo, FinProceso, Fin Algoritmo, Fin Proceso";
+	keywords[KW_POR_COPIA] += "Por Copia, Por Valor";
+	keywords[KW_POR_REFERENCIA] += "Por Referencia";
 	keywords[KW_SUBALGORITMO] += "Función, Funcion, SubAlgoritmo, SubProceso";
 	keywords[KW_FINSUBALGORITMO] += "FinFunción, FinFuncion, FinSubAlgoritmo, FinSubProceso, Fin Función, Fin Funcion, Fin SubAlgoritmo, Fin SubProceso";
 	keywords[KW_LEER] += "Leer";
@@ -17,7 +19,12 @@ void initKeywords(KeywordsList &keywords) {
 	keywords[KW_DIMENSIONAR] += "Dimensionar, Dimension, Dimensión";
 	keywords[KW_REDIMENSIONAR] += "Redimensionar, Redimension, Redimensión";
 	keywords[KW_DEFINIR] += "Definir";
-	keywords[KW_ES] += "Es";
+	keywords[KW_COMO] += "Como";
+	keywords[KW_TIPO_ENTERO] += "Entero, Entera, Enteros, Enteras";
+	keywords[KW_TIPO_REAL] += "Real, Reales, Número, Numero, Números, Numeros, Numerica, Numérica, Numericas, Numéricas, Numerico, Numérico, Numericos, Numéricos";
+	keywords[KW_TIPO_LOGICO] += "Lógico, Lógica, Lógicos, Lógicas, Logico, Logica, Logicos, Logicas";
+	keywords[KW_TIPO_CARACTER] += "Cadena, Cadenas, Texto, Textos, Carácter, Caracter, Caracteres, ";
+	keywords[KW_ES] += "Es, Son";
 	keywords[KW_SI] += "Si";
 	keywords[KW_ENTONCES] += "Entonces";
 	keywords[KW_SINO] += "SiNo";
@@ -37,7 +44,7 @@ void initKeywords(KeywordsList &keywords) {
 	keywords[KW_HASTA] += "Hasta";
 	keywords[KW_CONPASO] += "Con Paso, ConPaso";
 	keywords[KW_PARACADA] += "Para Cada, ParaCada";
-	keywords[KW_DE] += "De";
+	keywords[KW_DE] += "De, En";
 	keywords[KW_FINPARA] += "FinPara, Fin Para";
 	keywords[KW_LIMPIARPANTALLA] += "Limpiar Pantalla, LimpiarPantalla, Borrar Pantalla, BorrarPantalla";
 	keywords[KW_ESPERARTECLA] += "Esperar Tecla, EsperarTecla, Esperar Una Tecla";
@@ -76,6 +83,7 @@ bool StartsWith(const std::string &line, const std::string &start) {
 }
 
 std::pair<KeywordType,std::string> BestMatch(const KeywordsList &keywords, std::string &src, bool remove) {
+	/// @todo: ver si considerar todas las keywords, o poner algun bool que diga cual puede ser comienzo de instruccion
 	KeywordType best_match_key = KW_NULL;
 	size_t best_match_len = 0;
 	auto src_sz = src.size();
@@ -108,4 +116,40 @@ bool RightCompare(std::string &src, const Keyword &keyw, bool remove) {
 		return true;
 	}
 	return false;
+}
+
+bool LeftCompare(std::string &src, const Keyword &keyw, bool remove) {
+	for(const std::string &alt : keyw.alternatives) {
+		if (not LeftCompare(src,alt)) continue;
+		size_t l = alt.size();
+		if (src.size()>l and EsLetra(src[l],true)) continue;
+		if (remove) {
+			if (src[l]==' ') ++l;
+			src.erase(0,l);
+		}
+		return true;
+	}
+	return false;
+}
+
+int FindKeyword(std::string &src, const Keyword &keyw, bool remove) {
+	for(const std::string &alt : keyw.alternatives) {
+		for (size_t p = src.find(alt); p!=std::string::npos; p = src.find(p+1)) {
+			if (p!=0 and EsLetra(src[p-1],true)) continue;
+			if (p+alt.size()<src.size() and EsLetra(src[p+alt.size()],true)) continue;
+			bool comillas = false;
+			for(int j=0;j<p;++j) 
+				if (src[j]=='\'' or src[j]=='\"')
+					comillas = not comillas;
+			if (comillas) continue;
+			if (remove) {
+				auto l = alt.size();
+				if (p!=0 and src[p-1]==' ') --p, ++l;
+				if (p+l<src.size() and src[p+l]==' ') ++l;
+				src.erase(p,l);
+			}
+			return p;
+		}
+	}
+	return -1;
 }

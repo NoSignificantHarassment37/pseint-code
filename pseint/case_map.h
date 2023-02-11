@@ -9,13 +9,13 @@ using namespace std;
 
 class RunTime;
 
-// guarda en los nombres originales de las variables (antes de pasar a mayusculas)
+// guarda en los nombres originales de las variables (antes de normalizarlos)
 // para usar en la salida (para diagramas de flujo mayormente), 
 // NULL quiere decir que no se hace
 extern map<string,string> *case_map; 
 
 void CaseMapFill(const RunTime &rt, string &s);
-void CaseMapPurge();
+//void CaseMapPurge();
 void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis);
 void InitCaseMap();
 

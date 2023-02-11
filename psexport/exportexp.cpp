@@ -333,21 +333,5 @@ string expresion(RunTime &rt, string exp) {
 	tipo_var t;
 	return expresion(rt, exp,t);
 }
-std::vector<std::string> splitArgsList(const std::string &args) {
-	std::vector<std::string> out;
-	int parentesis=0; bool comillas=false; int i0=0;
-	for(int i=0,l=args.size();i<l;i++) {
-		if (args[i]=='\''||args[i]=='\"') comillas=!comillas;
-		else if (!comillas) {
-			if (args[i]=='('||args[i]=='[') parentesis++;
-			else if (args[i]==')'||args[i]==']') parentesis--;
-			else if (parentesis==0 && args[i]==',') {
-				insertar(out,args.substr(i0,i-i0));
-				i0=i+1;
-			}
-			
-		}
-	}
-	insertar(out,args.substr(i0));
-	return out;
-}
+
+

@@ -40,12 +40,12 @@ bool CheckVariable(RunTime &rt, string str, int errcode=-1) ;
 // ----------------------------------------------------------------------
 //    Compara los comienzos de dos cadenas (case sensitive)
 // ----------------------------------------------------------------------
-bool LeftCompare(string a, string b) ;
+//bool LeftCompare(string a, string b) ;
 
 // ----------------------------------------------------------------------
 //    Compara parte de una cadena con otra (case insensitve)
 // ----------------------------------------------------------------------
-bool MidCompareNC(string a, string b, int from) ;
+//bool MidCompareNC(string a, string b, int from) ;
 
 // ----------------------------------------------------------------------
 //    Averigua el tipo de variable para un dato

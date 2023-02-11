@@ -77,61 +77,61 @@ void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis) {
 }
 
 
-void CaseMapPurge() {
-	
-	(*case_map)["PROCESO"]="";
-	(*case_map)["FINPROCESO"]="";
-	(*case_map)["SUBPROCESO"]="";
-	(*case_map)["FINSUBPROCESO"]="";
-	
-	(*case_map)["SI"]="";
-	(*case_map)["ENTONCES"]="";
-	(*case_map)["SINO"]="";
-	(*case_map)["FINSI"]="";
-	
-	(*case_map)["INVOCAR"]="";
-	(*case_map)["ESCRIBIR"]="";
-	(*case_map)["LEER"]="";
-	(*case_map)["DEFINIR"]="";
-	(*case_map)["DIMENSION"]="";
-	
-	(*case_map)["REPETIR"]="";
-	(*case_map)["HASTA"]="";
-	(*case_map)["QUE"]="";
-	
-	(*case_map)["PARA"]="";
-	(*case_map)["PARACADA"]="";
-	(*case_map)["CON"]="";
-	(*case_map)["PASO"]="";
-	(*case_map)["FINPARA"]="";
-	
-	(*case_map)["MIENTRAS"]="";
-	(*case_map)["FINMIENTRAS"]="";
-	
-	(*case_map)["SEGUN"]="";
-	(*case_map)["DE"]="";
-	(*case_map)["OTRO"]="";
-	(*case_map)["MODO"]="";
-	(*case_map)["FINSEGUN"]="";
-	
-	(*case_map)["DEFINIR"]="";
-	(*case_map)["COMO"]="";
-	(*case_map)["ENTERO"]="";
-	(*case_map)["CARACTER"]="";
-	(*case_map)["REAL"]="";
-	(*case_map)["LOGICO"]="";
-	
-//	(*case_map)["LIMPIAR"]="";
-//	(*case_map)["BORRAR"]="";
-//	(*case_map)["PANTALLA"]="";
-//	(*case_map)["ESPERAR"]="";
-//	(*case_map)["TECLA"]="";
-//	(*case_map)["SEGUNDO"]="";
-//	(*case_map)["SEGUNDOS"]="";
-//	(*case_map)["MILISEGUNDO"]="";
-//	(*case_map)["MILISEGUNDOS"]="";
-	
-}
+//void CaseMapPurge() {
+//	
+//	(*case_map)["PROCESO"]="";
+//	(*case_map)["FINPROCESO"]="";
+//	(*case_map)["SUBPROCESO"]="";
+//	(*case_map)["FINSUBPROCESO"]="";
+//	
+//	(*case_map)["SI"]="";
+//	(*case_map)["ENTONCES"]="";
+//	(*case_map)["SINO"]="";
+//	(*case_map)["FINSI"]="";
+//	
+//	(*case_map)["INVOCAR"]="";
+//	(*case_map)["ESCRIBIR"]="";
+//	(*case_map)["LEER"]="";
+//	(*case_map)["DEFINIR"]="";
+//	(*case_map)["DIMENSION"]="";
+//	
+//	(*case_map)["REPETIR"]="";
+//	(*case_map)["HASTA"]="";
+//	(*case_map)["QUE"]="";
+//	
+//	(*case_map)["PARA"]="";
+//	(*case_map)["PARACADA"]="";
+//	(*case_map)["CON"]="";
+//	(*case_map)["PASO"]="";
+//	(*case_map)["FINPARA"]="";
+//	
+//	(*case_map)["MIENTRAS"]="";
+//	(*case_map)["FINMIENTRAS"]="";
+//	
+//	(*case_map)["SEGUN"]="";
+//	(*case_map)["DE"]="";
+//	(*case_map)["OTRO"]="";
+//	(*case_map)["MODO"]="";
+//	(*case_map)["FINSEGUN"]="";
+//	
+//	(*case_map)["DEFINIR"]="";
+//	(*case_map)["COMO"]="";
+//	(*case_map)["ENTERO"]="";
+//	(*case_map)["CARACTER"]="";
+//	(*case_map)["REAL"]="";
+//	(*case_map)["LOGICO"]="";
+//	
+////	(*case_map)["LIMPIAR"]="";
+////	(*case_map)["BORRAR"]="";
+////	(*case_map)["PANTALLA"]="";
+////	(*case_map)["ESPERAR"]="";
+////	(*case_map)["TECLA"]="";
+////	(*case_map)["SEGUNDO"]="";
+////	(*case_map)["SEGUNDOS"]="";
+////	(*case_map)["MILISEGUNDO"]="";
+////	(*case_map)["MILISEGUNDOS"]="";
+//	
+//}
 
 void InitCaseMap() {
 	if (!case_map) case_map = new map<string,string>();

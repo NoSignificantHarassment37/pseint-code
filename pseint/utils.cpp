@@ -129,13 +129,13 @@ bool CheckVariable(RunTime &rt, string str, int errcode) {
 // ----------------------------------------------------------------------
 //    Compara los comienzos de dos cadenas (case sensitive)
 // ----------------------------------------------------------------------
-bool LeftCompare(string a, string b) {  
-	// compara los caracteres de la izquierda de a con b
-	bool ret;
-	if (a.size()<b.size()) ret=false; else {
-		a.erase(b.size(),a.size()-b.size());
-		if (a==b) ret=true; else ret=false; }
-	return ret; }
+//bool LeftCompare(string a, string b) {  
+//	// compara los caracteres de la izquierda de a con b
+//	bool ret;
+//	if (a.size()<b.size()) ret=false; else {
+//		a.erase(b.size(),a.size()-b.size());
+//		if (a==b) ret=true; else ret=false; }
+//	return ret; }
 
 // ----------------------------------------------------------------------
 //    Compara los comienzos de dos cadenas (case insensitve)
@@ -173,23 +173,23 @@ bool LeftCompare(string a, string b) {
 // ----------------------------------------------------------------------
 //    Compara parte de una cadena con otra (case insensitve)
 // ----------------------------------------------------------------------
-bool MidCompareNC(string a, string b, int from) { 
-	unsigned int to=from+a.size();
-	// controla los tamaños y corta la parte de interes
-	if (b.size()<to) return false;
-	b.erase(to,b.size());
-	b.erase(0,from);
-	for (int x=0;x<(int)a.size();x++)
-		if (a[x]>96 && a[x]<123) a[x]-=32;
-	for (int x=0;x<(int)b.size();x++)
-		if (b[x]>96 && b[x]<123) b[x]-=32;
-	bool ret;
-	// compara los caracteres de la derecha de a con b
-	if (a.size()<b.size()) ret=false; else {
-		a.erase(0,a.size()-b.size());
-		if (a==b) ret=true; else ret=false; }
-	return ret; 
-}
+//bool MidCompareNC(string a, string b, int from) { 
+//	unsigned int to=from+a.size();
+//	// controla los tamaños y corta la parte de interes
+//	if (b.size()<to) return false;
+//	b.erase(to,b.size());
+//	b.erase(0,from);
+//	for (int x=0;x<(int)a.size();x++)
+//		if (a[x]>96 && a[x]<123) a[x]-=32;
+//	for (int x=0;x<(int)b.size();x++)
+//		if (b[x]>96 && b[x]<123) b[x]-=32;
+//	bool ret;
+//	// compara los caracteres de la derecha de a con b
+//	if (a.size()<b.size()) ret=false; else {
+//		a.erase(0,a.size()-b.size());
+//		if (a==b) ret=true; else ret=false; }
+//	return ret; 
+//}
 
 // ----------------------------------------------------------------------
 //    Averigua el tipo de variable para un dato
@@ -339,6 +339,7 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const std::string
 
 std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings &parts, bool es_proceso) {
 	ErrorHandler &err_handler = rt.err;
+	auto kw2str = [&keys=lang.keywords](int i) { return keys[i].get(); };
 	
 	auto the_func = std::make_unique<Funcion>(0); 
 	
@@ -350,52 +351,52 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings
 		the_func->nombres[0] = parts.ret_id;
 		CheckVariable(rt,the_func->nombres[0]);
 	}
-	if (parts.nombre.empty()) { 
-		err_handler.SyntaxError(40,es_proceso?"Falta nombre de proceso.":"Falta nombre de subproceso."); 
-		static int untitled_functions_count=0; // para numerar las funciones sin nombre
-		the_func->id = string("<sin_nombre>")+IntToStr(++untitled_functions_count);
+	the_func->id = parts.nombre;
+	if (parts.nombre.empty() or LeftCompare(parts.nombre,"<sin_titulo_")) { 
+		err_handler.SyntaxError(40,MkErrorMsg("Falta nombre de $.",kw2str(es_proceso?KW_ALGORITMO:KW_SUBALGORITMO))); 
+//		static int untitled_functions_count=0; // para numerar las funciones sin nombre
+//		the_func->id = string("<sin_nombre>")+IntToStr(++untitled_functions_count);
 	} else {
-		the_func->id = parts.nombre;
 		if (rt.funcs.IsFunction(parts.nombre))
-			err_handler.SyntaxError(243,string("Ya existe otro proceso/subproceso con el mismo nombre(")+parts.nombre+").");
+			err_handler.SyntaxError(243,MkErrorMsg("Ya existe otro $ con el mismo nombre($).",kw2str(KW_ALGORITMO)+" o "+kw2str(KW_SUBALGORITMO),parts.nombre+")."));
 		else if (not CheckVariable(rt,parts.nombre))
-			err_handler.SyntaxError(244,string("El nombre del proceso/subproceso(")+parts.nombre+") no es válido.");
+			err_handler.SyntaxError(244,MkErrorMsg("El nombre de $ ($) no es un identificador válido.",kw2str(es_proceso?KW_ALGORITMO:KW_SUBALGORITMO),parts.nombre));
 	}
 	// argumentos
-	if (not parts.args.empty())	{
-		int p = 0; std::string tok = NextToken(parts.args,p);
-		if (tok=="(") {// si habia argumentos
-			if (es_proceso) err_handler.SyntaxError(246,"El proceso principal no puede recibir argumentos.");
-			bool closed = false; 
-			std::string tok = NextToken(parts.args,p);
-			while (tok!="") {
-				if (tok==")") { closed=true; break; }
-				else if (tok==",") { 
-					err_handler.SyntaxError(247,"Falta nombre de argumento.");
-					tok=NextToken(parts.args,p);
-				} else {
-					CheckVariable(rt,tok);
-					the_func->AddArg(tok);
-					tok=NextToken(parts.args,p);
-					if (tok=="POR") {
-						tok=NextToken(parts.args,p);
-						if (tok!="REFERENCIA"&&tok!="COPIA"&&tok!="VALOR")
-							err_handler.SyntaxError(248,"Tipo de pasaje inválido, se esperaba Referencia, Copia o Valor.");
-						else the_func->SetLastPasaje(tok=="REFERENCIA"?PP_REFERENCIA:PP_VALOR);
-						tok=NextToken(parts.args,p);
-					} else if (tok!="," && tok!=")" && tok!="")
-						err_handler.SyntaxError(249,"Se esperaba coma(,) o parentesis ()).");
-					if (tok==",") { tok=NextToken(parts.args,p); }
-				}
-			}
-			if (not closed) err_handler.SyntaxError(250,"Falta cerrar lista de argumentos.");
-			else if (NextToken(parts.args,p).size()) err_handler.SyntaxError(251,"Se esperaba fin de linea.");
-		} else {
-			// si no habia argumentos no tiene que haber nada
+	string str_args = parts.args; Trim(str_args);
+	if (not str_args.empty())	{
+		if (str_args[0]!='(') { // si no habia argumentos no tiene que haber nada
 			if (es_proceso) err_handler.SyntaxError(252,"Se esperaba el fin de linea."); 
 			else {
 				if (the_func->nombres[0].size()) err_handler.SyntaxError(253,"Se esperaba la lista de argumentos, o el fin de linea.");
 				else err_handler.SyntaxError(254,"Se esperaba la lista de argumentos, el signo de asignación, o el fin de linea.");
+			}
+		} else { // analizar los argumentos
+			if (es_proceso) err_handler.SyntaxError(246,MkErrorMsg("El $ principal no puede recibir argumentos.",kw2str(KW_ALGORITMO)));
+			int p2 = matchParentesis(str_args,0);
+			if (p2==-1) {
+				err_handler.SyntaxError(250,"Falta cerrar lista de argumentos.");
+			} else {
+				if (p2+1!=str_args.size())
+					err_handler.SyntaxError(251,"Se esperaba fin de linea.");
+				string args = str_args.substr(1,p2-1);
+				auto vargs = splitArgsList(args); 
+				for (std::string &arg : vargs) {
+					Trim(arg);
+					bool por_copia       = RightCompare(arg,lang.keywords[KW_POR_COPIA],true);
+					bool por_referencia = (not por_copia) and RightCompare(arg,lang.keywords[KW_POR_REFERENCIA],true);
+					if (arg.empty()) err_handler.SyntaxError(247,"Falta nombre de argumento.");
+					else {
+						int p = 0;
+						if (arg!=NextToken(arg,p))
+							err_handler.SyntaxError(249,MkErrorMsg("Se esperaba coma(,) o tipo de pasaje ($ o $).",kw2str(KW_POR_COPIA),kw2str(KW_POR_REFERENCIA)));
+						else 
+							CheckVariable(rt,arg);
+					}
+					the_func->AddArg(arg);
+					if (por_referencia or por_copia) // si no dice, dejar en desconocido.. porque para arreglos debe deducirse luego referencia y para los demas copia
+						the_func->SetLastPasaje(por_referencia?PP_REFERENCIA:PP_VALOR);
+				}
 			}
 		}
 	}
@@ -404,20 +405,23 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings
 
 FuncStrings SepararCabeceraDeSubProceso(string cadena) {
 	FuncStrings ret;
-	int p_args = 0; 
-	ret.nombre = NextToken(cadena,p_args);
-	int p_aux = p_args;
-	std::string tok = NextToken(cadena,p_aux);
-	if (tok=="="||tok=="<-") { 
-		ret.ret_id = std::move(ret.nombre); 
-		ret.nombre = NextToken(cadena,p_aux);
-		p_args = p_aux;
-	}
-	ret.args = cadena.substr(p_args);
-	if (ret.nombre.empty()) {
-		static int untitled_functions_count=0;
-		ret.nombre = string("<sin_nombre>")+IntToStr(++untitled_functions_count);
-	}
+	if (not cadena.empty()) {
+		if (cadena[0]=='(') { 
+			ret.args = cadena;
+		} else {
+			int p_args = 0; 
+			ret.nombre = NextToken(cadena,p_args);
+			int p_aux = p_args;
+			std::string tok = NextToken(cadena,p_aux);
+			if (tok=="="||tok=="<-"||tok==":=") { 
+				ret.ret_id = std::move(ret.nombre); 
+				ret.nombre = (p_aux==int(cadena.size())||cadena[p_aux]=='(') ? "" : NextToken(cadena,p_aux);
+				p_args = p_aux;
+			}
+			ret.args = cadena.substr(p_args);
+		}
+	}	
+	if (ret.nombre.empty()) ret.nombre = "<sin_titulo_"+std::to_string(Inter.GetLocation().linea)+">";
 	return ret;
 }
 

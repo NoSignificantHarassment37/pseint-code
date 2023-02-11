@@ -62,7 +62,7 @@ struct InfoOperador {
 
 static const InfoOperador operadores[] = {
 	{',',0,true},{'|',1,true},{'&',2,true},{'~',2,false},{'!',2,true},{'=',3,true},{'<',4,true},{'>',4,true},
-	{'+',8,true},{'-',8,true},{'*',10,true},{'/',10,true},{'%',10,true},{'^',12,true},{' ',14,true} };
+	{'+',8,true},{'-',8,true},{'*',10,true},{'/',10,true},{'%',10,true},{'^',12,true},{' ',0,true},{'$',999,true} };
 
 int BuscarOperador(const string &expresion, int &p1, int &p2) {
 	bool parentesis_externos=true;
@@ -232,14 +232,14 @@ DataValue EvaluarFuncion(RunTime &rt, const std::string &func_name, const string
 DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumentos, const tipo_var &forced_tipo, bool for_expresion) {
 	ErrorHandler &err_handler = rt.err;
 	if (for_expresion && func->GetTipo(0)==vt_error) {
-		err_handler.AnytimeError(278,string("El subproceso (")+func->id+(") no devuelve ningún valor."));
+		err_handler.AnytimeError(278,MkErrorMsg("El subproceso ($) no devuelve ningún valor.",func->id));
 		return DataValue::DVError();
 	}
 	// controlar cantidad de argumentos
 	int b=0,ca=argumentos[1]==')'?0:1, l=argumentos.length()-1;
 	if (ca==1) while ((b=BuscarComa(argumentos,b+1,l))>0) ca++;
 	if (func->GetArgsCount()!=ca) {
-		err_handler.AnytimeError(279,string("Cantidad de argumentos incorrecta para el subproceso (")+func->id+(")"));
+		err_handler.AnytimeError(279,MkErrorMsg("Cantidad de argumentos incorrecta para el subproceso ($).",func->id));
 		return DataValue(func->GetTipo(0));
 	}
 	// parsear argumentos
@@ -250,15 +250,13 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 		if (b2==-1) b2=l;
 		int p1=b+1, p2=b2-1; b=b2;
 		if (!AplicarTipo(rt,argumentos,p1,p2,func->tipos[i+1])) {
-			stringstream ss;
-			ss<<"Tipo de dato incorrecto en el argumento "<<i+1<<" ("<<argumentos.substr(p1,p2-p1+1)<<")";
-			err_handler.AnytimeError(280,ss.str());
+			err_handler.AnytimeError(280,MkErrorMsg("Tipo de dato incorrecto en el argumento $ ($).",std::to_string(i+1),argumentos.substr(p1,p2-p1+1)));
 			return DataValue(forced_tipo); // deberiamos retorar error?
 		} else {
 			string arg_actual = argumentos.substr(p1,p2-p1+1);
 			if (EsArreglo(arg_actual)) { // los arreglos siempre pasan por referencia
 				if (func->pasajes[i+1]==PP_VALOR) { // si la funcion explicita por valor, error
-					err_handler.AnytimeError(281,string("Los arreglos solo pueden pasarse a subprocesos/funciones por referencia (")+arg_actual+(")"));
+					err_handler.AnytimeError(281,MkErrorMsg("Los arreglos solo pueden pasarse a subprocesos/funciones por referencia ($).",arg_actual));
 					return DataValue(forced_tipo);
 				}
 				args.pasajes[i] = PP_REFERENCIA;
@@ -266,7 +264,7 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 			} else if (func->pasajes[i+1]==PP_REFERENCIA) {
 #ifndef _FOR_PSEXPORT
 				if ((not SirveParaReferencia(rt,arg_actual)) and (not ignore_logic_errors)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
-					err_handler.AnytimeError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")")); /*errores++;*/
+					err_handler.AnytimeError(268,MkErrorMsg("No puede utilizar una expresión en un pasaje por referencia ($).",arg_actual));
 					return DataValue(forced_tipo);
 				}
 #endif
@@ -286,7 +284,7 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 		for(int i=0;i<func->GetArgsCount();i++)
 			if (args.values[i].CanBeString() && EsArreglo(args.values[i].GetAsString())) {
 				/// @todo: mejorar esto, podria querer funciones predefinidas que reciban arreglos, tipo sizeof
-				err_handler.AnytimeError(282,string("La función espera un único valor, pero recibe un arreglo (")+args.values[i].GetAsString()+(")"));
+				err_handler.AnytimeError(282,MkErrorMsg("La función espera un único valor, pero recibe un arreglo ($).",args.values[i].GetAsString()));
 				return DataValue(forced_tipo);
 			}
 		ret = func->func(err_handler,args.values);
@@ -319,17 +317,21 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 	return ret;
 }
 
-DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const tipo_var &forced_tipo) {
+DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const tipo_var &forced_tipo, const char *desc) {
 	ErrorHandler &err_handler = rt.err;
 #ifdef LOG_EVALUAR
 	tabs+=2;
 	cerr<<setw(tabs)<<""<<"EVALUAR: {"<<expresion.substr(p1,p2-p1+1)<<"}\n";
 #endif
 	int pos_op = BuscarOperador(expresion,p1,p2);
-	if (pos_op!=-1 && expresion[pos_op]==',') 
-		{ err_handler.AnytimeError(284,string("Se esperaba solo una expresión")); return DataValue::DVError(); }
+	if (pos_op!=-1 and (expresion[pos_op]==',' || expresion[pos_op]==' ')) {
+		/// @todo: por ahora este es el unico caso donde se usa desc... 
+		///        quitar de aca y que el cliente lo agregue a la lista de errores como nuevo item nota
+		err_handler.AnytimeError(284,MkErrorMsg("Se esperaba solo una expresión$.",desc?desc:"",true)); 
+		return DataValue::DVError(); 
+	}
 	if (pos_op==-1/* || pos_op==p1*/) { // si no hay operador, es constante o variable
-		if (p2<p1) ev_return(DataValue(forced_tipo)); //operandos vacios... como el primero en (-3)
+		if (p2<p1) ev_return(DataValue(forced_tipo)); // operandos vacios... como el primero en (-3)
 		char c = expresion[p1];
 		if ( c=='\''||c=='\"') { // si empieza con comillas, es cadena de caracteres
 			ev_return( DataValue::MakeString(expresion.substr(p1+1,p2-p1-1)) );
@@ -343,13 +345,13 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			if (pm==string::npos) { // si es una variable comun
 				string nombre = expresion.substr(p1,p2-p1+1);
 				if (!Inter.IsRunning() && (PalabraReservada(nombre) || nombre==rt.funcs.GetMainName())) {
-					err_handler.AnytimeError(285,string("Identificador no válido (")+nombre+")");
+					err_handler.AnytimeError(285,MkErrorMsg("Identificador no válido ($).",nombre));
 					ev_return(DataValue::DVError());
 				}
 				const Funcion *func = rt.funcs.GetFunction(nombre,false);
 				if (func) {
 					if (func->GetArgsCount()!=0) {
-						err_handler.AnytimeError(286,string("Faltan parámetros para la función (")+nombre+")");
+						err_handler.AnytimeError(286,MkErrorMsg("Faltan parámetros para la función ($).",nombre));
 						ev_return(DataValue::DVError());
 					} else {
 						DataValue res = EvaluarFuncion(rt, func,"()",forced_tipo);
@@ -357,16 +359,16 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					}
 				}
 				if (memoria->LeerDims(nombre)) { // usar leertipo trae problemas cuando la variable es un alias a un elemento de un arreglo
-					err_handler.AnytimeError(220,string("Faltan subindices para el arreglo (")+nombre+")");
+					err_handler.AnytimeError(220,MkErrorMsg("Faltan subindices para el arreglo ($).",nombre));
 					ev_return(DataValue::DVError());
 				}
 				DataValue res;
 				if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
-					err_handler.AnytimeError(210,string("Variable no definida (")+nombre+")");
+					err_handler.AnytimeError(210,MkErrorMsg("Variable no definida ($).",nombre));
 					ev_return(DataValue::DVError());
 				}
 				if ((lang[LS_FORCE_INIT_VARS] || Inter.EvaluatingForDebug()) && Inter.IsRunning() && !memoria->EstaInicializada(nombre)) {
-					err_handler.AnytimeError(215,string("Variable no inicializada (")+nombre+")");
+					err_handler.AnytimeError(215,MkErrorMsg("Variable no inicializada ($).",nombre));
 					ev_return(DataValue::DVError());
 				}
 				res = memoria->Leer(nombre);
@@ -379,17 +381,17 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					ev_return(res);
 				} else {
 					if (PalabraReservada(nombre)) {
-						err_handler.AnytimeError(287,string("Identificador no válido (")+nombre+")");
+						err_handler.AnytimeError(287,MkErrorMsg("Identificador no válido ($).",nombre));
 						ev_return(DataValue::DVError());
 					}
 					if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
-						err_handler.AnytimeError(209,string("Variable no definida (")+nombre+")");
+						err_handler.AnytimeError(209,MkErrorMsg("Variable no definida ($).",nombre));
 						ev_return(DataValue::DVError());
 					}
 					string aux=expresion.substr(p1,p2-p1+1);
 					if (CheckDims(rt,aux)) {
 						if (lang[LS_FORCE_INIT_VARS] && Inter.IsRunning() && !memoria->EstaInicializada(aux)) {
-							err_handler.AnytimeError(288,string("Posición no inicializada (")+aux+")");
+							err_handler.AnytimeError(288,MkErrorMsg("Posición no inicializada ($).",aux));
 							ev_return(DataValue::DVError());
 						}
 						DataValue res = memoria->Leer(aux);
@@ -410,8 +412,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 		if ((op!='~'&&!td1.is_ok()) || !td2.is_ok()) { 
 			// DeterminarTipo no informa el error (ni al usuario ni impide la ejecucion)
 			// los evaluar que siguen están para que ese error se manifieste
-			if (op!='~') Evaluar(rt,expresion,p1a,p1b);
-			Evaluar(rt,expresion,p2a,p2b);
+			if (op!='~') Evaluar(rt,expresion,p1a,p1b, vt_desconocido,desc);
+			Evaluar(rt,expresion,p2a,p2b, vt_desconocido,desc);
 			ev_return(DataValue::DVError());
 		}
 		// analizar segun operador
@@ -425,12 +427,12 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				err_handler.AnytimeError(289,"No coinciden los tipos (|/O, &/Y). Los operandos deben ser logicos.");
 				ev_return(DataValue::DVError());
 			}
-			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_logica);
+			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_logica,desc);
 			if (Inter.IsRunning()) {
 				if (op=='|' && s1.GetAsBool()) ev_return(DataValue::MakeLogic(true));
 				if (op=='&' && !s1.GetAsBool()) ev_return(DataValue::MakeLogic(false));
 			}
-			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica);
+			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica,desc);
 			if (!s1.CanBeLogic() || !s2.CanBeLogic()) { ev_return(DataValue::DVError()); }
 			if (op=='|') ev_return(DataValue::MakeLogic(s1.GetAsBool() || s2.GetAsBool()));
 			else         ev_return(DataValue::MakeLogic(s1.GetAsBool() && s2.GetAsBool()));
@@ -442,7 +444,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				{
 					string aux_exp = expresion.substr(0,pos_op)+"("+expresion.substr(pos_op,p2-pos_op+1)+")";
 					int aux_p2 = p2+2;
-					DataValue ret = Evaluar(rt,aux_exp,p1,aux_p2,forced_tipo);
+					DataValue ret = Evaluar(rt,aux_exp,p1,aux_p2,forced_tipo,desc);
 					p2 = aux_p2-2; 
 					return ret;
 				}
@@ -452,7 +454,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					err_handler.AnytimeError(291,"No coinciden los tipos (~ o NO). El operando deben ser lógico.");
 					ev_return(DataValue::DVError());
 				}
-				DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica);
+				DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica,desc);
 				ev_return(DataValue::MakeLogic(!s2.GetAsBool()));
 			} else {
 				next='>'; op='<';
@@ -491,8 +493,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				}
 			}
 			// evaluar operandos y aplicar operador
-			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,t);
-			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,t);
+			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,t,desc);
+			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,t,desc);
 			if (!s1.type.is_ok() || !s2.type.is_ok()) {
 				ev_return(DataValue::DVError());
 			} else {
@@ -570,8 +572,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				if (td1==vt_numerica||td2==vt_numerica) tipo=vt_numerica;
 				else if (td1==vt_caracter||td2==vt_caracter) tipo=vt_caracter;
 				else tipo=vt_caracter_o_numerica;
-				DataValue s1 = Evaluar(rt,expresion,p1a,p1b,tipo);
-				DataValue s2 = Evaluar(rt,expresion,p2a,p2b,tipo);
+				DataValue s1 = Evaluar(rt,expresion,p1a,p1b,tipo,desc);
+				DataValue s2 = Evaluar(rt,expresion,p2a,p2b,tipo,desc);
 				// esta comprobacion parece redundante segun los tests... si no le paso el tipo a los evaluar
 				// anteriores, se torna util... hay algun caso en que todavía sirva???
 				if (!s1.type.set(s2.type) || !s2.type.set(s1.type)) {
@@ -591,8 +593,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				ev_return(DataValue::DVError());
 			}
 			// evaluar operandos
-			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_numerica);
-			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_numerica);
+			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_numerica,desc);
+			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_numerica,desc);
 			if (!s1.CanBeReal() || !s2.CanBeReal()) { ev_return(DataValue::DVError()); }
 			// operar
 			double res=0, o1=s1.GetAsReal(), o2=s2.GetAsReal();
@@ -639,11 +641,11 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 }
 
 // wrapper para llamar al Evaluar que sigue desde SynCheck, para que verifique que no falten operandos al principio o al final, y aplique los tipos solo si la evaluación es correcta
-DataValue EvaluarSC(RunTime &rt, string expresion, const tipo_var &forced_tipo) {
+DataValue EvaluarSC(RunTime &rt, string expresion, const tipo_var &forced_tipo, const char *desc) {
 	if (ignore_logic_errors) { return DataValue(forced_tipo); }
 	// primero evalua sin importar de que tipo deberia ser (para que el error de tipo lo dé afuera, mejor contextualizado)
 	int p1=0, p2=expresion.size()-1;
-	DataValue retval = Evaluar(rt,expresion,p1,p2,forced_tipo);
+	DataValue retval = Evaluar(rt,expresion,p1,p2,forced_tipo,desc);
 	// si no habia nada raro, aplica el tipo a las variables
 	if (forced_tipo!=vt_desconocido && retval.type!=vt_error) AplicarTipo(rt,expresion,p1,p2,forced_tipo);
 	return retval;
@@ -677,7 +679,7 @@ bool CheckDims(RunTime &rt, string &str) {
 		int *dims=new int[ca+1]; for(int i=0;i<ca;i++) dims[i+1]=0; dims[0]=ca;
 		memoria->AgregarArreglo(nombre,dims);
 #endif
-		rt.err.AnytimeError(202,string("El identificador ")+str.substr(0,pp)+(" no corresponde a un arreglo o subproceso")); /// @todo: ver que hacer cuando se llama desde psexport, porque genera errores falsos
+		rt.err.AnytimeError(202,MkErrorMsg("El identificador $ no corresponde a un arreglo o subproceso",str.substr(0,pp))); /// @todo: ver que hacer cuando se llama desde psexport, porque genera errores falsos
 		return false;
 	}
 	if (!Inter.IsRunning()) {
@@ -695,7 +697,7 @@ bool CheckDims(RunTime &rt, string &str) {
 		}
 		// controlar cantidad de dimensiones
 		if (adims[0]!=ca) {
-			rt.err.AnytimeError(299,string("Cantidad de indices incorrecta para el arreglo (")+nombre+(")"));
+			rt.err.AnytimeError(299,MkErrorMsg("Cantidad de indices incorrecta para el arreglo ($).",nombre));
 			return false;
 		}
 		
@@ -726,7 +728,7 @@ bool CheckDims(RunTime &rt, string &str) {
 	
 	int b=pp,ca=1; while ((b=BuscarComa(str,b+1,p2))>0) ca++;
 	if (adims[0]!=ca) {
-		rt.err.AnytimeError(300,string("Cantidad de indices incorrecta para el arreglo (")+nombre+(")"));
+		rt.err.AnytimeError(300,MkErrorMsg("Cantidad de indices incorrecta para el arreglo ($).",nombre));
 		return false;
 	}
 	nombre+="(";
@@ -737,17 +739,17 @@ bool CheckDims(RunTime &rt, string &str) {
 		if (!ret.IsOk()) return false;
 		int idx = ret.GetAsInt();
 		if (int(ret.GetAsReal())!=idx) {
-			err_handler.AnytimeError(301,string("Subindice no entero ("+ret.GetForUser()+")"));
+			err_handler.AnytimeError(301,MkErrorMsg("Subindice no entero ($).",ret.GetForUser()));
 			return false;
 		}
 		if (lang[LS_BASE_ZERO_ARRAYS]) {
 			if (idx<0||idx>adims[i+1]-1) {
-				err_handler.AnytimeError(302,string("Subindice (")+ret.GetForUser()+") fuera de rango (0..."+IntToStr(adims[i+1]-1)+")");
+				err_handler.AnytimeError(302,MkErrorMsg("Subindice ($) fuera de rango (0...$).",ret.GetForUser(),IntToStr(adims[i+1]-1)));
 				return false;
 			}
 		} else {
 			if (idx<1||idx>adims[i+1]) {
-				err_handler.AnytimeError(303,string("Subindice (")+ret.GetForUser()+") fuera de rango (1..."+IntToStr(adims[i+1])+")");
+				err_handler.AnytimeError(303,MkErrorMsg("Subindice ($) fuera de rango (1...$).",ret.GetForUser(),IntToStr(adims[i+1])));
 				return false;
 			}
 		}

@@ -14,7 +14,7 @@
 #include "strFuncs.hpp"
 using namespace std;
 
-// ULTIMO NRO DE ERROR UTILIZADO: 322
+// ULTIMO NRO DE ERROR UTILIZADO: 327
 
 static int PSeudoFind(const string &s, char x, int from=0, int to=-1) {
 	if (to==-1) to=s.size();
@@ -213,7 +213,7 @@ void Condiciones(RunTime &rt, string &cadena) {
 			int y2=yold-1; while (y2>y && cadena[y2]==' ') y2--;
 			
 			pre=cadena.substr(y+1,y2-y);
-			if (pre.empty()) err_handler.SyntaxError(317,string("Falta operando (antes de la condición coloquial ")+col.cond+").");
+			if (pre.empty()) err_handler.SyntaxError(317,MkErrorMsg("Falta operando (antes de la condición coloquial $).",col.cond));
 			if (col.pre.size()) cadena.insert(y+1,col.pre);
 			if (negate) { cadena.insert(y+1,"~"); yold++; }
 			y=yold+col.pre.size();
@@ -232,9 +232,9 @@ void Condiciones(RunTime &rt, string &cadena) {
 			}
 			while (y>yold && cadena[y-1]==' ') y--;
 			if (col.binary) {
-				if (y0>=y) err_handler.SyntaxError(318,string("Falta operando (después de la condición coloquial ")+col.cond+").");
+				if (y0>=y) err_handler.SyntaxError(318,MkErrorMsg("Falta operando (después de la condición coloquial $).",col.cond));
 			} else {
-				if (y0<y) err_handler.SyntaxError(319,string("No corresponde operando (después de la condición coloquial ")+col.cond+").");
+				if (y0<y) err_handler.SyntaxError(319,MkErrorMsg("No corresponde operando (después de la condición coloquial $).",col.cond));
 			}
 			string post=col.post;
 			size_t n=post.find("<PRE>");
@@ -298,14 +298,14 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 						int j=i+2; while (EsLetra(cadena[j],true)) j++;
 						const string word=cadena.substr(i+1,j-i-1);
 						if (PalabraReservada(word) && word!=VERDADERO && word!=FALSO) 
-							err_handler.SyntaxError(237,"Falta operando (antes de "+cadena.substr(i+1,j-i-1)+")."); // hola+ ;
+							err_handler.SyntaxError(237,MkErrorMsg("Falta operando (antes de $).",cadena.substr(i+1,j-i-1))); // hola+ ;
 						else { cadena.erase(i,1); i--; }
 					} else if ((next>='0'&&next<='9') || next=='.' || next=='\'' || next=='(' || next==':' || next==';') {
 						cadena.erase(i,1); i--;
 					} else {
 						what_extra type; int len; int ret=is_valid_operator(cadena[i+1],i+2<csize?cadena[i+2]:' ',len,type);
 						if (ret!=w_unary_op&&ret!=w_ambiguos_op) 
-							err_handler.SyntaxError(224,"Falta operando (despues de "+string(1,cadena[i-1])+").");
+							err_handler.SyntaxError(224,MkErrorMsg("Falta operando (despues de $).",string(1,cadena[i-1])));
 						else { cadena.erase(i,1); i--; }
 					}
 				} else if (w==w_operand) {
@@ -328,7 +328,7 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 			} else if (act==';' || act==':') {
 				if (act==':' && instruction_type!=IT_OPCION) err_handler.SyntaxError(226,"Operador no válido (:).");
 				else if (w==w_operator) 
-					err_handler.SyntaxError(227,"Falta operando (antes de "+string(1,act)+").");
+					err_handler.SyntaxError(227,MkErrorMsg("Falta operando (antes de $).",std::string(1,act)));
 				w=w_null; wext=w_other;
 				if (act==';') {
 					// todo: ver si realmente puede llegar esto hasta aca, o se corta en otro lado
@@ -376,15 +376,15 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 				int ret=is_valid_operator(act,next,len,op_type);
 				if (ret!=w_no_op) {
 					if (ret==w_binary_op) {
-						if (w!=w_operand) err_handler.SyntaxError(234,"Falta operando (antes de "+cadena.substr(i,len)+").");
+						if (w!=w_operand) err_handler.SyntaxError(234,MkErrorMsg("Falta operando (antes de $).",cadena.substr(i,len)));
 						i+=len-1;
 					} else {
-						if (w==w_operator && wext==w_aritmetic_op) err_handler.SyntaxError(235,"Falta operando (antes de "+cadena.substr(i,len)+").");
+						if (w==w_operator && wext==w_aritmetic_op) err_handler.SyntaxError(235,MkErrorMsg("Falta operando (antes de $).",cadena.substr(i,len)));
 					}
 					w=w_operator; wext=op_type;
 				} else {
 					if (i==0 or (act!=cadena[i-1])) // si encuentra algo como "???" que marque un solo ?
-						err_handler.SyntaxError(68,string("Caracter no válido (")+string(1,act)+").");
+						err_handler.SyntaxError(68,MkErrorMsg("Caracter no válido ($).",std::string(1,act)));
 					w = w_operand; // fuerzo a operando para que preserve espacios despues de esto (casos como "mientras ??? hacer", que no pegue ??? con hacer porque eso generar un error adicional "falta hacer").
 				}
 			}
@@ -395,20 +395,6 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 	if (parentesis<0) err_handler.SyntaxError(35,"Se cerraron parentesis o corchetes demás.");
 	if (parentesis>0) err_handler.SyntaxError(36,"Falta cerrar parentesis o corchete.");
 	if (comillas) err_handler.SyntaxError(37,"Falta cerrar comillas.");
-}
-
-static bool RightCompareFix(string &s, string e) {
-	int le=e.size(); int ls=s.size();
-	bool fix=e[0]==' ';
-	if (fix) { le--; e=e.substr(1); }
-	if (ls<le) return false;
-	else if (le==ls) {
-		if (s==e) { if (fix) s.insert(0," "); return true;}
-		else return false;
-	}
-	else if (s.substr(ls-le,le)!=e) return false;
-	else if (s[ls-le-1]==')') { s.insert(ls-le," "); ls++; };
-	return s[ls-le-1]==' ';
 }
 
 static void FixAcentos(string &s) {
@@ -474,6 +460,7 @@ void Instrucciones(RunTime &rt) {
 	
 	Programa &programa = rt.prog;
 	ErrorHandler &err_handler = rt.err;
+	auto kw2str = [&keys=lang.keywords](int i) { return keys[i].get(); };
 	
 	Memoria global_memory(NULL); // para usar al analizar instrucciones fuera de proceso/subprocesos
 	memoria=&global_memory;
@@ -501,7 +488,7 @@ void Instrucciones(RunTime &rt) {
 			if (inst.type==IT_COMMENT) continue;
 			_expects(inst.type==IT_NULL);
 			
-			// extraer la primer palabra clave para ver qué instrucción es
+			// extraer la primera palabra clave para ver qué instrucción es
 			auto first = BestMatch(lang.keywords,cadena, true);
 			auto first_word_id = first.first; auto &first_word_str = first.second;
 			
@@ -513,7 +500,7 @@ void Instrucciones(RunTime &rt) {
 			// si se identifica la instrucción, se quita del string cadena y se guarda en el string instrucción
 			if (first_word_id==KW_ENTONCES) {
 				if (/*programa[bucles.back()]!=IT_SI || */programa[prog_idx-1]!=IT_SI)
-					err_handler.SyntaxError(1,first_word_str+" mal colocado.");
+					err_handler.SyntaxError(1,MkErrorMsg("$ mal colocado.",first_word_str));
 				if (not cadena.empty()) programa.Insert(prog_idx+1,cadena);
 				inst.setType(IT_ENTONCES); cadena="";
 			} else if (first_word_id==KW_SINO) {
@@ -521,7 +508,7 @@ void Instrucciones(RunTime &rt) {
 				inst.setType(IT_SINO); cadena="";
 			} else if (first_word_id==KW_ESCRIBIR) {
 				inst.setType(IT_ESCRIBIR);
-				if (ReplaceIfFound(cadena,"SIN SALTAR","",true)||ReplaceIfFound(cadena,"SIN BAJAR","",true)||ReplaceIfFound(cadena,"SINBAJAR","",true)||ReplaceIfFound(cadena,"SINSALTAR","",true))
+				if (FindKeyword(cadena,lang.keywords[KW_SIN_SALTAR],true)!=-1)
 					get<Instruccion::IEscribir>(inst.impl).saltar = false;
 			} else if (first_word_id==KW_LEER) {
 				inst.setType(IT_LEER);
@@ -530,20 +517,13 @@ void Instrucciones(RunTime &rt) {
 				bucles.push_back(prog_idx);
 				// cortar el entonces si esta en la misma linea
 				if (RightCompare(cadena,lang.keywords[KW_ENTONCES],true)) {
-					programa.Insert(prog_idx+1,"ENTONCES");
+					programa.Insert(prog_idx+1,lang.keywords[KW_ENTONCES].get(true));
 				} else {
-					bool comillas=false;
-					for (int y=0; y<(int)cadena.size()-10;y++) {
-						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
-						if ((!comillas) && MidCompareNC(" ENTONCES ",cadena,y)) {
-							std::string str = cadena;
-							cadena.erase(y+1);
-							// borrar los espacios en medio
-							RightTrim(cadena); /// @todo: revisar si esto es necesario
-							str.erase(0,y+1);
-							programa.Insert(prog_idx+1,str);
-							break;
-						}
+					int p = FindKeyword(cadena,lang.keywords[KW_ENTONCES],true);
+					if (p!=-1) {
+						programa.Insert(prog_idx+1,cadena.substr(p));
+						cadena.erase(p);
+						RightTrim(cadena); /// @todo: revisar si esto es necesario
 					}
 				}
 			} else if (first_word_id==KW_MIENTRAS) { 
@@ -553,7 +533,7 @@ void Instrucciones(RunTime &rt) {
 				inst.setType(IT_SEGUN);
 				bucles.push_back(prog_idx);
 			} else if (first_word_id==KW_DEOTROMODO) {
-				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,first_word_str+" mal colocado.");
+				if (bucles.empty() || programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(321,MkErrorMsg("$ mal colocado.",first_word_str));
 				programa.Insert(prog_idx+1,cadena.substr(1)); // cortar los ':'
 				inst.setType(IT_DEOTROMODO); cadena="";
 			} else if (first_word_id==KW_DIMENSIONAR) {
@@ -596,64 +576,61 @@ void Instrucciones(RunTime &rt) {
 				}
 				// evitar problema de operador incorrecto al poner el signo al numero
 				// si dice "i desde 1" en lugar de "i<-1" se reemplaza " desde " por "<-"
-				if (lang[LS_LAZY_SYNTAX] && cadena.find("<-",0)==string::npos && cadena.find(" DESDE ")!=string::npos) 
-					cadena.replace(cadena.find(" DESDE "),7,"<-");
-				if (cadena.find("<-",0)!=string::npos) {
-					bool comillas=false;
+				size_t pos_arrow = cadena.find("<-",0);
+//				if (lang[LS_LAZY_SYNTAX] && pos_arrow==std::string::npos) {
+//					int p = FindKeyword(cadena,lang.keywords[KW_DESDE],true);
+//					if (p!=-1 and p!=0) { cadena.insert(p,"<-"); pos_arrow = p; }
+//				}
+				if (pos_arrow!=string::npos) {
 					// se agregan parentesis al valor inicial para evitar problemas mas adelante (porque si el valor es negativo, con la flecha de asignacion queda un --)
-					for (int y=cadena.find("<-",0)+3; y<(int)cadena.size();y++) {
-						if(cadena[y]=='\"' || cadena[y]=='\'') comillas=!comillas;
-						if ((!comillas) && (MidCompareNC(" HASTA ",cadena,y) || MidCompareNC(" CON PASO ",cadena,y))) {
-							cadena.insert(y,")");
-							cadena.insert(cadena.find("<-",0)+2,"(");
-							break;
-						}
+					int p1 = FindKeyword(cadena,lang.keywords[KW_HASTA],false);
+					int p2 = FindKeyword(cadena,lang.keywords[KW_CONPASO],false);
+					int p = (p1!=-1 and p2!=-1) ? std::min(p1,p2) : (p1==-1?p2:p1);
+					if (p!=-1) {
+						if (p!=0 and cadena[p-1]==' ') --p;
+						cadena.insert(p,")");
+						cadena.insert(pos_arrow+2,"(");
 					}
 				}
 			} else if (first_word_id==KW_FINALGORITMO) {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = true;
-				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,first_word_str+" no lleva punto y coma.");
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,MkErrorMsg("$ no lleva punto y coma.",first_word_str));
 			} else if (first_word_id==KW_FINSUBALGORITMO) {
 				inst.setType(IT_FINPROCESO); getImpl<IT_FINPROCESO>(inst).principal = false;
-				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,first_word_str+" no lleva punto y coma.");
+				if (!ignore_logic_errors&&cadena==";") err_handler.SyntaxError(315,MkErrorMsg("$ no lleva punto y coma.",first_word_str));
 			} else if (first_word_id==KW_REPETIR) {
 				inst.setType(IT_REPETIR); bucles.push_back(prog_idx);
 			} else if (first_word_id==KW_DEFINIR) {
 				inst.setType(IT_DEFINIR);
-			} else {
-				cadena = inst.instruccion;
-				int flag_segun=0;
-				if (!bucles.empty()) {
-					// comentado el 20121013 para que siempre diga que lo que esta antes del : es una instrucción y lo que esta despues otra.
-//					if (programa[bucles.back()]==IT_SEGUN) { // si esta en segun comprobar la condición
-						int pos_dp=PSeudoFind(cadena,':');
-						if (pos_dp!=-1 && cadena[pos_dp+1]!='=') {
-							// ver ademas si dise "OPCION o CASO al principio"
-							if (lang[LS_LAZY_SYNTAX]) {
-								if (cadena.size()>6 && cadena.substr(0,5)=="CASO ") {
-									cadena=cadena.substr(5); pos_dp-=5;
-								} else if (cadena.size()>6 && cadena.substr(0,5)=="SIES ") {
-									cadena=cadena.substr(5); pos_dp-=5;
-								} else if (cadena.size()>7 && cadena.substr(0,6)=="SI ES ") {
-									cadena=cadena.substr(6); pos_dp-=6;
-								} else if (cadena.size()>8 && cadena.substr(0,7)=="OPCION ") {
-									cadena=cadena.substr(7); pos_dp-=7;
-								} else if (cadena.size()>8 && cadena.substr(0,7)=="OPCIÓN ") {
-									cadena=cadena.substr(7); pos_dp-=7;
-								}
-							}
-							inst.setType(IT_OPCION);
-							programa.Insert(prog_idx+1,cadena);
-							programa[prog_idx+1].instruccion.erase(0,pos_dp+1);
-							cadena.erase(pos_dp+1,cadena.size()-pos_dp-1);
-							flag_segun=1;
-							if (programa[bucles.back()]!=IT_SEGUN) err_handler.SyntaxError(241,"Opción fuera de SEGUN.");
-						}
-//					}
+			} else if (first_word_id==KW_OPCION) {
+				inst.setType(IT_OPCION);
+				int pos_dp = PSeudoFind(cadena,':');
+				if (pos_dp==-1) {
+					err_handler.SyntaxError(326,"Se esperan dos puntos (:) luego de la lista de opciones.");
+					cadena += ":";
+				} else { 
+					// ver ademas si dice "OPCION o CASO o similar al principio" y eliminarlo
+					programa.Insert(prog_idx+1,cadena.substr(pos_dp+1));
+					cadena.erase(pos_dp+1);
 				}
-				if (flag_segun==0) {
+			} else {
+				// no se identifica el tipo por la primera palabra clave... 
+				// puede ser asignación (buscar <-, = o :=), opción de segun (buscar :) 
+				// definicion (buscar ES), o invocacion a subalgoritmo
+				cadena = inst.instruccion;
+				
+				// opcion del segun?
+				int pos_dp = PSeudoFind(cadena,':');
+				if (pos_dp!=-1 && cadena[pos_dp+1]!='=') { // no es asignacion estilo x:=0
+					// ver ademas si dice "OPCION o CASO o similar al principio" y eliminarlo
+					inst.setType(IT_OPCION);
+					programa.Insert(prog_idx+1,cadena.substr(pos_dp+1));
+					cadena.erase(pos_dp+1);
+				}
+				
+				else {
 					inst.setType(IT_ERROR);
-					// Ver si es asignacion
+					// saltar primera cosa (puede ser un id de arreglo con indices y todo)
 					int i=0, l=cadena.size();
 					while (i<l && (cadena[i]=='\t'||cadena[i]==' ')) i++;
 					int par=0;
@@ -667,6 +644,8 @@ void Instrucciones(RunTime &rt) {
 							i++;
 						}
 					while (i<l && (cadena[i]=='\t'||cadena[i]==' ')) i++;
+					
+					// asignacion ??
 					if (i>0&&i<l) {
 						if (i+1<l && cadena[i]==':' && cadena[i+1]=='=') { cadena[i]='<'; cadena[i+1]='-'; }
 						else if (lang[LS_OVERLOAD_EQUAL] && cadena[i]=='=') cadena.replace(i,1,"<-");
@@ -690,24 +669,28 @@ void Instrucciones(RunTime &rt) {
 							} 
 						} 
 					}
+					
+					// definicion?
 					if ((not cadena.empty()) and lang[LS_LAZY_SYNTAX] and inst.type!=IT_ASIGNAR) { // definición de tipos alternativa (x es entero)
 						size_t pos = cadena.rfind(' ',cadena.size()-(LastCharIs(cadena,';')?3:2));
 						if (pos!=string::npos) {
-							pos = cadena.rfind(' ',pos-1);
-							if (pos!=string::npos && cadena.substr(pos+1,4)=="SON ") {
-								inst.setType(IT_DEFINIR); cadena.replace(pos+1,3,"COMO");
-							} else if (pos!=string::npos && cadena.substr(pos+1,3)=="ES ") {
-								inst.setType(IT_DEFINIR); cadena.replace(pos+1,2,"COMO");
+							int pos = FindKeyword(cadena,lang.keywords[KW_ES],true);
+							if (pos!=-1) {
+								inst.setType(IT_DEFINIR);
+								cadena.insert(pos," "+lang.keywords[KW_COMO].get(true)+" ");
 							}
 						}
 					}
+					
+					// llamada a subalgoritmo?
 					if (inst.type!=IT_ASIGNAR && inst.type!=IT_DEFINIR) {
 						int p=0, l=cadena.length();
 						while (p<l&&EsLetra(cadena[p],true)) p++;
-						if (rt.funcs.IsFunction(cadena.substr(0,p)))
+						if (p!=0 and rt.funcs.IsFunction(cadena.substr(0,p)))
 							inst.setType(IT_INVOCAR);
 					}
 				}
+				
 			}
 			
 			// reescribir condiciones coloquiales
@@ -716,14 +699,15 @@ void Instrucciones(RunTime &rt) {
 			// verificar operadores
 			Operadores(rt,prog_idx,cadena,inst.type);
 			
-			// y si hay algo a continuacion del hacer tambien, asi que despues del hacer se corta como si fuera hacer; para que se pueda escribir por ejemplo un mientras en una sola linea
-			bool comillas=false;
-			for (int tmp=0, len=cadena.size();tmp<len;tmp++) {
-				if (cadena[tmp]=='\'') comillas=!comillas;
-				else if ((!comillas) && tmp+5<len && cadena.substr(tmp,6)=="HACER " /*&& cadena.substr(tmp,6)!="HACER;"*/) {
-					programa.Insert(prog_idx+1,cadena.substr(tmp+5));
-					cadena.erase(tmp+5); break;
+			/// @todo: ver si poner esto en las estructuras de control que llevan hacer... o ver cómo se resuelve el entonces, que debería ser similar
+			// si hay algo a continuacion del hacer se corta como si fuera ; para que se pueda escribir por ejemplo un mientras en una sola linea
+			int p_hacer = FindKeyword(cadena,lang.keywords[KW_HACER],true);
+			if (p_hacer!=-1) {
+				if (p_hacer!=int(cadena.size())) {
+					programa.Insert(prog_idx+1, cadena.substr(p_hacer));
+					cadena.erase(p_hacer);
 				}
+				cadena += " "+lang.keywords[KW_HACER].get(true);
 			}
 			
 			if (LastCharIs(cadena,','))
@@ -733,14 +717,14 @@ void Instrucciones(RunTime &rt) {
 			if (prog_idx&&programa[prog_idx-1]==IT_SI)
 				if (inst.type!=IT_ENTONCES && inst.type!=IT_NULL && inst.type!=IT_ERROR) {
 					if (lang[LS_LAZY_SYNTAX]) {
-						programa.Insert(prog_idx,"ENTONCES",inst.loc);
+						programa.Insert(prog_idx,lang.keywords[KW_ENTONCES].get(true),inst.loc);
 						inst.setType(IT_ENTONCES);
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
 					} else 
-						err_handler.SyntaxError(32,"Se esperaba ENTONCES");
+						err_handler.SyntaxError(32,MkErrorMsg("Se esperaba $.",kw2str(KW_ENTONCES)));
 				}
-			// si entro en segun comprobar que haya condición
+			// si entro en segun comprobar que haya opción
 			if (!bucles.empty()) {
 				if (programa[bucles.back()]==IT_SEGUN && programa[prog_idx-1]==IT_SEGUN && cadena!="") {
 					if (inst.type!=IT_OPCION) err_handler.SyntaxError(33,"Se esperaba <opcion>:.");
@@ -759,12 +743,6 @@ void Instrucciones(RunTime &rt) {
 					cadena += ';';
 				}
 			}
-			// Cortar instrucciones despues de sino o entonces
-			RightTrim(cadena);
-			// arreglar problemas con valores negativos en para y mientras
-			ReplaceIfFound(cadena," HASTA-"," HASTA -");
-			ReplaceIfFound(cadena," PASO-"," PASO -");
-			ReplaceIfFound(cadena," QUE-"," QUE -");
 			
 			// En esta parte, según cada instrucción se verifican si los argumentos están bien. Los argumentos quedaron solos en cadena, la instrucción ya fué cortada.
 			if (inst.type==IT_PROCESO) {
@@ -782,7 +760,9 @@ void Instrucciones(RunTime &rt) {
 				memoria = (current_func->memoria = std::make_unique<Memoria>(current_func)).get();
 			}
 			if (!in_process && inst.type!=IT_NULL&&cadena!="") {
-				err_handler.SyntaxError(43,lang[LS_ENABLE_USER_FUNCTIONS]?"Instrucción fuera de proceso/subproceso.":"Instrucción fuera de proceso.");
+				err_handler.SyntaxError(43,MkErrorMsg("Instrucción fuera de $.",
+													  kw2str(KW_ALGORITMO) +
+													  (lang[LS_ENABLE_USER_FUNCTIONS] ? "/"+kw2str(KW_SUBALGORITMO) : "") ));
 			}
 			if (inst.type==IT_FINPROCESO) {
 				auto &inst_impl = getImpl<IT_FINPROCESO>(inst);
@@ -810,7 +790,7 @@ void Instrucciones(RunTime &rt) {
 						}
 					}
 				} else {
-					err_handler.SyntaxError(308,first_word_str+" mal colocado.");
+					err_handler.SyntaxError(308,MkErrorMsg("$ mal colocado.",first_word_str));
 				}
 				memoria=&global_memory;
 			}
@@ -820,36 +800,34 @@ void Instrucciones(RunTime &rt) {
 				auto &inst_impl = getImpl<IT_DEFINIR>(inst);
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(44,"Faltan parámetros.");
 				else {
-					if (not LastCharIs(cadena,';')) {
-						cadena += ';';
-						if (!ignore_logic_errors) err_handler.SyntaxError(45,"Falta punto y coma.");
-					}
-					// extraer la ultima palabra (deberia ser el tipo) y normalizarla
-					string def_tipo; 
-					size_t pos_tipo = cadena.rfind(" ");
-					if (pos_tipo!=string::npos) {
-						def_tipo = cadena.substr(pos_tipo+1,cadena.size()-pos_tipo-2);
-						FixAcentos(def_tipo);
-						cadena.erase(pos_tipo+1);
-					}
-					if (def_tipo=="ENTERO"||def_tipo=="ENTEROS"||def_tipo=="ENTERAS"||def_tipo=="ENTERA")
-						inst_impl.tipo = vt_numerica_entera;
-					else if (def_tipo=="REAL"||def_tipo=="REALES"||def_tipo=="NUMERO"||def_tipo=="NUMEROS"||def_tipo=="NUMERICA"||
-							 def_tipo=="NUMERICO"||def_tipo=="NUMERICAS"||def_tipo=="NUMERICOS") 
-						inst_impl.tipo = vt_numerica;
-					else if (def_tipo=="CARACTER"||def_tipo=="CARACTERES"||def_tipo=="TEXTO"||
-							 def_tipo=="TEXTOS"||def_tipo=="CADENA"||def_tipo=="CADENAS")
-						inst_impl.tipo = vt_caracter;
-					else if (def_tipo=="LOGICO"||def_tipo=="LOGICOS"||def_tipo=="LOGICAS"||def_tipo=="LOGICA")
-						inst_impl.tipo = vt_logica;
-					else if (!ignore_logic_errors) 
-						err_handler.SyntaxError(46,"Falta tipo de dato o tipo no válido.");
+					if (LastCharIs(cadena,';')) EraseLastChar(cadena);
+					else if ((not ignore_logic_errors) and lang[LS_FORCE_SEMICOLON]) 
+						err_handler.SyntaxError(45,"Falta punto y coma.");
 					
-					if (pos_tipo!=string::npos) {
-						cadena[pos_tipo-5]=',';
+					int pos_como = FindKeyword(cadena,lang.keywords[KW_COMO],true), pos_paso = -1;
+					if (pos_como==-1) {
+						err_handler.SyntaxError(324,MkErrorMsg("Falta $.",kw2str(KW_ES)));
+					} else {
+						inst_impl.tipo = vt_desconocido;
+						string str_tipo = cadena.substr(pos_como);
+						if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_ENTERO],true))
+							inst_impl.tipo = vt_numerica_entera;
+						else if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_REAL],true))
+							inst_impl.tipo = vt_numerica;
+						else if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_CARACTER],true))
+							inst_impl.tipo = vt_caracter;
+						else if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_LOGICO],true))
+							inst_impl.tipo = vt_logica;
+						else if (!ignore_logic_errors) 
+							err_handler.SyntaxError(46,"Falta tipo de dato o tipo no válido.");
+						if (inst_impl.tipo!=vt_desconocido and (not str_tipo.empty()))
+							err_handler.SyntaxError(325,"Se esperaba el fin de la instrucción (luego del tipo).");
+						
 						// evaluar los nombre de variables
-						int parentesis=0,i0=0;
-						for (int i=0;i<=pos_tipo;i++) {
+						/// @todo: usar funcion auxiliar para cortar listas, aca, en leer, escribir, dimension...
+						cadena.erase(pos_como); cadena += ",";
+						int parentesis=0, i0=0;
+						for (size_t i=0; i<cadena.size(); ++i) {
 							if (cadena[i]=='(') parentesis++;
 							if (cadena[i]==')') parentesis--;
 							if (i>0 && i<(int)cadena.size()-1)
@@ -866,13 +844,12 @@ void Instrucciones(RunTime &rt) {
 									}
 								} else {
 									str.erase(str.find("(",0),str.size()-str.find("(",0));
-									if (!ignore_logic_errors) err_handler.SyntaxError(212,string("No debe utilizar subindices (")+str+").");
+									if (!ignore_logic_errors) err_handler.SyntaxError(212,MkErrorMsg("No debe utilizar subindices ($).",str));
 								}
 								inst_impl.variables.push_back(str);
 								i0=i+1;
 							}
 						}
-						cadena[pos_tipo-5]=' ';
 					}
 				}
 			}
@@ -906,7 +883,7 @@ void Instrucciones(RunTime &rt) {
 					cadena[cadena.size()-1]=';';
 				}
 			}
-			if (inst.type==IT_ESPERAR){  // ------------ ESCRIBIR -----------//
+			if (inst.type==IT_ESPERAR){  // ------------ ESPERAR -----------//
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(217,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_ESPERAR>(inst);
@@ -931,12 +908,12 @@ void Instrucciones(RunTime &rt) {
 						cadena[cadena.size()-1]=',';
 					else
 						cadena += ',';
-					int parentesis=0,i0=0;
+					int parentesis=0, i0=0;
 					for (int i=0;i<(int)cadena.size();i++) {
 						if (cadena[i]=='(') parentesis++;
 						if (cadena[i]==')') parentesis--;
 						if (i>0 && i<(int)cadena.size()-1)
-							if ((!comillas) && cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
+							if (/*(!comillas) && */cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
 								err_handler.SyntaxError(57,"Se esperaba fin de expresión.");
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							std::string str=cadena;
@@ -1032,7 +1009,7 @@ void Instrucciones(RunTime &rt) {
 							if (var_name.find("(",0)==string::npos) {
 								if (CheckVariable(rt,var_name,65)) {
 									if (!memoria->EstaDefinida(var_name)) memoria->DefinirTipo(var_name,vt_desconocido); // para que aparezca en la lista de variables
-									if (memoria->LeerDims(var_name) && !ignore_logic_errors) err_handler.SyntaxError(255,"Faltan subindices para el arreglo ("+var_name+").");
+									if (memoria->LeerDims(var_name) && !ignore_logic_errors) err_handler.SyntaxError(255,MkErrorMsg("Faltan subindices para el arreglo ($).",var_name));
 								}
 							} else if (!memoria->EsArgumento(var_name.substr(0,var_name.find('(',0)))) {
 								bool name_ok=true;
@@ -1040,7 +1017,7 @@ void Instrucciones(RunTime &rt) {
 								if (!CheckVariable(rt,aname,66)) { name_ok=false; }
 								else if (!memoria->EstaDefinida(aname)) memoria->DefinirTipo(aname,vt_desconocido); // para que aparezca en la lista de variables
 								if (!memoria->LeerDims(aname) && !ignore_logic_errors) { 
-									err_handler.SyntaxError(256,"La variable ("+aname+") no es un arreglo."); name_ok=false;
+									err_handler.SyntaxError(256,MkErrorMsg("La variable ($) no es un arreglo.",aname)); name_ok=false;
 								}
 								var_name=cadena;
 								var_name.erase(i,var_name.size()-i);
@@ -1064,7 +1041,7 @@ void Instrucciones(RunTime &rt) {
 									ca++;
 								}
 								if (name_ok && memoria->LeerDims(aname)[0]!=ca && !ignore_logic_errors) {
-									err_handler.SyntaxError(257,string("Cantidad de indices incorrecta para el arreglo (")+aname+(")"));
+									err_handler.SyntaxError(257,MkErrorMsg("Cantidad de indices incorrecta para el arreglo ($).",aname));
 									return;
 								}
 							}
@@ -1074,109 +1051,107 @@ void Instrucciones(RunTime &rt) {
 					cadena[cadena.size()-1]=';';
 				}
 			}
-			if (inst.type==IT_PARA){  // ------------ PARA -----------//
+			if (inst.type==IT_PARA) {  // ------------ PARA -----------//
 				auto &inst_impl = getImpl<IT_PARA>(inst);
 				
-				string &contador = inst_impl.contador = cadena;
-				if (contador.find(' ',0)==string::npos) err_handler.SyntaxError(70,"Faltan parámetros.");
-				if (!RightCompareFix(contador," HACER")) {
-					if (lang[LS_LAZY_SYNTAX]) { contador+=" HACER"; cadena+=" HACER";}
-					else err_handler.SyntaxError(71,"Falta HACER.");
+				// verificar "hacer"
+				if (not RightCompare(cadena,lang.keywords[KW_HACER],true)) {
+					if (not lang[LS_LAZY_SYNTAX]) err_handler.SyntaxError(71,MkErrorMsg("Falta $.",kw2str(KW_HACER)));
 				}
-				if (RightCompareFix(contador," HACER")) { // comprobar asignacion
-					contador.erase(contador.find(" ",0),contador.size()-contador.find(" ",0));
-					if (contador.find("<-",0)==string::npos) // Comprobar asignacion
-						err_handler.SyntaxError(72,"Se esperaba asignacion.");
-					else
-						if (RightCompare(contador,"<-HASTA") || RightCompare(contador,"<-CON PASO") || LeftCompare(contador,"<-"))
-							err_handler.SyntaxError(73,"Asignacion incompleta.");
-						else {
-							contador.erase(contador.find("<-",0),contador.size()-contador.find("<-",0));
-							if (CheckVariable(rt,contador,74)) {
-								memoria->DefinirTipo(contador,vt_numerica); // para que aparezca en la lista de variables
-								DataValue res;
-								if (this_instruction_is_ok()) DataValue res = EvaluarSC(rt,contador,vt_numerica);
-								if (res.IsOk()&&!res.CanBeReal())
-									err_handler.SyntaxError(76,"No coinciden los tipos.");
-								
-								auto p_arrow = cadena.find("<-");
-								auto p_space = cadena.find(' ',p_arrow);
-								string &val_ini = inst_impl.val_ini = cadena.substr(p_arrow+3,p_space-p_arrow-4);
-								if (this_instruction_is_ok()) res = EvaluarSC(rt,val_ini,vt_numerica);
-								if (res.IsOk()&&!res.CanBeReal())
-									err_handler.SyntaxError(77,"No coinciden los tipos.");
-								else { // comprobar hasta y variable final
-									
-									std::string str=cadena;
-									size_t pos_hasta = p_space;
-									str.erase(0,pos_hasta);
-									if (lang[LS_LAZY_SYNTAX] && LeftCompare(str," CON PASO ")) { // si esta el "CON PASO" antes del "HASTA", dar vuelta
-										size_t e=str.find(" ",10);
-										if (e!=string::npos) { // si hay algo despues del "CON PASO"
-											str.erase(e); // corta la parte de "CON PASO X"
-											cadena=cadena.substr(0,pos_hasta)+cadena.substr(pos_hasta+e); // rearma la cadena sin el paso
-											cadena.insert(cadena.size()-6,str); // inserta el paso
-											str=cadena; // pone str como si no hubiese pasado nada
-											str.erase(0,pos_hasta);
-										}
-									}
-									if (!LeftCompare(str," HASTA ")) {
-										if (LeftCompare(str," CON PASO ")) err_handler.SyntaxError(216,"CON PASO va despues de HASTA.");
-										else err_handler.SyntaxError(78,"Falta HASTA.");
-									} else if (LeftCompare(str," HASTA HACER")) {
-										err_handler.SyntaxError(79,"Falta el valor final del PARA.");
-									} else {
-										str.erase(0,7); str.erase(str.size()-6,6);
-										auto pos_esp = str.find(" ",0);
-										bool hay_paso = pos_esp!=string::npos;
-										if (hay_paso) str.erase(pos_esp,str.size()-pos_esp);
-										inst_impl.val_fin = str;
-										DataValue res;
-										if (this_instruction_is_ok()) res = EvaluarSC(rt,inst_impl.val_fin,vt_numerica);
-										if (res.IsOk()&&!res.CanBeReal()) err_handler.SyntaxError(81,"No coinciden los tipos.");
-										if (hay_paso) {
-											str=cadena; // comprobar con paso
-											str.erase(0,str.find("HASTA",6)+6);
-											str.erase(0,str.find(" ",0)+1);
-											str.erase(str.size()-6,6);
-											if (!LeftCompare(str,"CON PASO ")) {
-												if (str=="CON PASO")
-													err_handler.SyntaxError(258,"Falta el valor del paso.");
-												else
-													err_handler.SyntaxError(82,"Se esparaba CON PASO o fin de instrucción.");
-											} else {
-												str.erase(0,9);
-												inst_impl.paso = str;
-												DataValue res = EvaluarSC(rt,str,vt_numerica);
-												if (res.IsOk()&&!res.CanBeReal()) err_handler.SyntaxError(84,"No coinciden los tipos.");
-											}
-										}
-									}
-								}
-							}
+				
+				// cortar hasta
+				int pos_hasta = FindKeyword(cadena,lang.keywords[KW_HASTA],true), pos_paso = -1;
+				if (pos_hasta==-1) {
+					err_handler.SyntaxError(78,MkErrorMsg("Falta $.",kw2str(KW_HASTA)));
+				} else {
+					string asignacion = cadena.substr(0,pos_hasta);
+					inst_impl.val_fin = cadena.substr(pos_hasta);
+					
+					// cortar paso
+					pos_paso = FindKeyword(inst_impl.val_fin,lang.keywords[KW_CONPASO],true);
+					if (pos_paso!=-1) {
+						inst_impl.paso = inst_impl.val_fin.substr(pos_paso);
+						inst_impl.val_fin.erase(pos_paso);
+					} else {
+						pos_paso = FindKeyword(asignacion,lang.keywords[KW_CONPASO],true);
+						if (pos_paso!=-1) {
+							if (not lang[LS_LAZY_SYNTAX]) err_handler.SyntaxError(216,MkErrorMsg("$ va despues de $.",kw2str(KW_CONPASO),kw2str(KW_HASTA)));
+							inst_impl.paso = asignacion.substr(pos_paso);
+							asignacion.erase(pos_paso);
 						}
+					}
+					
+					// validar contador y valor inicial
+					size_t pos_flecha = asignacion.find("<-",0);
+					int pos_corte = -1;
+					if (pos_flecha==string::npos) {
+						if (lang[LS_LAZY_SYNTAX]) pos_corte = FindKeyword(asignacion,lang.keywords[KW_DESDE],true);
+						if (pos_corte==-1) err_handler.SyntaxError(72,"Se esperaba asignación.");
+					} else {
+						pos_corte = pos_flecha;
+						asignacion.erase(pos_flecha,2);
+					}
+					if (pos_corte!=-1) {
+						inst_impl.contador = asignacion.substr(0,pos_corte);
+						inst_impl.val_ini = asignacion.substr(pos_corte);
+						// contador
+						if (inst_impl.contador.empty() or inst_impl.val_ini.empty())
+							err_handler.SyntaxError(73,"Asignacion incompleta.");
+						else if (CheckVariable(rt,inst_impl.contador,74)) {
+							memoria->DefinirTipo(inst_impl.contador,vt_numerica); // para que aparezca en la lista de variables
+							DataValue res;
+							if (this_instruction_is_ok()) DataValue res = EvaluarSC(rt,inst_impl.contador,vt_numerica);
+							if (res.IsOk() and (not res.CanBeReal())) err_handler.SyntaxError(76,"No coinciden los tipos.");
+						}
+						// valor inicial
+						if (this_instruction_is_ok()) {
+							DataValue res = EvaluarSC(rt,inst_impl.val_ini,vt_numerica,"valor inicial");
+							if (res.IsOk() and (not res.CanBeReal())) err_handler.SyntaxError(77,"No coinciden los tipos.");
+						}
+					}
+					
+					// validar valor final
+					if (inst_impl.val_fin.empty()) 
+						err_handler.SyntaxError(79,MkErrorMsg("Falta el valor final del $.",kw2str(KW_PARA)));
+					else {
+						DataValue res;
+						if (this_instruction_is_ok()) res = EvaluarSC(rt,inst_impl.val_fin,vt_numerica,"valor final");
+						if (res.IsOk()&&!res.CanBeReal()) err_handler.SyntaxError(81,"No coinciden los tipos.");
+					}
+						
+					// validar paso
+					if (pos_paso!=-1) {
+						if (inst_impl.paso.empty())
+							err_handler.SyntaxError(258,"Falta el valor del paso.");
+						else {
+							DataValue res = EvaluarSC(rt,inst_impl.paso,vt_numerica,"paso");
+							if (res.IsOk() and (not res.CanBeReal())) err_handler.SyntaxError(84,"No coinciden los tipos.");
+						}
+					}
 				}
 			}
 			
 			if (inst.type==IT_PARACADA){  // ------------ PARA CADA -----------//
 				auto &inst_impl = getImpl<IT_PARACADA>(inst);
-				std::string str=cadena; // cortar instrucción
-				if (str.find(" ",0)==string::npos)
-					err_handler.SyntaxError(70,"Faltan parámetros.");
-				if (!RightCompareFix(str," HACER")) {
-					if (lang[LS_LAZY_SYNTAX]) { str+=" HACER"; cadena+=" HACER";}
-					else err_handler.SyntaxError(71,"Falta HACER."); str+=" HACER";
+				
+				// verificar "hacer"
+				if (not RightCompare(cadena,lang.keywords[KW_HACER],true)) {
+					if (not lang[LS_LAZY_SYNTAX]) err_handler.SyntaxError(71,MkErrorMsg("Falta $.",kw2str(KW_HACER)));
 				}
-				if (RightCompareFix(str," HACER")) {
-					int i=0; while (str[i]!=' ') i++;
-					inst_impl.identificador = str.substr(0,i);
-					CheckVariable(rt,inst_impl.identificador,259);
-					if (str.substr(i,4)==" EN " or str.substr(i,4)==" DE ") {
-						inst_impl.arreglo = str.substr(i+4,str.size()-i-10);
+				
+				// cortar hasta
+				int pos_de = FindKeyword(cadena,lang.keywords[KW_DE],true), pos_paso = -1;
+				if (pos_de==-1) {
+					err_handler.SyntaxError(260,MkErrorMsg("Falta $.",kw2str(KW_DE)));
+				} else {
+					inst_impl.identificador = cadena.substr(0,pos_de);
+					inst_impl.arreglo = cadena.substr(pos_de);
+					if (inst_impl.identificador.empty() or inst_impl.arreglo.empty())
+						err_handler.SyntaxError(260,"Falta el identificador de elemento y/o el del arreglo.");
+					if (not inst_impl.identificador.empty())
+						CheckVariable(rt,inst_impl.identificador,259);
+					if (not inst_impl.arreglo.empty())
 						CheckVariable(rt,inst_impl.arreglo,261);
-					} else {
-						err_handler.SyntaxError(260,"Se esperaba DE o EN.");
-					} 
 				}
 			}
 			
@@ -1185,6 +1160,9 @@ void Instrucciones(RunTime &rt) {
 					getImpl<IT_SEGUN>(programa[bucles.back()]).opciones.push_back(prog_idx);
 			}
 			if (inst.type==IT_OPCION) {  // ------------ opcion del SEGUN -----------//
+				if (programa[bucles.back()]!=IT_SEGUN) 
+					err_handler.SyntaxError(241,MkErrorMsg("Opción fuera de $.",kw2str(KW_SEGUN)));
+				
 				auto &inst_impl = getImpl<IT_OPCION>(inst);
 				if ((!bucles.empty())and(programa[bucles.back()]==IT_SEGUN))
 					getImpl<IT_SEGUN>(programa[bucles.back()]).opciones.push_back(prog_idx);
@@ -1250,7 +1228,7 @@ void Instrucciones(RunTime &rt) {
 			}
 			if (inst.type==IT_SI){  // ------------ SI -----------//
 				if (cadena=="")
-					err_handler.SyntaxError(90,"Falta la condición en la estructura Si-Entonces.");
+					err_handler.SyntaxError(90,MkErrorMsg("Falta la condición en la estructura $-$",kw2str(KW_SI),kw2str(KW_ENTONCES)));
 				// comprobar que no halla espacios
 				bool comillas=false;
 				for (int tmp1=0;tmp1<(int)cadena.size();tmp1++) {
@@ -1263,7 +1241,7 @@ void Instrucciones(RunTime &rt) {
 								cadena.erase(tmp1);
 								break;
 							} else {
-								err_handler.SyntaxError(91,"Se esperaba ENTONCES o fin de expresión.");
+								err_handler.SyntaxError(91,MkErrorMsg("Se esperaba $ o fin de expresión.",kw2str(KW_ENTONCES)));
 							}
 						}
 					}
@@ -1275,7 +1253,7 @@ void Instrucciones(RunTime &rt) {
 			}
 			if (inst.type==IT_HASTAQUE){  // ------------ HASTA QUE -----------//
 				if (cadena==""||cadena==";") { // cual era la segunda cadena??? (decir cadena==""||cadena=="", puse el ; por instinto)
-					 err_handler.SyntaxError(93,"Falta la condición en la estructura Repetir."); 
+					 err_handler.SyntaxError(93,MkErrorMsg("Falta la condición en la estructura $.",kw2str(KW_REPETIR))); 
 					 cadena+=" ";
 				} else {
 					std::string str=cadena; // Comprobar la condición
@@ -1298,72 +1276,48 @@ void Instrucciones(RunTime &rt) {
 				}
 			}
 			if (inst.type==IT_SEGUN){  // ------------ SEGUN -----------//
-//				last_was_segun=true;
-				if (cadena=="HACER" || cadena=="")
-					err_handler.SyntaxError(96,"Falta la variable/expresión de control en la estructura Segun.");
+				auto &inst_impl = getImpl<IT_SEGUN>(inst);
+				
+				if (LastCharIs(cadena,';')) {
+					if (!ignore_logic_errors) err_handler.SyntaxError(323,MkErrorMsg("$ no lleva punto y coma luego de la expresión de control.",kw2str(KW_MIENTRAS)));
+					cadena.erase(cadena.size()-1,1);
+				}
+				if (not RightCompare(cadena,lang.keywords[KW_HACER],true)) {
+					if (not lang[LS_LAZY_SYNTAX]) err_handler.SyntaxError(97,MkErrorMsg("Falta $.",kw2str(KW_HACER)));
+				}
+				
+				if (cadena.empty()) 
+					err_handler.SyntaxError(96,MkErrorMsg("Falta la variable/expresión de control en la estructura $.",kw2str(KW_SEGUN)));
 				else {
-					if (!RightCompareFix(cadena," HACER")) {
-						if (lang[LS_LAZY_SYNTAX]) cadena+=" HACER";
-						else err_handler.SyntaxError(97,"Falta HACER.");
-					}
-					if (RightCompareFix(cadena," HACER")) {
-						string &expresion = getImpl<IT_SEGUN>(inst).expresion = cadena; // Comprobar la condición
-						expresion.erase(expresion.size()-6,6);
-						// comprobar que no halla espacios
-						bool comillas=false;
-						for (int tmp1=0;tmp1<(int)expresion.size();tmp1++) {
-							if (expresion[tmp1]=='\'') comillas=!comillas;
-							if (tmp1>0 && tmp1<(int)expresion.size()-1)
-								if ((!comillas) && expresion[tmp1]==' ' && expresion[tmp1-1]!='&' && expresion[tmp1-1]!='|'  && expresion[tmp1+1]!='&'  && expresion[tmp1+1]!='|')
-									err_handler.SyntaxError(98,"Se esperaba fin de expresión.");
-						}
-						DataValue res;
-						if (this_instruction_is_ok()) res = EvaluarSC(rt,expresion,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
-						if (res.IsOk()&&!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) err_handler.SyntaxError(100,"No coinciden los tipos.");
-					}
+					inst_impl.expresion = cadena; // Comprobar la condición
+					DataValue res = EvaluarSC(rt,inst_impl.expresion,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica,"expresión de control");
+					if (res.IsOk() and (not res.CanBeReal()) and lang[LS_INTEGER_ONLY_SWITCH]) err_handler.SyntaxError(100,"No coinciden los tipos.");
 				}
 			}
 			if (inst.type==IT_MIENTRAS) { // ------------ MIENTRAS -----------//
 				auto &inst_impl = getImpl<IT_MIENTRAS>(inst);
-				if (cadena==""||cadena=="HACER") err_handler.SyntaxError(101,"Falta la condición en la estructura Mientras.");
+				
+				if (LastCharIs(cadena,';')) {
+					if (!ignore_logic_errors) err_handler.SyntaxError(262,MkErrorMsg("$ no lleva punto y coma luego de la condición.",kw2str(KW_MIENTRAS)));
+					cadena.erase(cadena.size()-1,1);
+				}
+				if (not RightCompare(cadena,lang.keywords[KW_HACER],true)) {
+					if (not lang[LS_LAZY_SYNTAX]) err_handler.SyntaxError(102,MkErrorMsg("Falta $.",kw2str(KW_HACER)));
+				}
+				if (cadena.empty()) 
+					err_handler.SyntaxError(101,MkErrorMsg("Falta la condición en la estructura $.",kw2str(KW_MIENTRAS)));
 				else {
-					if (LastCharIs(cadena,';')) {
-						if (!ignore_logic_errors) err_handler.SyntaxError(262,"MIENTRAS no lleva punto y coma luego de la condición.");
-						cadena.erase(cadena.size()-1,1);
-					}
-					if (!RightCompareFix(cadena," HACER")) {
-						if (lang[LS_LAZY_SYNTAX]) cadena+=" HACER";
-						else err_handler.SyntaxError(102,"Falta HACER.");
-					}
-					if (RightCompareFix(cadena," HACER")) {
-						string &str = inst_impl.condicion = cadena; // Comprobar la condición
-						str.erase(str.size()-6,6);
-						// comprobar que no halla espacios
-						bool comillas=false;
-						for (int tmp1=0;tmp1<(int)str.size();tmp1++) {
-							if (str[tmp1]=='\'') comillas=!comillas;
-							if (tmp1>0 && tmp1<(int)str.size()-1)
-								if ((!comillas) && str[tmp1]==' ' && str[tmp1-1]!='&' && str[tmp1-1]!='|'  && str[tmp1+1]!='&'  && str[tmp1+1]!='|') {
-									if (lang[LS_LAZY_SYNTAX]) {
-										string aux=str.substr(tmp1);
-										programa.Insert(prog_idx+1,aux);
-										break;
-									} else
-										err_handler.SyntaxError(103,"Se esperaba fin de expresión.");
-								}
-						}
-						if (this_instruction_is_ok()) {
-							DataValue res = EvaluarSC(rt,str,vt_logica);
-							if (res.IsOk()&&!res.CanBeLogic()) err_handler.SyntaxError(104,"No coinciden los tipos.");
-						}
-					}
+					// Comprobar la condición
+					inst_impl.condicion = cadena; 
+					DataValue res = EvaluarSC(rt,inst_impl.condicion,vt_logica,"condición");
+					if (res.IsOk() and (not res.CanBeLogic())) err_handler.SyntaxError(104,"No coinciden los tipos.");
 				}
 			}
 			if (inst.type==IT_SINO) {
-				if (bucles.empty() || programa[bucles.back()]!=IT_SI) err_handler.SyntaxError(2,"SINO mal colocado.");
+				if (bucles.empty() || programa[bucles.back()]!=IT_SI) err_handler.SyntaxError(2,MkErrorMsg("$ mal colocado.",kw2str(KW_SINO)));
 				else {
 					auto &si_impl = getImpl<IT_SI>(programa[bucles.back()]);
-					if (si_impl.sino!=-1) err_handler.SyntaxError(322,"No puede haber más de un SINO.");
+					if (si_impl.sino!=-1) err_handler.SyntaxError(322,MkErrorMsg("No puede haber más de un $.",kw2str(KW_SINO)));
 					else si_impl.sino = prog_idx;	
 				}
 			}
@@ -1391,13 +1345,13 @@ void Instrucciones(RunTime &rt) {
 				const string &fname = inst_impl.nombre = NextToken(cadena,p);
 				const Funcion *func = rt.funcs.GetFunction(fname);
 				string &args = inst_impl.args = cadena.substr(p);
-				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) err_handler.SyntaxError(310,string("La función retorna un valor, debe ser parte de una expresión (")+fname+").");
+				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) err_handler.SyntaxError(310,MkErrorMsg("La función retorna un valor, debe ser parte de una expresión ($).",fname));
 				if (args==";") args="();"; // para que siempre aparezcan las llaves y se eviten así problemas
 				if (args=="();") {
-					if (func->GetArgsCount()!=0 && !ignore_logic_errors) err_handler.SyntaxError(264,string("Se esperaban argumentos para el subproceso (")+fname+").");
+					if (func->GetArgsCount()!=0 && !ignore_logic_errors) err_handler.SyntaxError(264,MkErrorMsg("Se esperaban argumentos para el $ ($).",kw2str(KW_SUBALGORITMO),fname));
 				} else if (func->GetArgsCount()==0) {
-					if (args!="();" && !ignore_logic_errors) err_handler.SyntaxError(265,string("El subproceso (")+fname+") no debe recibir argumentos.");
-				} else if (args[0]!='(' && !ignore_logic_errors) err_handler.SyntaxError(266,"Los argumentos para invocar a un subproceso deben ir entre paréntesis.");
+					if (args!="();" && !ignore_logic_errors) err_handler.SyntaxError(265,MkErrorMsg("El $ ($) no debe recibir argumentos.",kw2str(KW_SUBALGORITMO),fname));
+				} else if (args[0]!='(' && !ignore_logic_errors) err_handler.SyntaxError(266,MkErrorMsg("Los argumentos para invocar a un $ deben ir entre paréntesis.",kw2str(KW_SUBALGORITMO)));
 				else { // entonces tiene argumentos, y requiere argumentos, ver que la cantidad esté bien
 					int args_last_pos = BuscarComa(args,1,args.length()-1,')');
 					if (args_last_pos!=-1) { // si faltaban cerrar parentesis, el error salto antes
@@ -1408,14 +1362,14 @@ void Instrucciones(RunTime &rt) {
 							if (cant_args<func->GetArgsCount()) {
 								string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
 								if (not SirveParaReferencia(rt,arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
-									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) err_handler.SyntaxError(268,string("No puede utilizar una expresión en un pasaje por referencia (")+arg_actual+(")"));
+									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) err_handler.SyntaxError(268,MkErrorMsg("No puede utilizar una expresión en un pasaje por referencia ($).",arg_actual));
 									else EvaluarSC(rt,arg_actual,func->tipos[cant_args+1]);
 								}
 							}
 							cant_args++; last_pos_coma=pos_coma;
 						} while (pos_coma!=args_last_pos);
 						if (cant_args!=func->GetArgsCount() && !ignore_logic_errors) 
-							err_handler.SyntaxError(267,string("Cantidad de argumentos incorrecta para el subproceso (")+fname+(")"));
+							err_handler.SyntaxError(267,MkErrorMsg("Cantidad de argumentos incorrecta para el subproceso ($).",fname));
 						else if (args_last_pos!=int(args.length())-2) err_handler.SyntaxError(269,"Se esperaba fin de instrucción."); // el -2 de la condición es por el punto y coma
 					}
 				}
@@ -1427,7 +1381,7 @@ void Instrucciones(RunTime &rt) {
 					getImpl<IT_SEGUN>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
 				} else
-					err_handler.SyntaxError(107,"FINSEGUN mal colocado.");
+					err_handler.SyntaxError(107,MkErrorMsg("$ mal colocado.",kw2str(KW_FINSEGUN)));
 			}
 			if (inst.type==IT_FINPARA) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_PARA||programa[bucles.back()]==IT_PARACADA)) {
@@ -1437,21 +1391,21 @@ void Instrucciones(RunTime &rt) {
 						getImpl<IT_PARACADA>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
 				} else
-					err_handler.SyntaxError(108,"FINPARA mal colocado.");
+					err_handler.SyntaxError(108,MkErrorMsg("$ mal colocado.",kw2str(KW_FINPARA)));
 			}
 			if (inst.type==IT_FINMIENTRAS) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_MIENTRAS)) {
 					getImpl<IT_MIENTRAS>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
 				} else
-					err_handler.SyntaxError(109,"FINMIENTRAS mal colocado.");
+					err_handler.SyntaxError(109,MkErrorMsg("$ mal colocado.",kw2str(KW_FINMIENTRAS)));
 			}
 			if (inst.type==IT_FINSI) {
 				if (!bucles.empty() && (programa[bucles.back()]==IT_SI)) {
 					getImpl<IT_SI>(programa[bucles.back()]).fin = prog_idx;	
 					bucles.pop_back();
 				} else
-					err_handler.SyntaxError(110,"FINSI mal colocado.");
+					err_handler.SyntaxError(110,MkErrorMsg("$ mal colocado.",kw2str(KW_FINSI)));
 			}
 			if (inst.type==IT_HASTAQUE) {
 				if (!bucles.empty() && programa[bucles.back()]==IT_REPETIR) {
@@ -1459,9 +1413,9 @@ void Instrucciones(RunTime &rt) {
 					bucles.pop_back();
 				} else {
 					if (getImpl<IT_HASTAQUE>(inst).mientras_que)
-						err_handler.SyntaxError(270,"MIENTRAS QUE mal colocado."); 
+						err_handler.SyntaxError(270,MkErrorMsg("$ mal colocado.",kw2str(KW_MIENTRASQUE))); 
 					else
-						err_handler.SyntaxError(111,"HASTA QUE mal colocado."); 
+						err_handler.SyntaxError(111,MkErrorMsg("$ mal colocado.",kw2str(KW_HASTAQUE))); 
 				}
 			}
 			if ( (prog_idx>0 && inst.type==IT_SINO && programa[prog_idx-1]==IT_SI)
@@ -1494,6 +1448,7 @@ bool ParseInspection(RunTime &rt, string &cadena) {
 bool SynCheck(RunTime &rt) {
 	Programa &programa = rt.prog;
 	ErrorHandler &err_handler = rt.err;
+	auto kw2str = [&keys=lang.keywords](int i) { return keys[i].get(); };
 	
 	programa.PushBack(""); // linea en blanco al final, para que era?
 	programa.Insert(0,""); // linea en blanco al principio, para que era?
@@ -1517,29 +1472,29 @@ bool SynCheck(RunTime &rt) {
 		}
 	}
 	
+	
 	_expects(not rt.funcs.HaveMain());
 	for(int i=0;i<programa.GetInstCount();i++) {
-		string &s=programa[i].instruccion;
-		string fw = FirstWord(s); FixAcentos(fw);
-		if (fw=="FUNCION"||fw=="PROCESO"||fw=="SUBPROCESO"||fw=="ALGORITMO"||fw=="SUBALGORITMO") {
-				Inter.SetLocation(programa[i].loc);
-				bool es_proceso=(fw=="PROCESO"||fw=="ALGORITMO");
-				if (s==fw) s+=" ";
-				string name = s.substr(fw.size()+1);
-				auto func = MakeFuncionForSubproceso(rt,name,es_proceso);
-				func->userline_start = Inter.GetLocation().linea;
-				rt.funcs.AddSub(std::move(func));
-				if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
-					if (rt.funcs.HaveMain())
-						err_handler.SyntaxError(272,"Solo puede haber un Proceso.");
-					rt.funcs.SetMain(name);
-				} else if (!lang[LS_ENABLE_USER_FUNCTIONS])
-					err_handler.SyntaxError(309,"Este perfil no admite SubProcesos.");
-			}
+		string &src = programa[i].instruccion;
+		bool es_proceso = LeftCompare(src,lang.keywords[KW_ALGORITMO],false);
+		if (es_proceso or LeftCompare(src,lang.keywords[KW_SUBALGORITMO],false)) {
+			Inter.SetLocation(programa[i].loc);
+			string proto = src; LeftCompare(proto,lang.keywords[es_proceso?KW_ALGORITMO:KW_SUBALGORITMO],true);
+			auto func = MakeFuncionForSubproceso(rt,proto,es_proceso);
+			func->userline_start = Inter.GetLocation().linea;
+			string func_name = func->id;
+			rt.funcs.AddSub(std::move(func));
+			if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
+				if (rt.funcs.HaveMain())
+					err_handler.SyntaxError(272,MkErrorMsg("Solo puede haber un $.",kw2str(KW_ALGORITMO)));
+				rt.funcs.SetMain(func_name);
+			} else if (!lang[LS_ENABLE_USER_FUNCTIONS])
+				err_handler.SyntaxError(309,MkErrorMsg("Este perfil no admite $.",kw2str(KW_SUBALGORITMO)));
+		}
 	}
 	Instrucciones(rt);
 	
-	if (not rt.funcs.HaveMain()) { Inter.SetLocation({1,1}); err_handler.SyntaxError(273,"Debe haber un Proceso."); }  
+	if (not rt.funcs.HaveMain()) { Inter.SetLocation({1,1}); err_handler.SyntaxError(273,MkErrorMsg("Debe haber un $.",kw2str(KW_ALGORITMO))); }
 	else Inter.SetLocation({rt.funcs.GetMainFunc()->line_start,1});
 	
 	return err_handler.IsOk();

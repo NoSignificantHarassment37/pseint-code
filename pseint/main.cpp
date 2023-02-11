@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
 	// salida para diagrama (temporal, hasta que psdraw y psexport consuman Programa directamente)
 		if (for_draw) {
 			if (case_map) {
-				CaseMapPurge();
+//				CaseMapPurge();
 				CaseMapApply(rt,programa,for_export);
 			}
 			SavePrograma(fil_args[1],programa);

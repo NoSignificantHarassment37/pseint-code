@@ -28,6 +28,4 @@ string expresion(RunTime &rt, string exp);
 
 string invert_expresion(std::string expr);
 
-std::vector<std::string> splitArgsList(const std::string &args);
-
 #endif

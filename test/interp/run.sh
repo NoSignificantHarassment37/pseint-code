@@ -25,7 +25,7 @@ else
 	echo "" 1>&2
     fi
   else
-      make -f Makefile.lnx -C ../pseint -j 2 || exit 1
+      make ARCH=lnx -C ../../pseint -j 2 || exit 1
       cat $1.psc
       echo === running, args=$ARGS
       $PSEINT --fortest --rawerrors --nouser --noinput $ARGS $1.psc > $1.out
