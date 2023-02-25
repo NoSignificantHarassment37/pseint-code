@@ -13,7 +13,7 @@
 #include "ShapesBar.h"
 #include "ToolBar.h"
 #include "Trash.h"
-#include <iostream>
+#include "../pseint/strFuncs.hpp"
 using namespace std;
 
 class RaiiColorChanger {
@@ -227,7 +227,7 @@ void display_cb() {
 	if (g_state.edit and (not g_state.mouse) and (not status_color)) {
 		switch (g_state.edit->type) {
 		case ET_LEER:       SetStatus(g_colors.status,"? Lista de variables a leer, separadas por coma."); break;
-		case ET_PROCESO:    SetStatus(g_colors.status,(g_state.edit->lpre=="Proceso " or g_state.edit->lpre=="Algoritmo ")?"? Nombre del proceso.":"? Prototipo del subproceso."); break;
+		case ET_PROCESO:    SetStatus(g_colors.status,LeftCompare(g_state.edit->lpre,g_lang.keywords[KW_ALGORITMO].get(false))?"? Nombre del algoritmo.":"? Prototipo de la función."); break;
 		case ET_COMENTARIO: SetStatus(g_colors.status,"? Texto libre, será ignorado por el interprete."); break;
 		case ET_ESCRIBIR:   SetStatus(g_colors.status,"? Lista de expresiones a mostrar, separadas por comas."); break;
 		case ET_SI:         SetStatus(g_colors.status,"? Expresión lógica."); break;

@@ -121,7 +121,7 @@ void LangSettings::init() {
 		"Preferir las palabras clave \"Función\" y \"FinFunción\"",
 			"Con esta opción activada, al insertar plantillas, generar o autocompletar el pseudocódigo, "
 			"se priorizará el uso de las palabras claves \"Función\" y \"FinFunción\" frente a "
-			"\"Proceso\" y \"FinProceso\" (o \"Algoritmo\" y \"FinAlgoritmo\") respectivamente."
+			"\"SubProceso\" y \"FinSubProceso\" (o \"SubAlgoritmo\" y \"SubFinAlgoritmo\") respectivamente."
 		);
 	data[LS_ALLOW_REPEAT_WHILE].Set("allow_repeat_while",					true,
 		"Permitir la variación \"Repetir ... Mientras Que...\"",
@@ -253,6 +253,8 @@ void LangSettings::Fix ( ) {
 	if (settings[LS_COLOQUIAL_CONDITIONS]) settings[LS_WORD_OPERATORS]=true; // no se puede usar LS_COLOQUIAL_CONDITIONS sin LS_WORD_OPERATORS
 	if (!settings[LS_ALLOW_REPEAT_WHILE]) settings[LS_PREFER_REPEAT_WHILE] = false; // no tiene sentido LS_PREFER_REPEAT_WHILE sin LS_ALLOW_REPEAT_WHILE
 	version=LS_VERSION; // colocar version nueva, para que el fix ya no actualice el perfil en la próxima carga
+	
+	fixKeywords(keywords,*this);
 }
 
 bool LangSettings::SetFromSingleString (const std::string & str) {

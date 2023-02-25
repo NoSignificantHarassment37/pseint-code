@@ -117,3 +117,29 @@ int matchParentesis(const std::string &src, int p) {
 	}
 	return -1;
 }
+
+char Normalize(char c) {
+	switch(c) {
+	case 'á': case 'Á': return 'A';
+	case 'é': case 'É': return 'E';
+	case 'í': case 'Í': return 'I';
+	case 'ó': case 'Ó': return 'O';
+	case 'ú': case 'Ú': return 'U';
+	case 'ü': case 'Ü': return 'U';
+	case 'ñ': case 'Ñ': return 'N';
+	default: return std::toupper(c);
+	}
+}
+
+char NormalizeKA(char c) {
+	switch(c) {
+	case 'á': return 'Á';
+	case 'é': return 'É';
+	case 'í': return 'Í';
+	case 'ó': return 'Ó';
+	case 'ú': return 'Ú';
+	case 'ü': return 'Ü';
+	case 'ñ': return 'Ñ';
+	default: return std::toupper(c);
+	}
+}

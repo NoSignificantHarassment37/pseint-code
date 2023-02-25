@@ -42,6 +42,11 @@ std::vector<std::string> splitArgsList(const std::string &args);
 std::string MkErrorMsg(std::string msg, const std::string &arg, bool add_parentesis=false);
 std::string MkErrorMsg(std::string msg, const std::string &arg1, const std::string &arg2);
 
+// pasa todo a mayuscula, y elimina acentos y ñs
+char Normalize(char c);
+
+// pasa todo a mayusculas, preservando acentos y ns
+char NormalizeKA(char c);
 
 #endif
 

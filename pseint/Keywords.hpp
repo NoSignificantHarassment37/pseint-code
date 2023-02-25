@@ -25,9 +25,11 @@ constexpr inline KeywordType KW_NULL = KW_COUNT;
 struct Keyword {
 	Keyword() = default;
 	Keyword &operator+= (const std::string &config);
+	Keyword &operator= (const std::string &config);
 	std::vector<std::string> alternatives; // normalizado
 	std::string preferred; // alternatives[0] sin normalizar
 	const std::string &get(bool normalized=false) const { return normalized?alternatives[0]:preferred; }
+	void clear() { alternatives.clear(); preferred.clear(); }
 	bool IsOk() const {
 		_expects(alternatives.empty()==preferred.empty());
 		return (not preferred.empty());
@@ -37,6 +39,9 @@ struct Keyword {
 using KeywordsList = std::array<Keyword,KW_COUNT>;
 
 void initKeywords(KeywordsList &keywords);
+
+class LangSettings;
+void fixKeywords(KeywordsList &keywords, const LangSettings &lang);
 
 /// Retorna el id de la keyword que encuentra, el texto original copiado de src, 
 /// y si remove es true, lo borra de la cadena (incluyendo el espacio que sigue si lo hay)

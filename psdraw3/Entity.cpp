@@ -12,6 +12,7 @@
 #ifndef _FOR_EXPORT
 #	include "ShapesBar.h"
 #endif
+#include "../pseint/strFuncs.hpp"
 using namespace std;
 
 static int edit_pos; // posición del cursor cuando se edita un texto
@@ -606,6 +607,7 @@ bool Entity::IsInside(int x0, int y0, int x1, int y1) {
 #define _endl_none inline_comments<<endl; inline_comments=""; {stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,nullptr);} line_num++;
 
 #define _fix(label,def) (label.size()?label:def)
+#define _kw(id) g_lang.keywords[id].get(false)
 
 void ReplaceAll(string &label, unsigned char from, const char *to) {
 	size_t pos = label.find(from);
@@ -616,81 +618,100 @@ void ReplaceAll(string &label, unsigned char from, const char *to) {
 }
 
 void Entity::Print(ostream &out, string tab, Entity *process, int &line_num) {
-	static string inline_comments;
+	
+	static std::string inline_comments;
+	std::string semicolon = (g_lang[LS_FORCE_SEMICOLON]?";":"");
 	bool add_tab=false;
 	string old_label = label;
 	ReplaceAll(label,SC_MEN_IGUAL,"<=");
 	ReplaceAll(label,SC_MAY_IGUAL,">=");
 	ReplaceAll(label,SC_FLECHA,"<-");
 	ReplaceAll(label,SC_DISTINTO,"<>");
-	if (type==ET_PROCESO) {
+	switch(type) {
+	case ET_PROCESO:
 		add_tab=true;
 		if (GetNext()) {
-			out<<tab<<lpre<<_fix(label,"{sin_titulo}")<<_endl_this;
+			out << tab << lpre << _fix(label,"{sin_titulo}") << _endl_this;
 			if (GetNext()->GetNext()) GetNext()->Print(out,add_tab?tab+_tabs:tab,process,line_num);
 			else { 
-				out<<(add_tab?tab+_tabs:tab)<<_endl_none; 
-				out<<tab<<"Fin"<<lpre.substr(0,lpre.size()-1)<<_endl_none;
+				out << (add_tab?tab+_tabs:tab) << _endl_none; 
+				out << tab << "Fin" << lpre.substr(0,lpre.size()-1) << _endl_none;
 			}
 			return;
 		} else {
 			tab.erase(tab.size()-1);
 			out<<tab<<lpre<<_endl_this;
 		}
-	} else if (type==ET_ESCRIBIR) {
-		if (g_lang[LS_FORCE_SEMICOLON] && label[label.size()-1]==';') label=label.erase(label.size()-1);
-		out<<tab<<"Escribir "<<_fix(label,"{lista_de_expresiones}")<<(variante?" Sin Saltar":"")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;
-	} else if (type==ET_LEER) {
-		if (g_lang[LS_FORCE_SEMICOLON] && label[label.size()-1]==';') label=label.erase(label.size()-1);
-		out<<tab<<"Leer "<<_fix(label,"{lista_de_variables}")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;
-	} else if (type==ET_MIENTRAS) {
-		out<<tab<<"Mientras "<<_fix(label,"{condicion}")<<" Hacer"<<_endl_this;
-		if (GetChild(0)) GetChild(0)->Print(out,tab+_tabs,process,line_num);
-		else { out<<(add_tab?tab+_tabs:tab)<<_endl_none; }
-		out<<tab<<"FinMientras"<<_endl_prev;
-	} else if (type==ET_REPETIR) {
-		out<<tab<<"Repetir"<<_endl_prev;
-		if (GetChild(0)) GetChild(0)->Print(out,tab+_tabs,process,line_num);
-		else { out<<(add_tab?tab+_tabs:tab)<<_endl_none; }
-		out<<tab<<(variante?"Mientras Que ":"Hasta Que ")<<_fix(label,"{condicion}")<<_endl_this;
-	} else if (type==ET_PARA) {
+	break;
+	case ET_ESCRIBIR:
+		if (g_lang[LS_FORCE_SEMICOLON] and LastCharIs(label,';')) EraseLastChar(label);
+		out << tab << _kw(KW_ESCRIBIR) << " " << _fix(label,"{lista_de_expresiones}") 
+			<< (variante?_kw(KW_SIN_SALTAR):"") << semicolon << _endl_this;
+	break;
+	case ET_LEER:
+		if (g_lang[LS_FORCE_SEMICOLON] and LastCharIs(label,';')) EraseLastChar(label);
+		out << tab << _kw(KW_LEER) << " " << _fix(label,"{lista_de_variables}") << semicolon << _endl_this;
+	break;
+	case ET_MIENTRAS:
+		out << tab << _kw(KW_MIENTRAS) << " " << _fix(label,"{condicion}") << " " << _kw(KW_HACER) <<_endl_this;
+		if (GetChild(0)) GetChild(0)->Print(out, tab+_tabs, process, line_num);
+		else { out << (add_tab?tab+_tabs:tab) << _endl_none; }
+		out << tab << _kw(KW_FINMIENTRAS) << _endl_prev;
+	break;
+	case ET_REPETIR:
+		out << tab << _kw(KW_REPETIR) <<_endl_prev;
+		if (GetChild(0)) GetChild(0)->Print(out, tab+_tabs, process, line_num);
+		else { out << (add_tab?tab+_tabs:tab) << _endl_none; }
+		out << tab << _kw(variante?KW_MIENTRASQUE:KW_HASTAQUE) << " " << _fix(label,"{condicion}") << _endl_this;
+	break;
+	case ET_PARA:
 		if (variante) {
-			out<<tab<<"Para Cada"<<_fix(label,"{variable}")<<" de "<<_fix(GetChild(2)->label,"{arreglo}")<<" Hacer"<<_endl_this;
+			out << tab << _kw(KW_PARACADA) << " " << _fix(label,"{variable}")<<" " << _kw(KW_DE)
+				<< " " <<_fix(GetChild(2)->label,"{arreglo}") <<" " << _kw(KW_HACER) << _endl_this;
 		} else {
-			bool has_paso=GetChild(2)->label!="1"&&GetChild(2)->label!="+1"&&GetChild(2)->label!="";
-			out<<tab<<"Para "<<_fix(label,"{variable}")<<"<-"<<_fix(GetChild(1)->label,"{valor_inicial}")<<" Hasta "<<_fix(GetChild(3)->label,"{valor_final}")
-				<<(has_paso?" Con Paso ":"")<<(has_paso?_fix(GetChild(2)->label,"{paso}"):"") <<" Hacer"<<_endl_this;
+			std::string paso;
+			if (GetChild(2)->label!="1"&&GetChild(2)->label!="+1"&&GetChild(2)->label!="")
+				paso = " " + _kw(KW_CONPASO)+" " + _fix(GetChild(2)->label,"{paso}");
+			out << tab << _kw(KW_PARA) << " " << _fix(label,"{variable}") << "<-" << _fix(GetChild(1)->label,"{valor_inicial}")
+				<< " " << _kw(KW_HASTA) << " " << _fix(GetChild(3)->label,"{valor_final}")
+				<< paso << " " +_kw(KW_HACER) << _endl_this;
 		}
-		if (GetChild(0)) GetChild(0)->Print(out,tab+_tabs,process,line_num);
-		else { out<<(add_tab?tab+_tabs:tab)<<_endl_none; }
-		out<<tab<<"FinPara"<<_endl_prev;
-	} else if (type==ET_SELECTION) {
-		GetChild(0)->Print(out,_tabs,process,line_num);
-	} else if (type==ET_SEGUN) {
-		out<<tab<<"Segun "<<_fix(label,"{expresion}")<<" Hacer"<<_endl_this;
+		if (GetChild(0)) GetChild(0)->Print(out, tab+_tabs, process, line_num);
+		else { out << (add_tab?tab+_tabs:tab) << _endl_none; }
+		out << tab << _kw(KW_FINPARA) << _endl_prev;
+	break;
+	case ET_SELECTION:
+		GetChild(0)->Print(out, _tabs, process, line_num);
+	break;
+	case ET_SEGUN:
+		out << tab << _kw(KW_SEGUN) << " " << _fix(label,"{expresion}") << " " << _kw(KW_HACER) << _endl_this;
 		for(int i=0;i<GetChildCount()-1;i++) { 
 			GetChild(i)->Print(out,tab+_tabs,process,line_num);
 		}
 		if (GetChild(GetChildCount()-1)->GetChild(0)) // de otro modo
-			GetChild(GetChildCount()-1)->Print(out,tab+_tabs,process,line_num);
-		out<<tab<<"FinSegun"<<_endl_prev;
-	} else if (type==ET_OPCION) {
-		add_tab=true;
-		out<<tab<<_fix(label,"{expresion}")<<":"<<_endl_this;
-		if (GetChild(0)) GetChild(0)->Print(out,tab+_tabs,process,line_num);
-	} else if (type==ET_SI) {
-		out<<tab<<"Si "<<_fix(label,"{condicion}")<<" Entonces"<<_endl_this;
-		if (GetChild(1)) { GetChild(1)->Print(out,tab+_tabs,process,line_num); }
-		else { out<<(add_tab?tab+_tabs:tab)<<_endl_none; }
+			GetChild(GetChildCount()-1)->Print(out, tab+_tabs, process, line_num);
+		out << tab << _kw(KW_FINSEGUN) << _endl_prev;
+	break;
+	case ET_OPCION:
+		add_tab = true;
+		out << tab << _fix(label,"{expresion}") << ":" << _endl_this;
+		if (GetChild(0)) GetChild(0)->Print(out, tab+_tabs, process, line_num);
+	break;
+	case ET_SI:
+		out << tab << _kw(KW_SI) << " " << _fix(label,"{condicion}") << " " << _kw(KW_ENTONCES) << _endl_this;
+		if (GetChild(1)) { GetChild(1)->Print(out, tab+_tabs, process, line_num); }
+		else { out << (add_tab?tab+_tabs:tab) << _endl_none; }
 		if (GetChild(0)) {
-			out<<tab<<"SiNo"<<_endl_this;
-			GetChild(0)->Print(out,tab+_tabs,process,line_num); 
+			out << tab << _kw(KW_SINO) << _endl_this;
+			GetChild(0)->Print(out, tab+_tabs, process, line_num); 
 		}
-		out<<tab<<"FinSi"<<_endl_prev;
-	} else if (type==ET_ASIGNAR) {
-		if (g_lang[LS_FORCE_SEMICOLON] && label[label.size()-1]==';') label=label.erase(label.size()-1);
-		if (label.size()) { out<<tab<<label<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this; }
-	} else if (type==ET_COMENTARIO) {
+		out << tab << _kw(KW_FINSI) << _endl_prev;
+	break;
+	case ET_ASIGNAR:
+		if (g_lang[LS_FORCE_SEMICOLON] and LastCharIs(label,';')) EraseLastChar(label);
+		if (label.size()) { out << tab << label << semicolon << _endl_this; }
+	break;
+	case ET_COMENTARIO: {
 		string pre="// "; if (!label.empty() && label[0]=='/') pre="//";
 		if (variante) {
 			if (inline_comments=="") inline_comments=string(" ")+pre; else inline_comments+=" - ";
@@ -701,6 +722,9 @@ void Entity::Print(ostream &out, string tab, Entity *process, int &line_num) {
 			out<<tab<<pre<<label<<_endl_this;
 			inline_comments = prev_ilc;
 		}
+	} break;
+	default:
+		_impossible;	
 	}
 	label=old_label;
 	if (GetNext()) GetNext()->Print(out,add_tab?tab+_tabs:tab,process,line_num);
@@ -792,12 +816,11 @@ void Entity::SetLabels() {
 			lpre = g_config.nassi_shneiderman?"// ":"";
 			break;
 		case ET_LEER:
-			lpre = g_config.nassi_shneiderman ? "Leer " : "";
+			lpre = g_config.nassi_shneiderman ? _kw(KW_LEER)+" " : "";
 		case ET_PROCESO: // se fija desde afuera, nunca cambia
-//			lpre=variante?"Fin Proceso":"Proceso ";
 			break;
 		case ET_ESCRIBIR:
-			lpre = g_config.nassi_shneiderman ? "Escribir " : "";
+			lpre = g_config.nassi_shneiderman ? _kw(KW_ESCRIBIR)+" " : "";
 		case ET_ASIGNAR:
 			break;
 		case ET_SI:
@@ -807,20 +830,20 @@ void Entity::SetLabels() {
 		case ET_OPCION:
 			break;
 		case ET_PARA:
-			lpre = g_config.nassi_shneiderman ? (variante?"Para Cada":"Para ") : "";
+			lpre = g_config.nassi_shneiderman ? _kw(variante?KW_PARACADA:KW_PARA) + " " : "";
 			break;
 		case ET_MIENTRAS:
-			lpre = g_config.nassi_shneiderman ? "Mientras " : "";
+			lpre = g_config.nassi_shneiderman ? _kw(KW_MIENTRAS) + " " : "";
 			break;
 		case ET_REPETIR:
-			lpre = g_config.nassi_shneiderman ? (variante?"Mientras Que ":"Hasta Que ") : "";
+			lpre = g_config.nassi_shneiderman ? _kw(variante?KW_MIENTRASQUE:KW_HASTAQUE)+ " " : "";
 			break;
 		case ET_AUX_PARA:
 			if (not GetParent()) return; // en el ctor todavía no está linkeado al padre, y el lpre depende de la posicion en el padre
 			if (g_config.nassi_shneiderman) {
-				if (GetParent()->GetChild(1)==this) lpre=" Desde ";
-				else if (GetParent()->GetChild(2)==this) lpre=" Con Paso ";
-				else if (GetParent()->GetChild(3)==this) lpre=" Hasta ";
+				if (GetParent()->GetChild(1)==this) lpre=" " + _kw(KW_DESDE) +" ";
+				else if (GetParent()->GetChild(2)==this) lpre = " " + _kw(KW_CONPASO) + " ";
+				else if (GetParent()->GetChild(3)==this) lpre = " " + _kw(KW_HASTA) + " ";
 			} else {
 				lpre="";
 			}

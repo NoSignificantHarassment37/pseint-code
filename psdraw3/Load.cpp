@@ -12,11 +12,7 @@
 #include "../pseint/ProgramaDump.hpp"
 using namespace std;
 
-
-static bool StartsWith(const string &s1, string s2) {
-	if (s1.length()<s2.length()) return false;
-	else return s1.substr(0,s2.length())==s2;
-}
+#define _kw(id) g_lang.keywords[id].get(false)
 
 // Agrega una nueva entidad donde corresponda. El "donde corresponda" sería
 // o bien como hijo de la previa, o bien como siguiente de la previa.
@@ -30,13 +26,13 @@ static bool StartsWith(const string &s1, string s2) {
 static Entity *Add(stack<int> &children_stack, Entity *previa, Entity *nueva, int child_id_for_next=-1) {
 	int where = children_stack.top(); 
 	children_stack.pop(); 
-	if (nueva->type==ET_OPCION) { assert(previa->type==ET_SEGUN); children_stack.push(where+(nueva->label=="De Otro Modo"?0:1)); }
+	if (nueva->type==ET_OPCION) { assert(previa->type==ET_SEGUN); children_stack.push(where+(nueva->label==g_lang.keywords[KW_DEOTROMODO].get(false)?0:1)); }
 	children_stack.push(-1);
 	if (where==-1) {
 		previa->LinkNext(nueva);
 	} else { 
 		if (nueva->type==ET_OPCION) {
-			if (nueva->label=="De Otro Modo") {
+			if (nueva->label==g_lang.keywords[KW_DEOTROMODO].get(false)) {
 				delete nueva; nueva=previa->GetChild(previa->GetChildCount()-1); // porque el child para dom se crea ya en el ctor del segun
 			} else {
 				previa->InsertChild(where,nueva);
@@ -121,10 +117,10 @@ void LoadProc(Programa &prog, int &i_inst) {
 		case IT_PROCESO: {
 			auto &impl = getImpl<IT_PROCESO>(inst);
 			if (impl.principal) { 
-				g_code.start->lpre = g_lang[LS_PREFER_ALGORITMO]?"Algoritmo ":"Proceso "; 
+				g_code.start->lpre = _kw(KW_ALGORITMO) + " "; 
 				g_code.start->SetLabel(impl.nombre); 
 			} else { 
-				g_code.start->lpre = g_lang[LS_PREFER_FUNCION]?"Funcion ":(g_lang[LS_PREFER_ALGORITMO]?"SubAlgoritmo ":"SubProceso "); 
+				g_code.start->lpre = _kw(KW_SUBALGORITMO) + " "; 
 				std::string proto = (impl.ret_id.empty() ? "" : (impl.ret_id + " <- ")) + impl.nombre + impl.args;
 				g_code.start->SetLabel(proto); 
 			}
@@ -223,7 +219,7 @@ void LoadProc(Programa &prog, int &i_inst) {
 			_new_this(aux);
 		} break;
 		case IT_OPCION: case IT_DEOTROMODO: {
-			std::string str = inst.type==IT_DEOTROMODO ? "De Otro Modo" : join(getImpl<IT_OPCION>(inst).expresiones);
+			std::string str = inst.type==IT_DEOTROMODO ? _kw(KW_DEOTROMODO) : join(getImpl<IT_OPCION>(inst).expresiones);
 			if (aux->type!=ET_SEGUN or children_stack.top()==-1) { // si no es el 1er hijo (no esta despues del segun)
 				aux=Up(children_stack,aux); // sube a la opcion
 				aux=Up(children_stack,aux); // sube al segun
@@ -242,31 +238,31 @@ void LoadProc(Programa &prog, int &i_inst) {
 			// le corresponde a ese finsegun), y entonces cuando venga el 2do finsegun sí
 			// hay que subir, para eso se mira children_stack
 			if (inst.type==IT_FINSEGUN && (aux->type!=ET_SEGUN or children_stack.top()==-1)) { aux=Up(children_stack,aux); aux=Up(children_stack,aux); }
-			aux=Up(children_stack,aux);
+			aux = Up(children_stack,aux);
 			_new_prev();
 		} break;
 		default: {
 			std::string str;
 			switch (inst.type) {
-			case IT_BORRARPANTALLA: str="Borrar Pantalla"; break;
-			case IT_ESPERARTECLA: str="Esperar Tecla"; break;
+			case IT_BORRARPANTALLA: str = _kw(KW_LIMPIARPANTALLA); break;
+			case IT_ESPERARTECLA: str = _kw(KW_ESPERARTECLA); break;
 			case IT_ESPERAR: {
 				auto &impl = getImpl<IT_ESPERAR>(inst);
-				str = "Esperar " + impl.tiempo + (impl.factor==1?" Milisegundos":" Segundos"); 
+				str = _kw(KW_ESPERARTIEMPO) + " " + impl.tiempo + " " + _kw(impl.factor==1?KW_MILISEGUNDOS:KW_SEGUNDOS); 
 			} break;
 			case IT_DEFINIR: {
-				str = string("Definir ") + join(getImpl<IT_DEFINIR>(inst).variables);
+				str = _kw(KW_DEFINIR) + " " + join(getImpl<IT_DEFINIR>(inst).variables) + " " + _kw(KW_COMO) + " ";
 				auto &impl = getImpl<IT_DEFINIR>(inst);
-				if      (impl.tipo==vt_caracter) str += " Como Caracter";
-				else if (impl.tipo==vt_logica)   str += " Como Logico";
+				if      (impl.tipo==vt_caracter) str += _kw(KW_TIPO_CARACTER);
+				else if (impl.tipo==vt_logica)   str += _kw(KW_TIPO_LOGICO);
 				else { _expects(impl.tipo==vt_numerica);
-					if (impl.tipo.rounded)       str += " Como Entero";
-					else                         str += " Como Real";
+					if (impl.tipo.rounded)       str += _kw(KW_TIPO_ENTERO);
+					else                         str += _kw(KW_TIPO_REAL);
 				}
 			} break;
 			case IT_DIMENSION: {
 				auto &impl = getImpl<IT_DIMENSION>(inst);
-				str = string("Dimension ");
+				str = _kw(KW_DIMENSIONAR) + " ";
 				for (size_t i=0; i<impl.nombres.size(); ++i) { 
 					if (i) str += ", ";
 					str += impl.nombres[i]+"("+impl.tamanios[i]+")";
@@ -355,7 +351,7 @@ void CreateEmptyProc(string type) {
 
 void New() {
 	g_state.fname = "temp.psd"; 
-	CreateEmptyProc(g_lang[LS_PREFER_ALGORITMO]?"Algoritmo":"Proceso");
+	CreateEmptyProc(_kw(KW_ALGORITMO));
 	ProcessMenu(MO_ZOOM_EXTEND);
 	g_state.modified = false;
 }

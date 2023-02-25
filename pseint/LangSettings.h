@@ -9,7 +9,7 @@
 #	include "../wxPSeInt/string_conversions.h"
 #endif
 
-#define LS_VERSION 20210407
+#define LS_VERSION 20230211
 
 enum LS_INIT_ENUM {
 	LS_INIT,

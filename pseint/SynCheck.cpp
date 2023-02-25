@@ -56,6 +56,7 @@ std::pair<std::string,bool> Normalizar(std::string &cadena) {
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
 	if (cadena.size()>1 && (cadena[cadena.size()-2]==13||cadena[cadena.size()-2]==10) ) cadena[cadena.size()-2]=' ';
 	// primero, todo a mayúsculas y cambio de comillas y paréntesis
+	auto NormalizeChar = lang[LS_ALLOW_ACCENTS]?Normalize:NormalizeKA; // parece al reves... pero es adrede, si no se permiten acentos, los dejo para que luego salte como error de identificador no valido
 	for (int i=0,len = cadena.size(); i<len; ++i) {
 		char &c=cadena[i];
 		if (c==';' && i+1<len) {
@@ -81,7 +82,7 @@ std::pair<std::string,bool> Normalizar(std::string &cadena) {
 			else if (c==']') c=')';
 			else if (c==9) c=' ';
 			else if (c==' ' && i!=0 && cadena[i-1]==' ') { cadena.erase(--i,1); len--; }
-			else c=ToUpper(c);
+			else c = NormalizeChar(c);
 		}
 	}
 	// despues, word_operators
