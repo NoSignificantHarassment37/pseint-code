@@ -3,7 +3,7 @@ cd $2/Contents || exit 1
 LIST="MacOS/pseint Resources/psterm Resources/pseval Resources/psdrawE Resources/psdraw3"
 mkdir -p Frameworks
 
-WXDIR=$(whereis wx-config | cut -d ':' -f 2 | sed 's/\/bin\/wx-config//')
+WXDIR=$(whereis wx-config | cut -d ' ' -f 2 | sed 's/\/bin\/wx-config//')
 
 while ! [ "$LIST" = "" ]; do
 	NEXT_LIST=""

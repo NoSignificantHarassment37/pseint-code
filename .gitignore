@@ -6,3 +6,5 @@ test/draw/psd
 test/draw/diff
 test/draw/tmp
 temp
+wine32
+wine64

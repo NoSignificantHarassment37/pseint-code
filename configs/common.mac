@@ -12,7 +12,7 @@ GCC=${MAC_PREFIX}-clang
 GPP=${MAC_PREFIX}-clang++
 AR=${MAC_PREFIX}-ar
 
-CXXFLAGS=-O3 -DNDEBUG -Wno-invalid-source-encoding -Wno-inconsistent-missing-override
+CXXFLAGS=-O3 -DNDEBUG -Wno-invalid-source-encoding -Wno-inconsistent-missing-override -std=c++17
 LDFLASG=
 
 WX_CXXFLAGS=`wx-config --cppflags` -DWX3

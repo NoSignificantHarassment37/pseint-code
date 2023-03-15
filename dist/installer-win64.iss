@@ -27,7 +27,7 @@ WizardImageAlphaFormat=defined
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline
 OutputDir=.
-OutputBaseFilename=pseint-w32-{#MyAppVersion}
+OutputBaseFilename=pseint-w64-{#MyAppVersion}
 DisableReadyPage=yes
 DisableDirPage=no
 Compression=lzma
@@ -37,6 +37,9 @@ DirExistsWarning=no
 ;CreateUninstallRegKey=no
 ;Uninstallable=no
 ;UninstallDisplayName=PSeInt
+; Uncomment next line to support windows vista at the price of reduced security
+;MinVersion=6.0
+ArchitecturesAllowed=x64
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
