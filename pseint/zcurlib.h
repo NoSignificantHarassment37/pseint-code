@@ -28,7 +28,6 @@
 #define KEY_ENTER 13
 #define KEY_TAB 9
 #include <string>
-using namespace std;
 
 void setBackColor(int color);	
 void setForeColor(int color);
@@ -38,7 +37,7 @@ int getKey(void);
 void hideCursor();
 void showCursor();
 void setTitle(const char* title);
-string getLine();
+std::string getLine();
 
 #endif
 

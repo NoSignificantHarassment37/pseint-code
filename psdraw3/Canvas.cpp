@@ -1,15 +1,14 @@
-#include "GLstuff.h"
 #include <iostream>
 #include <wx/glcanvas.h>
 #include <wx/msgdlg.h>
 #include <wx/dcclient.h>
+#include "GLstuff.h"
 #include "Events.h"
 #include "Draw.h"
 #include "Global.h"
 #include "Textures.h"
 #include "Canvas.h"
 #include "../wxPSeInt/string_conversions.h"
-using namespace std;
 
 Canvas *g_canvas = nullptr;
 
@@ -150,7 +149,6 @@ void Canvas::OnIdle (wxIdleEvent & event) {
 
 void Canvas::OnKeyDown (wxKeyEvent & event) {
 	int key=event.GetKeyCode();
-	cout << "OnKeyDown::KeyCode " << key << endl;
 	switch (key) {
 	case WXK_SHIFT: modifiers|=MODIFIER_SHIFT; break;
 	case WXK_ALT: modifiers|=MODIFIER_ALT; break;
@@ -172,7 +170,6 @@ void Canvas::OnKeyUp (wxKeyEvent & event) {
 }
 
 void Canvas::OnChar (wxKeyEvent & event) {
-	cout << "OnChar::KeyCode " << int(event.GetKeyCode()) << endl;
 	keyboard_cb(event.GetKeyCode());
 }
 

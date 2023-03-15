@@ -1,5 +1,7 @@
 #include <iostream>
 #include <algorithm>
+#include <ctime>
+#include <random>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/gauge.h>
@@ -69,7 +71,7 @@ bool mxMainWindow::RunAllTests(const wxString &cmdline, bool for_create) {
 	}
 	
 	if (!for_create && pack.GetConfigBool("mezclar casos")) {
-		std::random_shuffle(tests.begin(),tests.end());
+		std::shuffle(tests.begin(),tests.end(),std::mt19937(std::time(0)));
 	}
 	
 	mxSingleCaseWindow *results_win = new mxSingleCaseWindow(this,

@@ -6,7 +6,6 @@
 #include "mxDebugWindow.h"
 #include <iostream>
 #include "string_conversions.h"
-using namespace std;
 
 mxSubtitles *subtitles = NULL;
 

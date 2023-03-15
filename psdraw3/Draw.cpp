@@ -14,7 +14,6 @@
 #include "ToolBar.h"
 #include "Trash.h"
 #include "../pseint/strFuncs.hpp"
-using namespace std;
 
 class RaiiColorChanger {
 	float *p[5], v[5]; int n;
@@ -30,10 +29,10 @@ CURSORES mouse_cursor;
 #define mouse_link_delta 250
 static int mouse_link_x=0,mouse_link_y=0; 
 
-static string status_text; // texto para la barra de estado
+static std::string status_text; // texto para la barra de estado
 static const float *status_color; // color del texto para la barra de estado
 
-void SetStatus(const float *color, const string &text) {
+void SetStatus(const float *color, const std::string &text) {
 	status_color=color;
 	status_text=text;
 }

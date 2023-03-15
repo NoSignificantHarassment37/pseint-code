@@ -10,7 +10,6 @@
 #include "../wxPSeInt/CommonParsingFunctions.h"
 #include "../pseint/Programa.hpp"
 #include "../pseint/ProgramaDump.hpp"
-using namespace std;
 
 #define _kw(id) g_lang.keywords[id].get(false)
 
@@ -23,7 +22,7 @@ using namespace std;
 // mientras que si recibo otra cosa la próxima irá como hija en ese lugar (0
 // para Para, Repetir, Mientras; 1 para Si; 0 a X para Segun; etc).
 
-static Entity *Add(stack<int> &children_stack, Entity *previa, Entity *nueva, int child_id_for_next=-1) {
+static Entity *Add(std::stack<int> &children_stack, Entity *previa, Entity *nueva, int child_id_for_next=-1) {
 	int where = children_stack.top(); 
 	children_stack.pop(); 
 	if (nueva->type==ET_OPCION) { assert(previa->type==ET_SEGUN); children_stack.push(where+(nueva->label==g_lang.keywords[KW_DEOTROMODO].get(false)?0:1)); }
@@ -49,7 +48,7 @@ static Entity *Add(stack<int> &children_stack, Entity *previa, Entity *nueva, in
 
 // Sube un nivel en el children_stack. Se usa por ej cuando se cierra 
 // alguna estructura de control
-static Entity *Up(stack<int> &children_stack, Entity *previa) {
+static Entity *Up(std::stack<int> &children_stack, Entity *previa) {
 	int where = children_stack.top();
 	children_stack.pop(); 
 	if (where==-1) {
@@ -60,7 +59,7 @@ static Entity *Up(stack<int> &children_stack, Entity *previa) {
 	}
 }
 
-static void RemoveParentesis(string &ini) {
+static void RemoveParentesis(std::string &ini) {
 	if (ini.size()&&ini[0]=='(') { // suele venir envuelta en parentesis
 		int par=1;
 		for(unsigned int i=1;i<ini.size();i++) { 
@@ -75,7 +74,7 @@ static void RemoveParentesis(string &ini) {
 	}
 }
 
-static void ReemplazarOperadores(string &str) {
+static void ReemplazarOperadores(std::string &str) {
 	bool comillas=false;
 	for(unsigned int i=0;i<str.size();i++) { 
 		if (str[i]=='\'' || str[i]=='\"') comillas=!comillas;
@@ -280,7 +279,7 @@ void LoadProc(Programa &prog, int &i_inst) {
 	}
 	Entity *efin = new Entity(ET_PROCESO,""); 
 	efin->variante = true;
-	efin->lpre = string("Fin")+g_code.start->lpre.substr(0,g_code.start->lpre.size()-1);
+	efin->lpre = std::string("Fin")+g_code.start->lpre.substr(0,g_code.start->lpre.size()-1);
 	efin->SetLabel("");
 	aux->LinkNext(efin);
 }
@@ -323,13 +322,13 @@ bool Save(std::string filename) {
 	if (filename.empty()) filename = g_state.fname;
 	else g_state.fname = filename;
 	
-	ofstream fout(filename);
+	std::ofstream fout(filename);
 	if (!fout.is_open()) return false;
 	g_code.code2draw.clear(); g_state.debug_current = nullptr;
 	int line=1;
 	for(unsigned int i=0;i<g_code.procesos.size();i++) {
 		g_code.procesos[i]->GetTopEntity()->Print(fout,"",g_code.procesos[i],line);
-		if (i+1!=g_code.procesos.size()) { fout<<endl; line++; }
+		if (i+1!=g_code.procesos.size()) { fout<<std::endl; line++; }
 	}
 	fout.close();
 	g_state.modified = false;
@@ -337,14 +336,14 @@ bool Save(std::string filename) {
 }
 
 // inicializa las estructuras de datos con un algoritmo en blanco
-void CreateEmptyProc(string type) {
+void CreateEmptyProc(std::string type) {
 	Entity::AllSet(nullptr);
 	g_code.start = new Entity(ET_PROCESO,"");
 	Entity *aux = new Entity(ET_PROCESO,"");
 	aux->variante=true;
 	g_code.start->LinkNext(aux);
 	g_code.start->lpre=type+" "; g_code.start->SetLabel("SinTitulo");
-	aux->lpre=string("Fin")+type; aux->SetLabel("");
+	aux->lpre = std::string("Fin")+type; aux->SetLabel("");
 	Entity::CalculateAll();
 	g_code.procesos.push_back(g_code.start);
 }

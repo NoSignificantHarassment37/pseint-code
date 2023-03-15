@@ -2,7 +2,6 @@
 #define ENTITY_H
 #include <string>
 #include "EntityLinking.h"
-using namespace std;
 
 #ifdef DrawText
 // maldito windows.h
@@ -48,11 +47,11 @@ struct Entity : public EntityLinking<Entity> {
 	int flecha_in; // si las flechas de entrada son mas largas que lo normal (ej, entrada en un repetitivo), se pone aca la diferencia (esto se podria sacar, no?)
 	Entity *nolink; // elemento seleccionado, para que los hijos se escondan atras del padre mientras se mueve al padre
 	bool variante; // true convierte repetir-hastaque en repetir-mientrasque o para en paracada
-	string lpre, label; // rotulo(editable) y prefijo(no editable)
-	string colourized; // tiene letras que indican el color utilizado para syntax-highlighting ('a' es 0 en el arreglo de colores)
+	std::string lpre, label; // rotulo(editable) y prefijo(no editable)
+	std::string colourized; // tiene letras que indican el color utilizado para syntax-highlighting ('a' es 0 en el arreglo de colores)
 	void Colourize();
-	string error; // mensaje de error si es que la estructura tiene un error de sintaxis
-	Entity(ETYPE _type, string _label, bool _variante=false);
+	std::string error; // mensaje de error si es que la estructura tiene un error de sintaxis
+	Entity(ETYPE _type, std::string _label, bool _variante=false);
 	~Entity();
 	void SetEdit(bool ensure_caret_visibility = true);
 	void UnsetEdit();
@@ -62,8 +61,8 @@ struct Entity : public EntityLinking<Entity> {
 	void EditSpecialLabel(int key);
 	void EditLabel(unsigned char key);
 	void GetTextSize(int &w, int &h);
-	void GetTextSize(const string &label, int &w, int &h);
-	void SetLabel(string _label, bool recalc=false);
+	void GetTextSize(const std::string &label, int &w, int &h);
+	void SetLabel(std::string _label, bool recalc=false);
 	void SetLabels();
 	int IsLabelCropped();
 	int CheckLinkChild(int x, int y);
@@ -87,7 +86,7 @@ struct Entity : public EntityLinking<Entity> {
 	void EnsureCaretVisible();
 	bool CheckMouse(int x, int y, bool click=true);
 	bool IsInside(int x0, int y0, int x1, int y1);
-	void Print(ostream &out, string tab, Entity *process, int &line_num);
+	void Print(std::ostream &out, std::string tab, Entity *process, int &line_num);
 	void SetPosition(int x0, int y0); // para moverla por la fuerza, para ubicarla en la shapebar cuando se crea
 	Entity *GetTopEntity(); ///< sigue por prev hasta llegar a null
 	static void CalculateAll(bool also_text_size=false);

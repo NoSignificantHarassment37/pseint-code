@@ -121,8 +121,10 @@ struct Instruccion {
 		// bool is_inline; // no es necesario, se puede preguntar si inst.loc.instruccion!=1
 	};
 	
-	std::variant<INull,IComentario,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,IDimension,IDefinir,IEsperar,IInvocar,
-				 ISi,ISegun,IOpcion,IHastaQue,IPara,IParaCada,IMientras,IRepetir> impl;
+	using variant_t = std::variant<INull,IComentario,IProceso,IFinProceso,IEscribir,ILeer,IAsignar,
+		                           IDimension,IDefinir,IEsperar,IInvocar,
+				                   ISi,ISegun,IOpcion,IHastaQue,IPara,IParaCada,IMientras,IRepetir>;
+	variant_t impl;
 	void setType(InstructionType t) {
 		type = t;
 		switch(type) {
@@ -149,6 +151,12 @@ struct Instruccion {
 	}
 };
 
+namespace std {
+	template<typename T>
+	auto &get(Instruccion::variant_t &inst) { return *std::get_if<T>(&inst); }
+}
+
+
 // estos strucs auxiliares son para que podamos pedir el struct con los detalles
 // de cada tipo de instruccion sin tener que saber su tipo (el del struct), ni
 // como se llama el atributo, o si es herencia, o lo que sea...
@@ -161,7 +169,7 @@ template<> struct InstImplHelper<IT_ESCRIBIR>  { static auto& get(Instruccion &i
 template<> struct InstImplHelper<IT_LEER>      { static auto& get(Instruccion &inst) { return std::get<Instruccion::ILeer>      (inst.impl); } };
 template<> struct InstImplHelper<IT_SI>        { static auto& get(Instruccion &inst) { return std::get<Instruccion::ISi>        (inst.impl); } };
 template<> struct InstImplHelper<IT_HASTAQUE>  { static auto& get(Instruccion &inst) { return std::get<Instruccion::IHastaQue>  (inst.impl); } };
-template<> struct InstImplHelper<IT_DEFINIR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IDefinir>    (inst.impl); } };
+template<> struct InstImplHelper<IT_DEFINIR>   { static auto& get(Instruccion &inst) { return std::get<Instruccion::IDefinir>   (inst.impl); } };
 template<> struct InstImplHelper<IT_DIMENSION> { static auto& get(Instruccion &inst) { return std::get<Instruccion::IDimension> (inst.impl); } };
 template<> struct InstImplHelper<IT_MIENTRAS>  { static auto& get(Instruccion &inst) { return std::get<Instruccion::IMientras>  (inst.impl); } };
 template<> struct InstImplHelper<IT_PARA>      { static auto& get(Instruccion &inst) { return std::get<Instruccion::IPara>      (inst.impl); } };

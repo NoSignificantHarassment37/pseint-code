@@ -9,6 +9,8 @@
 #include "ExporterBase.hpp"
 #include "TiposExporter.hpp"
 
+using namespace std;
+
 QBasicExporter::QBasicExporter() {
 	use_pi=use_rand=use_asin=use_acos=false;
 	output_base_zero_arrays=input_base_zero_arrays;

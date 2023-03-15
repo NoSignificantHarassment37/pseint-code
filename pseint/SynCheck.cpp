@@ -12,11 +12,10 @@
 #include "debug.h"
 #include "ErrorHandler.hpp"
 #include "strFuncs.hpp"
-using namespace std;
 
 // ULTIMO NRO DE ERROR UTILIZADO: 328
 
-static int PSeudoFind(const string &s, char x, int from=0, int to=-1) {
+static int PSeudoFind(const std::string &s, char x, int from=0, int to=-1) {
 	if (to==-1) to=s.size();
 	if (x=='\"') x='\'';
 	else if (x=='[') x='(';
@@ -42,7 +41,7 @@ static int PSeudoFind(const string &s, char x, int from=0, int to=-1) {
 }
 
 // para checkear que las dimensiones de los arreglos no involucren variables
-static bool IsNumericConstant(string &str) {
+static bool IsNumericConstant(std::string &str) {
 	for (unsigned int i=0;i<str.size();i++)
 		if (EsLetra(str[i])) return false;
 	return true;
@@ -51,7 +50,7 @@ static bool IsNumericConstant(string &str) {
 
 // pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y quita espacios extras
 std::pair<std::string,bool> Normalizar(std::string &cadena) {
-	string rest; bool is_comment = true;
+	std::string rest; bool is_comment = true;
 	// corregir saltos de linea win/linux
 	if (cadena.size()>0 && (cadena[cadena.size()-1]==13||cadena[cadena.size()-1]==10) ) cadena[cadena.size()-1]=' ';
 	if (cadena.size()>1 && (cadena[cadena.size()-2]==13||cadena[cadena.size()-2]==10) ) cadena[cadena.size()-2]=' ';
@@ -118,18 +117,18 @@ std::pair<std::string,bool> Normalizar(std::string &cadena) {
 }
 
 struct coloquial_aux {
-	string cond, pre, post, rep;
+	std::string cond, pre, post, rep;
 	int csize;
 	bool binary;
 	coloquial_aux(){}
-	coloquial_aux(string c, string pr, string re, string po) 
+	coloquial_aux(std::string c, std::string pr, std::string re, std::string po) 
 		: cond(c),pre(pr),post(po),rep(re), csize(cond.size()), binary(po.size()) {}
-	coloquial_aux(string c, string pr, string re, string po, bool bin) 
+	coloquial_aux(std::string c, std::string pr, std::string re, std::string po, bool bin) 
 		: cond(c),pre(pr),post(po),rep(re), csize(cond.size()), binary(bin) {}
 };
 
-vector<coloquial_aux> &GetColoquialConditions() {
-	static vector<coloquial_aux> v;
+std::vector<coloquial_aux> &GetColoquialConditions() {
+	static std::vector<coloquial_aux> v;
 	if (v.empty()) {
 		v.push_back(coloquial_aux("ES ENTERO ",				"(",	")=TRUNC(",		"<PRE>)"	,false));
 		v.push_back(coloquial_aux("ES ENTERA ",				"(",	")=TRUNC(",		"<PRE>)"	,false));
@@ -166,7 +165,7 @@ vector<coloquial_aux> &GetColoquialConditions() {
 }
 	
 // reescribir condiciones coloquiales
-void Condiciones(RunTime &rt, string &cadena) {
+void Condiciones(RunTime &rt, std::string &cadena) {
 	ErrorHandler &err_handler = rt.err;
 	if (!cadena.size() || !lang[LS_COLOQUIAL_CONDITIONS]) return;
 	if (not LastCharIs(cadena,' ')) cadena += ' ';
@@ -179,7 +178,7 @@ void Condiciones(RunTime &rt, string &cadena) {
 		}
 	}
 	
-	vector<coloquial_aux> &coloquial_conditions_list = GetColoquialConditions();
+	std::vector<coloquial_aux> &coloquial_conditions_list = GetColoquialConditions();
 	for (int y=0;y<int(cadena.size());y++) {
 		if (cadena[y]=='\'' || cadena[y]=='\"') {
 			while (++y<int(cadena.size()) && cadena[y]!='\'' && cadena[y]!='\"');
@@ -200,7 +199,7 @@ void Condiciones(RunTime &rt, string &cadena) {
 		coloquial_aux &col=coloquial_conditions_list[cual];
 		cadena.replace(y,col.csize,col.rep);
 		// agregar pre y post antes y despues de los operandos
-		string pre;
+		std::string pre;
 		{
 			int parentesis=0, yold=y--; bool comillas=false;
 			while ( y>=0 && ( (parentesis>0||comillas) || (cadena[y]!='&' && cadena[y]!=',' && cadena[y]!='|' && cadena[y]!='~' && cadena[y]!='(') ) ) {
@@ -237,9 +236,9 @@ void Condiciones(RunTime &rt, string &cadena) {
 			} else {
 				if (y0<y) err_handler.SyntaxError(319,MkErrorMsg("No corresponde operando (después de la condición coloquial $).",col.cond));
 			}
-			string post=col.post;
+			std::string post=col.post;
 			size_t n=post.find("<PRE>");
-			if (n!=string::npos) post.replace(n,5,pre);
+			if (n!=std::string::npos) post.replace(n,5,pre);
 			cadena.insert(y,post);
 			y=yold;
 		}
@@ -279,7 +278,7 @@ int is_valid_operator(char act, char next, int &len, what_extra &type) {
 }
 
 // verificar operadores, constantes y parentesis, y borrar los espacios en blanco que sobran entre ellos
-void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instruction_type) {
+void Operadores(RunTime &rt, const int &x, std::string &cadena, InstructionType instruction_type) {
 	ErrorHandler &err_handler = rt.err;
 	bool allow_multiple_expresions=instruction_type!=IT_DEOTROMODO && instruction_type!=IT_ASIGNAR;
 	what w=w_null; what_extra wext=w_other;
@@ -297,7 +296,7 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 					// solo puede seguir un operando (id, cte, o expresión)
 					if (next_es_letra) {
 						int j=i+2; while (EsLetra(cadena[j],true)) j++;
-						const string word=cadena.substr(i+1,j-i-1);
+						const std::string word=cadena.substr(i+1,j-i-1);
 						if (PalabraReservada(word) && word!=VERDADERO && word!=FALSO) 
 							err_handler.SyntaxError(237,MkErrorMsg("Falta operando (antes de $).",cadena.substr(i+1,j-i-1))); // hola+ ;
 						else { cadena.erase(i,1); i--; }
@@ -306,7 +305,7 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 					} else {
 						what_extra type; int len; int ret=is_valid_operator(cadena[i+1],i+2<csize?cadena[i+2]:' ',len,type);
 						if (ret!=w_unary_op&&ret!=w_ambiguos_op) 
-							err_handler.SyntaxError(224,MkErrorMsg("Falta operando (despues de $).",string(1,cadena[i-1])));
+							err_handler.SyntaxError(224,MkErrorMsg("Falta operando (despues de $).",std::string(1,cadena[i-1])));
 						else { cadena.erase(i,1); i--; }
 					}
 				} else if (w==w_operand) {
@@ -398,9 +397,8 @@ void Operadores(RunTime &rt, const int &x, string &cadena, InstructionType instr
 	if (comillas) err_handler.SyntaxError(37,"Falta cerrar comillas.");
 }
 
-static void FixAcentos(string &s) {
-	for(size_t i=0;i<s.size();i++) { 
-		char &c=s[i];
+static void FixAcentos(std::string &s) {
+	for(char &c : s) {
 		if (c=='Ñ') c='N';
 		else if (c=='Á') c='A';
 		else if (c=='É') c='E';
@@ -433,7 +431,7 @@ void InformUnclosedLoops(RunTime &rt, std::vector<int> &bucles) {
 	}
 }
 
-bool SirveParaReferencia(RunTime &rt, const string &s) {
+bool SirveParaReferencia(RunTime &rt, const std::string &s) {
 	int p=0, l=s.size(), parentesis=0;
 	bool in_name=true; // si estamos en la primer parte (nombre) o segunda (indices si es un arreglo)
 	while (p<l) {
@@ -510,7 +508,7 @@ void Instrucciones(RunTime &rt) {
 			} else if (first_word_id==KW_ESCRIBIR) {
 				inst.setType(IT_ESCRIBIR);
 				if (FindKeyword(cadena,lang.keywords[KW_SIN_SALTAR],true)!=-1)
-					get<Instruccion::IEscribir>(inst.impl).saltar = false;
+					std::get<Instruccion::IEscribir>(inst.impl).saltar = false;
 			} else if (first_word_id==KW_LEER) {
 				inst.setType(IT_LEER);
 			} else if (first_word_id==KW_SI) {
@@ -583,7 +581,7 @@ void Instrucciones(RunTime &rt) {
 //					int p = FindKeyword(cadena,lang.keywords[KW_DESDE],true);
 //					if (p!=-1 and p!=0) { cadena.insert(p,"<-"); pos_arrow = p; }
 //				}
-				if (pos_arrow!=string::npos) {
+				if (pos_arrow!=std::string::npos) {
 					// se agregan parentesis al valor inicial para evitar problemas mas adelante (porque si el valor es negativo, con la flecha de asignacion queda un --)
 					int p1 = FindKeyword(cadena,lang.keywords[KW_HASTA],false);
 					int p2 = FindKeyword(cadena,lang.keywords[KW_CONPASO],false);
@@ -675,7 +673,7 @@ void Instrucciones(RunTime &rt) {
 					// definicion?
 					if ((not cadena.empty()) and lang[LS_LAZY_SYNTAX] and inst.type!=IT_ASIGNAR) { // definición de tipos alternativa (x es entero)
 						size_t pos = cadena.rfind(' ',cadena.size()-(LastCharIs(cadena,';')?3:2));
-						if (pos!=string::npos) {
+						if (pos!=std::string::npos) {
 							int pos = FindKeyword(cadena,lang.keywords[KW_ES],true);
 							if (pos!=-1) {
 								inst.setType(IT_DEFINIR);
@@ -811,7 +809,7 @@ void Instrucciones(RunTime &rt) {
 						err_handler.SyntaxError(324,MkErrorMsg("Falta $.",kw2str(KW_ES)));
 					} else {
 						inst_impl.tipo = vt_desconocido;
-						string str_tipo = cadena.substr(pos_como);
+						std::string str_tipo = cadena.substr(pos_como);
 						if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_ENTERO],true))
 							inst_impl.tipo = vt_numerica_entera;
 						else if (LeftCompare(str_tipo,lang.keywords[KW_TIPO_REAL],true))
@@ -839,7 +837,7 @@ void Instrucciones(RunTime &rt) {
 								std::string str=cadena;
 								str.erase(i,str.size()-i);
 								str.erase(0,i0);
-								if (str.find("(",0)==string::npos) {
+								if (str.find("(",0)==std::string::npos) {
 									if (CheckVariable(rt,str,48)) {
 										if (memoria->EsArgumento(str) && !ignore_logic_errors) err_handler.SyntaxError(222,"No debe redefinir el tipo de un argumento.");
 										memoria->DefinirTipo(str,inst_impl.tipo);
@@ -889,7 +887,7 @@ void Instrucciones(RunTime &rt) {
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(217,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_ESPERAR>(inst);
-					string &tiempo = inst_impl.tiempo = cadena;
+					std::string &tiempo = inst_impl.tiempo = cadena;
 					if (LastCharIs(tiempo,';')) EraseLastChar(tiempo);
 					int &factor = inst_impl.factor;
 					if      (RightCompare(tiempo,lang.keywords[KW_SEGUNDOS],true)) factor = 1000;
@@ -921,12 +919,12 @@ void Instrucciones(RunTime &rt) {
 							std::string str=cadena;
 							str.erase(i,str.size()-i);
 							str.erase(0,i0);
-							if (str.find("(",0)==string::npos){ 
+							if (str.find("(",0)==std::string::npos){ 
 								if (!ignore_logic_errors) err_handler.SyntaxError(58,"Faltan subindices.");
 								if (CheckVariable(rt,str,59) and (not memoria->EstaDefinida(str)))
 									memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
 							} else {
-								string aname;
+								std::string aname;
 								str.erase(str.find("(",0),str.size()-str.find("(",0));
 								CheckVariable(rt,str,60);
 								if (memoria->EsArgumento(str) && !ignore_logic_errors) err_handler.SyntaxError(223,"No debe redimensionar un argumento.");
@@ -954,8 +952,8 @@ void Instrucciones(RunTime &rt) {
 								
 								// comprobar los indices
 								DataValue res;
-								string str2;
-								while (str.find(",",0)!=string::npos){
+								std::string str2;
+								while (str.find(",",0)!=std::string::npos){
 									str2=str;
 									str2.erase(str.find(",",0),str.size()-str.find(",",0));
 									if (str2=="") err_handler.SyntaxError(61,"Parametro nulo.");
@@ -1006,16 +1004,16 @@ void Instrucciones(RunTime &rt) {
 								err_handler.SyntaxError(64,"Se esperaba fin de expresión.");
 						}
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
-							string var_name = cadena.substr(expr_start,i-expr_start);
+							std::string var_name = cadena.substr(expr_start,i-expr_start);
 							inst_impl.variables.push_back(var_name);
-							if (var_name.find("(",0)==string::npos) {
+							if (var_name.find("(",0)==std::string::npos) {
 								if (CheckVariable(rt,var_name,65)) {
 									if (!memoria->EstaDefinida(var_name)) memoria->DefinirTipo(var_name,vt_desconocido); // para que aparezca en la lista de variables
 									if (memoria->LeerDims(var_name) && !ignore_logic_errors) err_handler.SyntaxError(255,MkErrorMsg("Faltan subindices para el arreglo ($).",var_name));
 								}
 							} else if (!memoria->EsArgumento(var_name.substr(0,var_name.find('(',0)))) {
 								bool name_ok=true;
-								string aname=var_name.substr(0,var_name.find("(",0));
+								std::string aname=var_name.substr(0,var_name.find("(",0));
 								if (!CheckVariable(rt,aname,66)) { name_ok=false; }
 								else if (!memoria->EstaDefinida(aname)) memoria->DefinirTipo(aname,vt_desconocido); // para que aparezca en la lista de variables
 								if (!memoria->LeerDims(aname) && !ignore_logic_errors) { 
@@ -1028,10 +1026,10 @@ void Instrucciones(RunTime &rt) {
 								if (LastCharIs(var_name,')')) EraseLastChar(var_name); /// @todo: ver si esto es necesario
 								var_name.erase(0,1);
 								var_name += ',';
-								string str2;
+								std::string str2;
 								// comprobar los indices
 								int ca=0;
-								while (var_name.find(",",0)!=string::npos){
+								while (var_name.find(",",0)!=std::string::npos){
 									str2=var_name;
 									str2.erase(var_name.find(",",0),var_name.size()-var_name.find(",",0));
 									// if (str2=="") err_handler.SyntaxError(67,"Parametro nulo.");
@@ -1066,7 +1064,7 @@ void Instrucciones(RunTime &rt) {
 				if (pos_hasta==-1) {
 					err_handler.SyntaxError(78,MkErrorMsg("Falta $.",kw2str(KW_HASTA)));
 				} else {
-					string asignacion = cadena.substr(0,pos_hasta);
+					std::string asignacion = cadena.substr(0,pos_hasta);
 					inst_impl.val_fin = cadena.substr(pos_hasta);
 					
 					// cortar paso
@@ -1086,7 +1084,7 @@ void Instrucciones(RunTime &rt) {
 					// validar contador y valor inicial
 					size_t pos_flecha = asignacion.find("<-",0); /// @todo: contemplar los otros operadores de asignacion alternativos (:= e =)
 					int pos_corte = -1;
-					if (pos_flecha==string::npos) {
+					if (pos_flecha==std::string::npos) {
 						if (lang[LS_LAZY_SYNTAX]) pos_corte = FindKeyword(asignacion,lang.keywords[KW_DESDE],true);
 						if (pos_corte==-1) err_handler.SyntaxError(72,"Se esperaba asignación.");
 					} else {
@@ -1173,8 +1171,8 @@ void Instrucciones(RunTime &rt) {
 				// permitir utiliza O para separar la posibles opciones
 				if (lang[LS_LAZY_SYNTAX]) {
 					size_t p;
-					while ((p=cadena.find(" O "))!=string::npos) cadena.replace(p,3,",");
-					while ((p=cadena.find("|")  )!=string::npos) cadena.replace(p,1,",");
+					while ((p=cadena.find(" O "))!=std::string::npos) cadena.replace(p,3,",");
+					while ((p=cadena.find("|")  )!=std::string::npos) cadena.replace(p,1,",");
 				}
 				cadena[cadena.size()-1]=',';
 				int i=0, p;
@@ -1345,9 +1343,9 @@ void Instrucciones(RunTime &rt) {
 			if (inst.type==IT_INVOCAR) {
 				auto &inst_impl = getImpl<IT_INVOCAR>(inst);
 				int p=0;
-				const string &fname = inst_impl.nombre = NextToken(cadena,p);
+				const std::string &fname = inst_impl.nombre = NextToken(cadena,p);
 				const Funcion *func = rt.funcs.GetFunction(fname);
-				string &args = inst_impl.args = cadena.substr(p);
+				std::string &args = inst_impl.args = cadena.substr(p);
 				if (func->GetTipo(0)!=vt_error && !ignore_logic_errors) err_handler.SyntaxError(310,MkErrorMsg("La función retorna un valor, debe ser parte de una expresión ($).",fname));
 				if (args==";") args="();"; // para que siempre aparezcan las llaves y se eviten así problemas
 				if (args=="();") {
@@ -1363,7 +1361,7 @@ void Instrucciones(RunTime &rt) {
 							pos_coma=BuscarComa(args,pos_coma+1,args_last_pos,',');
 							if (pos_coma==-1) pos_coma=args_last_pos;
 							if (cant_args<func->GetArgsCount()) {
-								string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
+								std::string arg_actual=args.substr(last_pos_coma+1,pos_coma-last_pos_coma-1);
 								if (not SirveParaReferencia(rt,arg_actual)) { // puede ser el nombre de un arreglo suelto, para pasar por ref, y el evaluar diria que faltan los subindices
 									if (func->pasajes[cant_args+1]==PP_REFERENCIA && !ignore_logic_errors) err_handler.SyntaxError(268,MkErrorMsg("No puede utilizar una expresión en un pasaje por referencia ($).",arg_actual));
 									else EvaluarSC(rt,arg_actual,func->tipos[cant_args+1]);
@@ -1439,7 +1437,7 @@ void Instrucciones(RunTime &rt) {
 	
 }
 
-bool ParseInspection(RunTime &rt, string &cadena) {
+bool ParseInspection(RunTime &rt, std::string &cadena) {
 	auto ret = Normalizar(cadena); // acomodar caracteres
 	if (!ret.first.empty()) rt.err.SyntaxError(271,"No puede haber más de una expresión ni comentarios.");
 	if (LastCharIs(cadena,';')) EraseLastChar(cadena);
@@ -1478,14 +1476,14 @@ bool SynCheck(RunTime &rt) {
 	
 	_expects(not rt.funcs.HaveMain());
 	for(int i=0;i<programa.GetInstCount();i++) {
-		string &src = programa[i].instruccion;
+		std::string &src = programa[i].instruccion;
 		bool es_proceso = LeftCompare(src,lang.keywords[KW_ALGORITMO],false);
 		if (es_proceso or LeftCompare(src,lang.keywords[KW_SUBALGORITMO],false)) {
 			Inter.SetLocation(programa[i].loc);
-			string proto = src; LeftCompare(proto,lang.keywords[es_proceso?KW_ALGORITMO:KW_SUBALGORITMO],true);
+			std::string proto = src; LeftCompare(proto,lang.keywords[es_proceso?KW_ALGORITMO:KW_SUBALGORITMO],true);
 			auto func = MakeFuncionForSubproceso(rt,proto,es_proceso);
 			func->userline_start = Inter.GetLocation().linea;
-			string func_name = func->id;
+			std::string func_name = func->id;
 			rt.funcs.AddSub(std::move(func));
 			if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
 				if (rt.funcs.HaveMain())

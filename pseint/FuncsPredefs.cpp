@@ -101,7 +101,7 @@ DataValue func_longitud(ErrorHandler &err_handler, DataValue *arg) {
 }
 
 DataValue func_mayusculas(ErrorHandler &err_handler, DataValue *arg) {
-	string s = arg[0].GetAsString(); size_t l = s.size();
+	std::string s = arg[0].GetAsString(); size_t l = s.size();
 	for(size_t i=0;i<l;i++) { 
 		if (s[i]>='a'&&s[i]<='z') s[i]+='A'-'a';
 		else if (s[i]=='ñ') s[i]='Ñ';
@@ -116,7 +116,7 @@ DataValue func_mayusculas(ErrorHandler &err_handler, DataValue *arg) {
 }
 
 DataValue func_minusculas(ErrorHandler &err_handler, DataValue *arg) {
-	string s = arg[0].GetAsString(); size_t l = s.length();
+	std::string s = arg[0].GetAsString(); size_t l = s.length();
 	for(size_t i=0;i<l;i++) { 
 		if (s[i]>='A'&&s[i]<='Z') s[i]+='a'-'A';
 		else if (s[i]=='Ñ') s[i]='ñ';
@@ -131,7 +131,7 @@ DataValue func_minusculas(ErrorHandler &err_handler, DataValue *arg) {
 }
 
 DataValue func_subcadena(ErrorHandler &err_handler, DataValue *arg) {
-	string s = arg[0].GetAsString(); int l=s.length(), f=arg[1].GetAsInt(), t=arg[2].GetAsInt();
+	std::string s = arg[0].GetAsString(); int l=s.length(), f=arg[1].GetAsInt(), t=arg[2].GetAsInt();
 	if (!lang[LS_BASE_ZERO_ARRAYS]) { f--; t--; }
 	if (t>l-1) t=l-1; 
 	if (f<0) f=0;
@@ -145,14 +145,14 @@ DataValue func_concatenar(ErrorHandler &err_handler, DataValue *arg) {
 
 DataValue func_atof(ErrorHandler &err_handler, DataValue *arg) {
 	// verificar formato
-	string s = arg[0].GetAsString();
+	std::string s = arg[0].GetAsString();
 	bool punto=false; int j=0;
 	if (s.size() && (s[0]=='+'||s[0]=='-')) j++;
 	for(unsigned int i=j;i<s.size();i++) {
 		if (!punto && s[i]=='.')
 			punto=true;
 		else if (s[i]<'0'||s[i]>'9') {
-			err_handler.ErrorIfRunning(311,string("La cadena (\"")+s+"\") no representa un número.");
+			err_handler.ErrorIfRunning(311,std::string("La cadena (\"")+s+"\") no representa un número.");
 			return DataValue::MakeEmpty(vt_numerica);
 		}
 	}

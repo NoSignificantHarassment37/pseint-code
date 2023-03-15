@@ -6,7 +6,6 @@
 #include "Code.h"
 #include "debug.h"
 #include "RunTime.hpp"
-using namespace std;
 
 #ifdef USE_ZOCKETS
 #include "zockets.h"
@@ -25,39 +24,39 @@ class Ejecutar;
 
 // estructura auxiliar para guardar datos del backtrace (llamadas a funciones)
 struct FrameInfo {
-	string func_name;
+	std::string func_name;
 	CodeLocation loc;
-	FrameInfo(string name, CodeLocation _loc):func_name(name),loc(_loc){}
+	FrameInfo(std::string name, CodeLocation _loc):func_name(name),loc(_loc){}
 };
 
 class Intercambio {
 	
 	int backtraceLevel; // en que nivel del trazado inverso se encuentra el punto actual de ejecucion (1:proceso principal, >1:alguna funcion)
 	int debugLevel; // solo interesa depurar si debugLevel<=backtraceLevel (si es 0 depura todo)
-	vector<FrameInfo> backtrace;
+	std::vector<FrameInfo> backtrace;
 	
 	RunTime *rt= nullptr;
 	bool running = false;
 	CodeLocation loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
-	vector <string> Archivo; // Archivo original
-	vector <string> Errores; // Descripcion de los errores encontrados
-	vector <int> Lineas;     // Numeros de lines correspondientes a los errores	
+	std::vector <std::string> Archivo; // Archivo original
+	std::vector <std::string> Errores; // Descripcion de los errores encontrados
+	std::vector <int> Lineas;     // Numeros de lines correspondientes a los errores	
 	
 
 #ifdef USE_ZOCKETS
 	
 	// para pasar info cuando hay errores al evaluar, pero es una expresion para depuracion
 	bool evaluating_for_debug, is_evaluation_error;
-	string evaluation_error;
+	std::string evaluation_error;
 	
-	vector <bool> autoevaluaciones_valid; // expresiones para el depurador que se muestran automaticamente en cada paso
-	vector <string> autoevaluaciones; // expresiones para el depurador que se muestran automaticamente en cada paso
+	std::vector <bool> autoevaluaciones_valid; // expresiones para el depurador que se muestran automaticamente en cada paso
+	std::vector <std::string> autoevaluaciones; // expresiones para el depurador que se muestran automaticamente en cada paso
 	ZOCKET zocket;
 	
 	int port; // nro de puerto para comunicarse con wxPSeInt
 #endif
 	
-	string sbuffer;
+	std::string sbuffer;
 	int delay; // indica el retardo entre instruccion e instruccion para el pasa a paso continuo
 	bool do_continue; // indica si debe continuar la ejecucion  o pausarse
 	bool do_one_step; // si do_continue, indica si continuar solo un paso (en cuyo caso do_continue volvera a ser falso)
@@ -71,7 +70,7 @@ public:
 	~Intercambio();
 	void UnInit();
 #ifdef USE_ZOCKETS
-	void ProcData(string order);
+	void ProcData(std::string order);
 	void ProcInput();
 	void InitDebug(int _delay); // si _delay!=0 inicializa la ejecución paso a paso enviando el hello y esperando la primer instruccion
 	void SetPort(int p);
@@ -82,7 +81,7 @@ public:
 //	void SendLoopPositionToTerminal(); // avisa a la terminal en que instruccion va
 	void SendErrorPositionToTerminal(); // avisa a la terminal en que instruccion va
 	void ChatWithGUI(); // espera respuesta de la gui para avanzar
-	void SendSubtitle(string _str); // envia el texto para el subtitulo a la gui
+	void SendSubtitle(std::string _str); // envia el texto para el subtitulo a la gui
 	
 	void SetStarted();
 	void SetFinished(bool interrupted=false);
@@ -93,14 +92,14 @@ public:
 	
 	// Manejo de errores
 	int Errores_Size();
-	void AddError(string s, int n);
-	string GetErrorDesc(int x);
+	void AddError(std::string s, int n);
+	std::string GetErrorDesc(int x);
 	int GetErrorLine(int x);
 	
 	bool EvaluatingForDebug();
-	void SetError(string error);
+	void SetError(std::string error);
 	
-	void OnFunctionIn(string nom);
+	void OnFunctionIn(std::string nom);
 	void OnFunctionOut();
 	void OnAboutToEndFunction();
 	int GetBacktraceLevel();

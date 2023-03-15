@@ -5,7 +5,6 @@
 #include <wx/timer.h>
 #include "RTSyntaxManager.h"
 #include <set>
-using namespace std;
 class mxInputDialog;
 class mxProcess;
 class wxTimer;
@@ -58,7 +57,7 @@ private:
 			else { s<<"["<<_i+1<<"] "<<_s; n=_n; is=true; }
 		}
 	};
-	vector<rt_err> rt_errors; ///< vector errores por linea
+	std::vector<rt_err> rt_errors; ///< vector errores por linea
 	int status; // estado actual para este fuente
 	bool status_should_change; // para no cambiar ciertos estados hasta que no se modifique el pseudocódigo
 	
@@ -155,7 +154,7 @@ public:
 	wxString GetTempFilenamePSD(); // nombre de archivo temporal para el diagrama de flujo
 	
 	// retorna las posiciones donde empieza y termina cada instruccion de una linea
-	vector<int> &FillAuxInstr(int _l);
+	std::vector<int> &FillAuxInstr(int _l);
 	void SelectInstruccion(int _l, int _i);
 	
 	void DoRealTimeSyntax(RTSyntaxManager::Info *args=NULL);

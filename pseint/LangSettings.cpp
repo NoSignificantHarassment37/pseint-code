@@ -1,7 +1,6 @@
 #include <iostream>
 #include "LangSettings.h"
 #include <algorithm>
-using namespace std;
 
 LangSettings::aux_struct LangSettings::data[LS_COUNT];
 bool LangSettings::init_done=false;
@@ -151,7 +150,7 @@ void LangSettings::init() {
 		);
 #ifdef DEBUG
 	for(int i=0;i<LS_COUNT;i++) { 
-		if (!data[i].nombre) cerr<<"ERROR!!! campo no inicializado en LangSettings::data["<<i<<"]"<<endl;
+		if (!data[i].nombre) std::cerr << "ERROR!!! campo no inicializado en LangSettings::data[" << i << ']' << std::endl;
 	}
 #endif
 	init_done=true;
@@ -193,24 +192,24 @@ void LangSettings::Log ( ) const {
 #include <fstream>
 bool LangSettings::Load(const std::string &fname) {
 //	name = get_filename(fname);
-	ifstream fil(fname.c_str());
+	std::ifstream fil(fname.c_str());
 	if (!fil.is_open()) return false; 
-	Reset(0); string str; // reset va despues de los "return false" para evitar resetear el perfil personalizado cuando se llama desde el ConfigManager
-	while (getline(fil,str)) ProcessConfigLine(str);
+	Reset(0); std::string str; // reset va despues de los "return false" para evitar resetear el perfil personalizado cuando se llama desde el ConfigManager
+	while (std::getline(fil,str)) ProcessConfigLine(str);
 	Fix();
 	return true;
 }
 
-static void replace(string  &s, string from, string to) {
-	size_t p = s.find(from);
-	while(p!=string::npos) {
+static void replace(std::string  &s, std::string from, std::string to) {
+	auto p = s.find(from);
+	while(p!=std::string::npos) {
 		s.replace(p,from.size(),to);
 		p = s.find(from,p+to.size());
 	}
 }
 
-bool LangSettings::Save (const string &fname) const {
-	ofstream fil(fname.c_str(),ios::trunc);
+bool LangSettings::Save (const std::string &fname) const {
+	std::ofstream fil(fname.c_str(), std::ios::trunc);
 	if (!fil.is_open()) return false;
 	
 //	fil << "name=" << name << endl;
@@ -218,12 +217,12 @@ bool LangSettings::Save (const string &fname) const {
 //	else if (source==LS_FILE) fil << "source=file" << endl;
 //	else if (source==LS_LIST) fil << "source=list" << endl;
 //	else                      fil << "source=custom" << endl;
-	string tmp = descripcion.c_str(); 
+	std::string tmp = descripcion.c_str(); 
 	replace(tmp,"\r",""); replace(tmp,"\n","\ndesc=");
-	fil << "desc=" << tmp << endl;
-	fil << "version=" <<LS_VERSION << endl;
+	fil << "desc=" << tmp << std::endl;
+	fil << "version=" <<LS_VERSION << std::endl;
 	for(int i=0;i<LS_COUNT;i++) 
-		fil << GetConfigLine(i) << endl;
+		fil << GetConfigLine(i) << std::endl;
 	fil.close();
 	return true;
 }

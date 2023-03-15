@@ -19,6 +19,8 @@
 #include "CSharpExporter.hpp"
 #include "ProgramaDump.hpp"
 
+using namespace std;
+
 LangSettings lang(LS_DO_NOT_INIT);
 
 void MakeInstructionReferencesRelative(Programa &prog) {
@@ -66,12 +68,12 @@ int main(int argc, char *argv[]){
 	lang.Reset();
 	
 	for (int i=1;i<argc;i++) {
-		string s=argv[i];
+		std::string s=argv[i];
 		if (s=="--install-test") {
-			cout<<"OK";
+			std::cout << "OK";
 			return 0;
 		} else if (s=="--help") {
-			cerr<<"Use: "<<argv[0]<<" [--base_zero_arrays=1] [--lang=<lenguaje>] <in_file.psd> <out_file.cpp>\n";
+			std::cerr << "Use: " << argv[0]<<" [--base_zero_arrays=1] [--lang=<lenguaje>] <in_file.psd> <out_file.cpp>\n";
 			return 1;
 		} else if (s.substr(0,7)=="--lang=") {
 			s.erase(0,7); 

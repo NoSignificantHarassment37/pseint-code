@@ -16,6 +16,5 @@
 #include<list>
 #include<stack>
 #include<time.h>
-using namespace std;
 
 #endif

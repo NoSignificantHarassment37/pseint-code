@@ -3,7 +3,6 @@
 
 #include <wx/string.h>
 #include <list>
-using namespace std;
 class wxSocketBase;
 class wxSocketServer;
 class wxSocketEvent;
@@ -35,7 +34,7 @@ private:
 	// servidor
 	int server_port;
 	wxSocketServer *server; // el servidor, todos los pedidos de comunicacion se hacen aqui
-	list<mxSocketClient*> clients; // clientes (se crean aca y en cuanto se sepa para que se crearon se donan al mxSource o al DebugManager)
+	std::list<mxSocketClient*> clients; // clientes (se crean aca y en cuanto se sepa para que se crearon se donan al mxSource o al DebugManager)
 public:
 	CommunicationsManager();
 	~CommunicationsManager();

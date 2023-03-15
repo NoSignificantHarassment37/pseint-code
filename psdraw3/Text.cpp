@@ -6,7 +6,7 @@
 #include "Textures.h"
 #include "Global.h"
 
-void GetTextSize(const string &label, int &w, int &h) {
+void GetTextSize(const std::string &label, int &w, int &h) {
 	w=label.size()*10;
 	h=15;
 }
@@ -36,7 +36,7 @@ bool CompilerInfo(GLuint id){
   if (len){
     char * infoLog=(char *)malloc(sizeof(char)*(len+1));
     glGetShaderInfoLog(id,len+1,nullptr,infoLog);
-    cout << "ERROR COMPILING SHADER: " << infoLog << endl;
+	std::cout << "ERROR COMPILING SHADER: " << infoLog << std::endl;
     free(infoLog);
   }
   int status; glGetShaderiv(id,GL_COMPILE_STATUS,&status); return status;

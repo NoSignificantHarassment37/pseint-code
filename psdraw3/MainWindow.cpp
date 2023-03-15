@@ -19,7 +19,7 @@ enum { MID_MAIN = wxID_HIGHEST, MID_ZOOM, MID_FULLSCREEN, MID_STYLE, MID_COMMENT
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
 //	EVT_KEY_DOWN(MainWindow::OnChar) // no hace falta, los agarra directamente el canvas
-#if WIN32
+#if defined(WIN32) || defined(WIN64)
 	EVT_MOUSEWHEEL(MainWindow::OnMouseWheel)
 #endif
 	EVT_TOOL_ENTER(wxID_ANY,MainWindow::OnToolOver)

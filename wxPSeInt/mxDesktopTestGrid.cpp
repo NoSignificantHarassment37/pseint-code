@@ -6,7 +6,6 @@
 #include "mxMainWindow.h"
 #include "DebugManager.h"
 #include <wx/menu.h>
-using namespace std;
 
 mxDesktopTestGrid *desktop_test = NULL;
 

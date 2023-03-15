@@ -1,6 +1,8 @@
 #include "JSExporter.hpp"
 #include "exportexp.h"
 
+using namespace std;
+
 JSExporter::JSExporter(bool for_html):CppExporter() {
 	this->for_html=for_html;
 }

@@ -5,10 +5,9 @@
 #include <set>
 #include <string>
 #include <wx/string.h>
-using namespace std;
 
 class Texture {
-	static set<Texture*> m_to_load; // delayed loading, requires a GL context to properly load a texture
+	static std::set<Texture*> m_to_load; // delayed loading, requires a GL context to properly load a texture
 	bool Load();
 	wxString m_fname;
 	GLuint m_id;

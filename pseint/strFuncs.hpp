@@ -2,7 +2,6 @@
 #define STRFUNCS_HPP
 #include <string>
 #include <vector>
-using namespace std;
 
 //std::string FirstWord(const std::string &s);
 bool LastCharIs(const std::string &s, char c);
@@ -32,8 +31,8 @@ inline bool EsLetra(const char &_c, bool incluir_numeros=false, bool allow_accen
 	return (_c>='A' && _c<='Z') or (allow_accents and (_c=='Á'||_c=='É'||_c=='Í'||_c=='Ó'||_c=='Ú'||_c=='Ñ'||_c=='Ü') ) || _c=='_'  || (incluir_numeros && _c>='0' && _c<='9');
 }
 
-bool LeftCompare(string a, string b); /// @todo: eliminar o mover a keywords.cpp
-bool RightCompare(string a, string b); /// @todo: eliminar o mover a keywords.cpp
+bool LeftCompare(std::string a, std::string b); /// @todo: eliminar o mover a keywords.cpp
+bool RightCompare(std::string a, std::string b); /// @todo: eliminar o mover a keywords.cpp
 
 int matchParentesis(const std::string &src, int p);
 std::vector<std::string> splitArgsList(const std::string &args);

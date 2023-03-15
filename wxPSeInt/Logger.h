@@ -2,11 +2,10 @@
 #define LOGGER_H
 #include <string>
 #include <fstream>
-using namespace std;
 
 class Logger {
 private:
-	ofstream file;
+	std::ofstream file;
 protected:
 public:
 	Logger(const char *where);
@@ -15,12 +14,12 @@ public:
 	~Logger();
 };
 
-inline wxString &operator<<(wxString &s, void *p) { return s<<reinterpret_cast<unsigned long>(p); }
+inline wxString &operator<<(wxString &s, void *p) { return s<<reinterpret_cast<unsigned long long>(p); }
 
 extern Logger *logger;
 #ifdef DEBUG
 #	include<iostream>
-#	define _LOG(x) std::cerr<<x<<endl; if (logger) logger->Write(wxString()<<x)
+#	define _LOG(x) std::cerr<<x<<std::endl; if (logger) logger->Write(wxString()<<x)
 #else
 #	define _LOG(x) if (logger) logger->Write(wxString()<<x)
 #endif

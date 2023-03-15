@@ -5,7 +5,7 @@
 #include "Programa.hpp"
 #include "strFuncs.hpp"
 
-map<string,string> *case_map = nullptr;
+std::map<std::string,std::string> *case_map = nullptr;
 
 //----------------from wxPSeInt/CommonParsinsFunctions------
 // tengo que unificar las mil implementaciones de estos auxiliares
@@ -30,7 +30,7 @@ int SkipParentesis(const TString &line, int i, int len) {
 }
 //----------------
 
-static void CaseMapAux(const RunTime &rt, string &s, bool fill, bool fix_parentesis) {
+static void CaseMapAux(const RunTime &rt, std::string &s, bool fill, bool fix_parentesis) {
 	int len=s.size(),p = 0;
 	bool comillas=false, word=false;
 	for(int i=0;i<=len;i++) { 
@@ -40,15 +40,15 @@ static void CaseMapAux(const RunTime &rt, string &s, bool fill, bool fix_parente
 			if (i&&c=='/'&&s[i-1]=='/') return;
 			if (word) {
 				if (!EsLetra(c,true)) {
-					string s1=s.substr(p,i-p);
+					std::string s1=s.substr(p,i-p);
 					unsigned int keylen=s1.size(); 
 					if (fill) {
-						string s2=s1;
+						std::string s2=s1;
 						for(unsigned int i=0;i<keylen;i++) 
 							s1[i]=ToUpper(s2[i]);
 						(*case_map)[s1]=s2;
 					} else {
-						string s2=(*case_map)[s1];
+						std::string s2=(*case_map)[s1];
 						if (s2.size()==keylen) {
 							for(unsigned int j=0;j<keylen;j++) 
 								s[p+j]=s2[j];
@@ -68,11 +68,11 @@ static void CaseMapAux(const RunTime &rt, string &s, bool fill, bool fix_parente
 	}
 }
 
-void CaseMapFill(const RunTime &rt, string &s) {
+void CaseMapFill(const RunTime &rt, std::string &s) {
 	CaseMapAux(rt,s,true,false);
 }
 
-void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis) {
+void CaseMapApply(const RunTime &rt, std::string &s, bool and_fix_parentesis) {
 	CaseMapAux(rt,s,false,and_fix_parentesis);
 }
 
@@ -134,7 +134,7 @@ void CaseMapApply(const RunTime &rt, string &s, bool and_fix_parentesis) {
 //}
 
 void InitCaseMap() {
-	if (!case_map) case_map = new map<string,string>();
+	if (!case_map) case_map = new std::map<std::string,std::string>();
 }
 
 #ifndef _FOR_PSEXPORT

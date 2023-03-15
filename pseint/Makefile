@@ -16,8 +16,12 @@ include Makefile.common
 clean:
 	${RM} ${OBJS} ../${BIN}/pseint${EXT}
 
-../${BIN}/pseint${EXT}: ${OBJS}
+../${BIN}/pseint${EXT}: ../${BIN} ${OBJS}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:
 	${MKDIR} ${OBJS_DIR}
+
+
+../${BIN}:
+	${MKDIR} ../${BIN}

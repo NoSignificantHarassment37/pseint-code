@@ -110,7 +110,7 @@ struct comp_list_item {
 	operator wxString() { return label; }
 	bool operator<(const comp_list_item &o) const { return label<o.label; }
 };
-static vector<comp_list_item> comp_list;
+static std::vector<comp_list_item> comp_list;
 
 // para mostrar las ayudas emergentes (palabras que las disparan y textos de ayuda)
 struct calltip_text { 
@@ -120,8 +120,8 @@ struct calltip_text {
 	calltip_text(const wxString &k, const wxString &t, bool f=false) 
 		: key(k), text(t), only_if_not_first(f) {}
 };
-static vector<calltip_text> calltips_functions;
-static vector<calltip_text> calltips_instructions;
+static std::vector<calltip_text> calltips_functions;
+static std::vector<calltip_text> calltips_instructions;
 
 
 #define STYLE_IS_CONSTANT(s) (s==wxSTC_C_STRING || s==wxSTC_C_STRINGEOL || s==wxSTC_C_CHARACTER || s==wxSTC_C_REGEX || s==wxSTC_C_NUMBER)
@@ -1518,8 +1518,8 @@ void mxSource::OnSavePointLeft (wxStyledTextEvent & evt) {
 	main_window->notebook->SetPageText(main_window->notebook->GetPageIndex(this),page_text+"*");	
 }
 
-vector<int> &mxSource::FillAuxInstr(int _l) {
-	static vector<int> v; v.clear();
+std::vector<int> &mxSource::FillAuxInstr(int _l) {
+	static std::vector<int> v; v.clear();
 	wxString s=GetLine(_l);
 	int i=0,len=s.Len(),last_ns=1;
 	bool starting=true,comillas=false;
@@ -1554,7 +1554,7 @@ vector<int> &mxSource::FillAuxInstr(int _l) {
 }
 
 void mxSource::SelectInstruccion (int _l, int _i) {
-	vector<int> &v=FillAuxInstr(_l);
+	std::vector<int> &v=FillAuxInstr(_l);
 	_l=PositionFromLine(_l);
 	if (2*_i>int(v.size())) SetSelection(_l+v[0],_l+v[v.size()-1]);
 	else SetSelection(_l+v[2*_i],_l+v[2*_i+1]);
@@ -1592,7 +1592,7 @@ void mxSource::MarkError(wxString line) {
 **/
 void mxSource::MarkError(int l, int i, int n, wxString str, bool special) {
 	if (l<0 || l>=GetLineCount()) return; // el error debe caer en una linea valida
-	vector<int> &v=FillAuxInstr(l);
+	std::vector<int> &v=FillAuxInstr(l);
 	int pos =PositionFromLine(l)+v[2*i], len = v[2*i+1]-v[2*i];
 	// ver que no sea culpa de una plantilla sin completar
 	for(int p=0;p<len;p++) { 
@@ -2618,9 +2618,9 @@ void mxSource::ToUnicodeOpers (int line) {
 	if (torep.empty()) return;
 	while (not torep.empty()) {
 		auto t = torep.top(); torep.pop();
-		wxStyledTextCtrl::SetTargetStart(get<0>(t));
-		wxStyledTextCtrl::SetTargetEnd(get<1>(t));
-		wxStyledTextCtrl::ReplaceTarget(wxString(get<2>(t),1));
+		wxStyledTextCtrl::SetTargetStart(std::get<0>(t));
+		wxStyledTextCtrl::SetTargetEnd(std::get<1>(t));
+		wxStyledTextCtrl::ReplaceTarget(wxString(std::get<2>(t),1));
 	}
 	StyleLine(line);
 }
@@ -2629,7 +2629,7 @@ void mxSource::ToRegularOpers (wxString &s) {
 	if (!config->unicode_opers) return;
 	static auto replace = [](wxString &s, wxString::iterator it, /*int n, */const wchar_t *s2){
 		int p = it - s.begin();
-		s.replace(it,next(it/*,n*/),s2);
+		s.replace(it,std::next(it/*,n*/),s2);
 		return s.begin()+p;
 	};
 	for(auto it=s.begin(); it!=s.end(); ++it) { 

@@ -9,9 +9,11 @@ include Makefile.common
 clean:
 	${RM} ${OBJS} ../${BIN}/psexport${EXT}
 
-../${BIN}/psexport${EXT}: ${OBJS}
+../${BIN}/psexport${EXT}: ../${BIN} ${OBJS}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:
 	${MKDIR} ${OBJS_DIR}
 
+../${BIN}:
+	${MKDIR} ../${BIN}

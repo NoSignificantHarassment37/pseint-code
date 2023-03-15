@@ -9,6 +9,8 @@
 #include "TiposExporter.hpp"
 #include "VBExporter.hpp"
 
+using namespace std;
+
 VbExporter::VbExporter() {
 	output_base_zero_arrays=false;
 }

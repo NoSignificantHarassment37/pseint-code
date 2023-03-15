@@ -13,7 +13,6 @@
 #include "mxArt.h"
 #include <wx/msgdlg.h>
 #include "string_conversions.h"
-using namespace std;
 
 BEGIN_EVENT_TABLE(mxFindDialog, wxDialog)
 	EVT_BUTTON(mxID_FIND_FIND_NEXT,mxFindDialog::OnFindNextButton)

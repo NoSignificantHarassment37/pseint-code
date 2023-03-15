@@ -4,6 +4,7 @@
 #include "version.h"
 #include "exportexp.h"
 #include "ExporterBase.hpp"
+using namespace std;
 
 static void AplicarTipo(RunTime &rt, const std::string &s, tipo_var t) {
 	int i=0, j=s.size()-1;
@@ -68,7 +69,7 @@ void TiposExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::s
 		expresion(cond,t);
 		for(auto it : its) {
 			if (it->type!=IT_OPCION) continue;
-			for(string &exp : getImpl<IT_OPCION>(*it).expresiones) {
+			for(std::string &exp : getImpl<IT_OPCION>(*it).expresiones) {
 				tipo_var aux;
 				expresion(exp,aux);
 				if (!t.set(aux)) return;
@@ -79,7 +80,7 @@ void TiposExporter::segun(t_output &prog, std::vector<t_proceso_it> &its, std::s
 	AplicarTipo(GetRT(),cond,t);
 	for(auto it : its) {
 		if (it->type!=IT_OPCION) continue;
-		for(string &exp : getImpl<IT_OPCION>(*it).expresiones)
+		for(std::string &exp : getImpl<IT_OPCION>(*it).expresiones)
 			AplicarTipo(GetRT(),exp,t);
 	}
 	
@@ -103,8 +104,8 @@ void TiposExporter::para(t_output &prog, t_proceso_it it_para, t_proceso_it it_f
 
 void TiposExporter::paracada(t_output &prog, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs) {
 	auto &impl = getImpl<IT_PARACADA>(*it_para);
-	string identif = ToLower(impl.identificador);
-	string arreglo = ToLower(impl.arreglo);
+	std::string identif = ToLower(impl.identificador);
+	std::string arreglo = ToLower(impl.arreglo);
 	memoria->DefinirTipo(identif,memoria->LeerTipo(arreglo));
 	bloque(prog,std::next(it_para),it_fin,tabs+"\t");
 	memoria->DefinirTipo(arreglo,memoria->LeerTipo(identif));

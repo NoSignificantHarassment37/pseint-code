@@ -9,21 +9,21 @@
 Logger *logger = NULL;
 
 Logger::Logger(const char *where) {
-	file.open(where,ios::app);
+	file.open(where,std::ios::app);
 	if (file.is_open()) logger=this; else wxMessageBox(wxString("No se pudo abrir el archivo de log: ")<<where);
-	file<<endl<<"LOG START"<<endl;
-	Write(wxString()<<"version "<<VERSION<<"-"<<ARCHITECTURE ARCH_EXTRA);
+	file << std::endl << "LOG START" << std::endl;
+	Write(wxString() << "version " << VERSION << '-' << ARCHITECTURE ARCH_EXTRA);
 }
 
 Logger::~Logger() {
-	file<<"LOG END"<<endl<<endl;
+	file << "LOG END" << std::endl << std::endl;
 	file.close();
 }
 
 
 
 void Logger::Write (const wxString & s) {
-	file<<"   "<<wxDateTime::Now().FormatISOTime().c_str()<<"  "<<s.c_str()<<endl;
+	file << "   " << wxDateTime::Now().FormatISOTime().c_str() << "  " << s.c_str() << std::endl;
 	file.flush();
 }
 

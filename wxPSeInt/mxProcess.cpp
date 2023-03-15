@@ -15,7 +15,6 @@
 #include <wx/msgdlg.h>
 #include <wx/filedlg.h>
 #include <wx/txtstrm.h>
-using namespace std;
 
 mxProcess *proc_list = NULL;
 

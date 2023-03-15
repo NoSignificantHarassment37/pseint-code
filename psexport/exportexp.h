@@ -14,18 +14,18 @@ extern bool input_base_zero_arrays;
 extern bool output_base_zero_arrays;
 
 // conversion de expresiones
-string modificarConstante(string s,int diff);
+std::string modificarConstante(std::string s,int diff);
 
-string buscarOperando(const string &exp, int comienzo, int direccion);
+std::string buscarOperando(const std::string &exp, int comienzo, int direccion);
 
-string colocarParentesis(const string &exp);
+std::string colocarParentesis(const std::string &exp);
 
-string sumarOrestarUno(string exp, bool sumar);
+std::string sumarOrestarUno(std::string exp, bool sumar);
 
-string expresion(RunTime &rt, string exp, tipo_var &tipo);
+std::string expresion(RunTime &rt, std::string exp, tipo_var &tipo);
 
-string expresion(RunTime &rt, string exp);
+std::string expresion(RunTime &rt, std::string exp);
 
-string invert_expresion(std::string expr);
+std::string invert_expresion(std::string expr);
 
 #endif

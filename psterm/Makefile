@@ -16,7 +16,7 @@ include Makefile.common
 clean:
 	rm -rf ${OBJS} ../${BIN}/psterm${EXT} ${ICON}
 
-../${BIN}/psterm${EXT}: ${OBJS} ${ICON}
+../${BIN}/psterm${EXT}: ../${BIN} ${OBJS} ${ICON}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:
@@ -24,3 +24,6 @@ ${OBJS_DIR}:
 
 ${ICON}: ../wxPSeInt/icon.rc ../bin/imgs/icon.ico
 	${WINDRES} -I${WX_DIR}/include -i ../wxPSeInt/icon.rc -o $@
+
+../${BIN}:
+	${MKDIR} ../${BIN}

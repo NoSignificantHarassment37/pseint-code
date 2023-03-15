@@ -13,7 +13,6 @@
 #	include "ShapesBar.h"
 #endif
 #include "../pseint/strFuncs.hpp"
-using namespace std;
 
 static int edit_pos; // posición del cursor cuando se edita un texto
 static const unsigned char SC_FLECHA = 27;
@@ -30,7 +29,7 @@ static const unsigned char SC_MAY_IGUAL = 31;
 #	define SetModified()
 #endif
 
-void Entity::GetTextSize(const string &label, int &w, int &h) {
+void Entity::GetTextSize(const std::string &label, int &w, int &h) {
 	w=label.size()*char_w;
 	h=char_h;
 }
@@ -41,7 +40,7 @@ void Entity::GetTextSize(int &w, int &h) {
 	h=char_h;
 }
 
-Entity::Entity(ETYPE _type, string _label, bool _variante) 
+Entity::Entity(ETYPE _type, std::string _label, bool _variante) 
 	: type(_type), variante(_variante), label(_label), nolink(nullptr)
 {
 	t_dx=t_dy=0; fx=x=0; fy=y=0; flecha_in=0;
@@ -145,10 +144,10 @@ static bool is_sep(char c) {
 // 'e' comentarios
 // 'f' operadores y otros
 
-static set<string> keywords;
+static std::set<std::string> keywords;
 
 void load_keywords() {
-	string ks = g_lang.GetFunctions()+" "+g_lang.GetKeywords()+" ";
+	std::string ks = g_lang.GetFunctions()+" "+g_lang.GetKeywords()+" ";
 	for(int i=0,lp=0,l=ks.size();i<l;i++) {
 		if (ks[i]==' ') {
 			if (i!=lp) keywords.insert(ks.substr(lp,i-lp));
@@ -157,7 +156,7 @@ void load_keywords() {
 	}
 }
 
-void to_lower(string &s){
+void to_lower(std::string &s){
 	for(size_t i=0;i<s.size();i++) { 
 		if (s[i]>='A' and s[i]<='Z') s[i] = tolower(s[i]); 
 		else if (s[i]=='Á') s[i] = 'á';
@@ -170,7 +169,7 @@ void to_lower(string &s){
 	}
 }
 
-static char get_color(string s) {
+static char get_color(std::string s) {
 	if (s[0]=='.' or (s[0]>='0' and s[0]<='9')) return HL_NUMBER;
 	to_lower(s);
 	if (keywords.count(s)) return HL_KEYWORD;
@@ -225,7 +224,7 @@ void Entity::Colourize ( ) {
 	}
 }
 
-static void beautify_label(ETYPE type, string &label, int &edit_pos) {
+static void beautify_label(ETYPE type, std::string &label, int &edit_pos) {
 	if (type==ET_COMENTARIO) return;
 	if (type==ET_ASIGNAR or type==ET_PROCESO) {
 		bool first_word = true;
@@ -335,7 +334,7 @@ void Entity::EditLabel(unsigned char key) {
 		g_state.edit = nullptr;
 		if (g_config.enable_partial_text) SetLabel(label,true);
 	} else {
-		label.insert(edit_pos,string(1,key));
+		label.insert(edit_pos,std::string(1,key));
 		int new_edit_pos = edit_pos+1;
 		beautify_label(type,label,new_edit_pos);
 		SetEditPos(new_edit_pos);
@@ -352,7 +351,7 @@ int Entity::IsLabelCropped ( ) {
 }
 
 
-void Entity::SetLabel(string _label, bool recalc) {
+void Entity::SetLabel(std::string _label, bool recalc) {
 	if (_label!=label) SetModified();
 	for (unsigned int i=0;i<label.size();i++) if (label[i]=='\'') label[i]='\"';
 	label=_label; 
@@ -602,27 +601,27 @@ bool Entity::IsInside(int x0, int y0, int x1, int y1) {
 
 // ADVERTENCIA, si estas macros se usan en un if o en un else, deben estar entre
 // llaves, porque contienen más de una instrucción
-#define _endl_this inline_comments<<endl; inline_comments=""; {stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(process,this);} line_num++;
-#define _endl_prev inline_comments<<endl; inline_comments=""; {stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,this);} line_num++;
-#define _endl_none inline_comments<<endl; inline_comments=""; {stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,nullptr);} line_num++;
+#define _endl_this inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(process,this);} line_num++;
+#define _endl_prev inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,this);} line_num++;
+#define _endl_none inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,nullptr);} line_num++;
 
 #define _fix(label,def) (label.size()?label:def)
 #define _kw(id) g_lang.keywords[id].get(false)
 
-void ReplaceAll(string &label, unsigned char from, const char *to) {
+void ReplaceAll(std::string &label, unsigned char from, const char *to) {
 	size_t pos = label.find(from);
-	while (pos!=string::npos) {
+	while (pos!=std::string::npos) {
 		label.replace(pos,1,to);
 		pos = label.find(from,pos);
 	}
 }
 
-void Entity::Print(ostream &out, string tab, Entity *process, int &line_num) {
+void Entity::Print(std::ostream &out, std::string tab, Entity *process, int &line_num) {
 	
 	static std::string inline_comments;
 	std::string semicolon = (g_lang[LS_FORCE_SEMICOLON]?";":"");
 	bool add_tab=false;
-	string old_label = label;
+	std::string old_label = label;
 	ReplaceAll(label,SC_MEN_IGUAL,"<=");
 	ReplaceAll(label,SC_MAY_IGUAL,">=");
 	ReplaceAll(label,SC_FLECHA,"<-");
@@ -712,12 +711,12 @@ void Entity::Print(ostream &out, string tab, Entity *process, int &line_num) {
 		if (label.size()) { out << tab << label << semicolon << _endl_this; }
 	break;
 	case ET_COMENTARIO: {
-		string pre="// "; if (!label.empty() && label[0]=='/') pre="//";
+		std::string pre="// "; if (!label.empty() && label[0]=='/') pre="//";
 		if (variante) {
-			if (inline_comments=="") inline_comments=string(" ")+pre; else inline_comments+=" - ";
+			if (inline_comments=="") inline_comments=std::string(" ")+pre; else inline_comments+=" - ";
 			inline_comments+=label;
 		} else {
-			string prev_ilc = inline_comments;
+			std::string prev_ilc = inline_comments;
 			inline_comments = "";
 			out<<tab<<pre<<label<<_endl_this;
 			inline_comments = prev_ilc;
@@ -781,8 +780,8 @@ bool Entity::IsOutOfProcess() {
 
 // habria que sacar esto y reemplazarlo por recursión en el cliente
 Entity *Entity::NextEntity(Entity *aux) {
-	static vector<int> pila_nc;
-	static vector<Entity*> pila_e;
+	static std::vector<int> pila_nc;
+	static std::vector<Entity*> pila_e;
 	// si tiene hijos, se empieza por los hijos
 	if (aux->GetChildCount()) {
 		for(int i=0;i<aux->GetChildCount();i++) { 

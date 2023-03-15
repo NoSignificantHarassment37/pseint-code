@@ -7,13 +7,12 @@
 #include "Logger.h"
 #include "string_conversions.h"
 #include <wx/msgdlg.h>
-using namespace std;
 
-string er_dir;
+std::string er_dir;
 er_source_register *er_first_source;
 
-#define ERR_REC_LOG_BOOL(what) fil1<<#what<<": "<<((what)?"true":"false")<<endl
-#define ERR_REC_LOG_NORM(what) fil1<<#what<<": "<<what<<endl
+#define ERR_REC_LOG_BOOL(what) fil1<<#what<<": "<<((what)?"true":"false")<<std::endl
+#define ERR_REC_LOG_NORM(what) fil1<<#what<<": "<<what<<std::endl
 
 #ifndef SIGPIPE
 #define SIGPIPE 13
@@ -39,12 +38,8 @@ void er_unregister_source(mxSource *src) {
 
 void er_sigsev(int sig) {
 	
-//	ofstream fil1((er_dir+"error_log").c_str(),ios::ate|ios::app);
-//	fil1<<endl;
-//	fil1.close();
-	
-	ofstream fil2(er_get_recovery_fname(),ios::trunc);
-	fil2<<"Error date: "<<wxNow()<<endl;
+	std::ofstream fil2(er_get_recovery_fname(), std::ios::trunc);
+	fil2 << "Error date: " << wxNow() << std::endl;
 	er_source_register *sr = er_first_source->next;
 	char kname[]="kabom-aaa.psc";
 	while (sr) {
@@ -59,9 +54,9 @@ void er_sigsev(int sig) {
 				
 			} else
 				kname[6]++;
-			fil2<<sr->src->GetPageText()<<endl;
-			fil2<<(sr->src->sin_titulo?"":sr->src->filename)<<endl;
-			fil2<<(er_dir+kname).c_str()<<endl;
+			fil2 << sr->src->GetPageText() << std::endl;
+			fil2 << (sr->src->sin_titulo?"":sr->src->filename) << std::endl;
+			fil2 << (er_dir+kname).c_str() << std::endl;
 			sr->src->wxStyledTextCtrl::SaveFile(wxString((er_dir+kname).c_str(),wxConvLibc));
 		}
 		sr = sr->next;
@@ -69,8 +64,8 @@ void er_sigsev(int sig) {
 	fil2.close();
 	
 	_LOG("ERROR RECOVERY!!!");
-	_LOG("Error date: "<<wxNow());
-	_LOG("signal: "<<sig);
+	_LOG("Error date: " << wxNow());
+	_LOG("signal: " << sig);
 	
 	if (main_window) {
 		wxMessageDialog	(main_window,_Z("Ha ocurrido un error grave y PSeInt se cerrará. Por,\n"
@@ -104,7 +99,7 @@ void er_uninit() {
 }
 
 const char * er_get_recovery_fname( ) {
-	static string rec_fname = er_dir+"recovery_log";
+	static std::string rec_fname = er_dir+"recovery_log";
 	return rec_fname.c_str();
 }
 

@@ -53,7 +53,6 @@
 #include "mxFontsConfig.h"
 #include <wx/button.h>
 #include "mxBacktrace.h"
-using namespace std;
 
 mxMainWindow *main_window = NULL;
 
@@ -906,7 +905,7 @@ void mxMainWindow::OnHelpQuickHelp(wxCommandEvent &evt) {
 	if (ask) key = wxGetTextFromUser(_Z("Palabra a buscar:"), _Z("Ayuda Rápida"), _T(""), this);
 	if (key=="K-BOOM!!!") { // para probar el error-recovery
 		int *p = NULL;
-		cout << *p;
+		std::cout << *p;
 	}
 	// mostrar panel y cargar ayuda
 	if (key.Len()) QuickHelp().ShowHelpPage(help->GetQuickHelp(key));

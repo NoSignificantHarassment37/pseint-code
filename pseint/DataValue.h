@@ -131,9 +131,10 @@ extern tipo_var vt_numerica_entera;
 
 
 struct DataValue {
-
+	
 	tipo_var type;
-	std::variant<std::monostate,double,std::string,int,bool> value; // monostate equivale a vacio
+	using variant_t = std::variant<std::monostate,double,std::string,int,bool>;
+	variant_t value; // monostate equivale a vacio
 	
 	DataValue() {}
 	DataValue(tipo_var t) : type(t) {}
@@ -153,41 +154,12 @@ struct DataValue {
 	bool IsReal() const   { return !type.cb_log &&  type.cb_num && !type.cb_car; }
 	bool IsString() const { return !type.cb_log && !type.cb_num &&  type.cb_car; }
 	
-	bool GetAsBool() const {
-		if (std::holds_alternative<bool>(value)) return std::get<bool>(value);
-		else if (std::holds_alternative<std::string>(value)) {
-			const std::string &str = std::get<std::string>(value);
-			return !str.empty() && (str[0]=='1'||toupper(str[0]=='V'));
-		}
-		else if (std::holds_alternative<double>(value)) return std::get<double>(value)==1;
-		else if (std::holds_alternative<int>(value)) return std::get<int>(value)==1;
-		else return false;
-	}
-	
-	double GetAsReal() const {
-		_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
-		if (std::holds_alternative<double>(value))      return std::get<double>(value);
-		if (std::holds_alternative<int>(value))         return double(std::get<int>(value));
-		if (std::holds_alternative<std::string>(value)) return StrToDbl(std::get<std::string>(value));
-		return 0.0;
-	}
-	int GetAsInt() const {
-		_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
-		if (std::holds_alternative<double>(value))      return int(std::get<double>(value));
-		if (std::holds_alternative<int>(value))         return std::get<int>(value);
-		if (std::holds_alternative<std::string>(value)) return StrToInt(std::get<std::string>(value));
-		return 0;
-	}
-	std::string GetAsString() const {
-		_expects(IsEmpty()||std::holds_alternative<std::string>(value));
-		if (std::holds_alternative<std::string>(value)) return std::get<std::string>(value);
-		return "";
-	}
-	std::string GetForUser() const {
-		if (type==vt_numerica) return DblToStr(GetAsReal(),true); // si era numerica, redondear para salida
-		if (type==vt_logica) return GetAsBool()?VERDADERO:FALSO;
-		return GetAsString();
-	}
+	// estos métodos se implementan abajo para poder definir un std::get alternativo para mac os
+	bool GetAsBool() const;
+	double GetAsReal() const;
+	int GetAsInt() const;
+	std::string GetAsString() const;
+	std::string GetForUser() const;
 	
 	void SetFromString(const std::string &s) { _expects(type.cb_car); value = s; }
 	void SetFromInt(int i) { _expects(type.cb_num); value = i; }
@@ -206,5 +178,51 @@ struct DataValue {
 	
 	static DataValue DVError() { return DataValue(vt_error); }
 };
+
+#ifdef __APPLE__
+namespace std {
+	template<typename T>
+	auto &get(const DataValue::variant_t &inst) { return *std::get_if<T>(&inst); }
+}
+#endif
+
+inline bool DataValue::GetAsBool() const {
+	if (std::holds_alternative<bool>(value)) return std::get<bool>(value);
+	else if (std::holds_alternative<std::string>(value)) {
+		const std::string &str = std::get<std::string>(value);
+		return !str.empty() && (str[0]=='1'||toupper(str[0]=='V'));
+	}
+	else if (std::holds_alternative<double>(value)) return std::get<double>(value)==1;
+	else if (std::holds_alternative<int>(value)) return std::get<int>(value)==1;
+	else return false;
+}
+
+inline double DataValue::GetAsReal() const {
+	_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
+	if (std::holds_alternative<double>(value))      return std::get<double>(value);
+	if (std::holds_alternative<int>(value))         return double(std::get<int>(value));
+	if (std::holds_alternative<std::string>(value)) return StrToDbl(std::get<std::string>(value));
+	return 0.0;
+}
+
+inline int DataValue::GetAsInt() const {
+	_expects(!IsEmpty()||!std::holds_alternative<bool>(value));
+	if (std::holds_alternative<double>(value))      return int(std::get<double>(value));
+	if (std::holds_alternative<int>(value))         return std::get<int>(value);
+	if (std::holds_alternative<std::string>(value)) return StrToInt(std::get<std::string>(value));
+	return 0;
+}
+
+inline std::string DataValue::GetAsString() const {
+	_expects(IsEmpty()||std::holds_alternative<std::string>(value));
+	if (std::holds_alternative<std::string>(value)) return std::get<std::string>(value);
+	return "";
+}
+
+inline std::string DataValue::GetForUser() const {
+	if (type==vt_numerica) return DblToStr(GetAsReal(),true); // si era numerica, redondear para salida
+	if (type==vt_logica) return GetAsBool()?VERDADERO:FALSO;
+	return GetAsString();
+}
 
 #endif

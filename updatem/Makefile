@@ -11,8 +11,11 @@ include Makefile.common
 clean:
 	rm -rf ${OBJS} ../${BIN}/updatem${EXT}
 
-../${BIN}/updatem${EXT}: ${OBJS}
+../${BIN}/updatem${EXT}: ../${BIN} ${OBJS}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:
 	mkdir -p ${OBJS_DIR}
+
+../${BIN}:
+	${MKDIR} ../${BIN}

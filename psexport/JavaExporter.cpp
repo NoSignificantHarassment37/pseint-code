@@ -3,6 +3,7 @@
 
 #define _buf_reader_line "\t\tBufferedReader bufEntrada = new BufferedReader(new InputStreamReader(System.in));"
 
+using namespace std;
 
 JavaExporter::JavaExporter():CppExporter() {
 	include_cmath=false;
@@ -28,7 +29,7 @@ void JavaExporter::esperar_tecla(t_output &prog, std::string tabs) {
 		insertar(prog,tabs+"System.in.read(); // a diferencia del pseudocódigo, espera un Enter, no cualquier tecla");
 }
 
-void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) {
+void JavaExporter::esperar_tiempo(t_output &prog, std::string tiempo, bool mili, std::string tabs) {
 	tipo_var t; tiempo=expresion(tiempo,t); // para que arregle los nombres de las variables
 	use_esperar_tiempo=true;
 	stringstream inst;
@@ -45,7 +46,7 @@ void JavaExporter::esperar_tiempo(t_output &prog, string tiempo, bool mili, std:
 }
 
 void JavaExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::string tabs){
-	string arglist;
+	std::string arglist;
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		if (arglist.size()) arglist+="+";
@@ -64,7 +65,7 @@ void JavaExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 	t_arglist_it it=args.begin();
 	while (it!=args.end()) {
 		tipo_var t;
-		string varname=expresion(*it,t);
+		std::string varname=expresion(*it,t);
 		if (t==vt_numerica && t.rounded) insertar(prog,tabs+varname+" = Integer.parseInt(bufEntrada.readLine());");
 		else if (t==vt_numerica) insertar(prog,tabs+varname+" = Double.parseDouble(bufEntrada.readLine());");
 		else if (t==vt_logica) insertar(prog,tabs+varname+" = Boolean.parseBoolean(bufEntrada.readLine());");
@@ -76,24 +77,24 @@ void JavaExporter::leer(t_output &prog, t_arglist args, std::string tabs) {
 
 void JavaExporter::paracada(t_output &out, t_proceso_it it_para, t_proceso_it it_fin, std::string tabs) {
 	auto &impl = getImpl<IT_PARACADA>(*it_para);
-	string arreglo = ToLower(impl.arreglo), identif = ToLower(impl.identificador);
+	std::string arreglo = ToLower(impl.arreglo), identif = ToLower(impl.identificador);
 	const int *dims=memoria->LeerDims(arreglo);
 	if (!dims) { insertar(out,string("ERROR: ")+arreglo+" NO ES UN ARREGLO"); return; }
 	int n=dims[0];
 	
 	if (n==1) { // en java, el reemplazo de foreach anda solo para la primer dimension (las demas parecen no ser referencias a la matriz original, sirven para solo lectura)
-		string stipo=translate_tipo(memoria->LeerTipo(arreglo));
+		std::string stipo=translate_tipo(memoria->LeerTipo(arreglo));
 		insertar(out,tabs+"for ("+stipo+" "+identif+":"+arreglo+") {");
 		bloque(out,std::next(it_para),it_fin,tabs+"\t");
 		insertar(out,tabs+"}");
 	} else {
 		
-		string *auxvars=new string[n];
+		std::string *auxvars=new string[n];
 		for(int i=0;i<n;i++) auxvars[i]=get_aux_varname("aux_index_");
 		
-		string vname=arreglo;
+		std::string vname=arreglo;
 		for(int i=0;i<n;i++) { 
-			string idx=auxvars[i];
+			std::string idx=auxvars[i];
 			insertar(out,tabs+"for (int "+idx+"=0; "+idx+"<"+vname+".length; "+idx+"++) {");
 			vname+="["+idx+"]";
 			tabs+="\t";
@@ -115,7 +116,7 @@ void JavaExporter::paracada(t_output &out, t_proceso_it it_para, t_proceso_it it
 }
 
 
-string JavaExporter::function(string name, string args) {
+std::string JavaExporter::function(string name, string args) {
 	if (name=="SEN") {
 		include_cmath=true;
 		return string("Math.sin")+args;
@@ -208,7 +209,7 @@ void JavaExporter::header(t_output &out) {
 	init_header(out,"/* "," */");
 	if (!for_test) {
 		out.push_back("// En java, el nombre de un archivo fuente debe coincidir con el nombre de la clase que contiene,");
-		out.push_back(string("// por lo que este archivo debería llamarse \"")+GetRT().funcs.GetMainName()+".java.\"");
+		out.push_back(std::string("// por lo que este archivo debería llamarse \"")+GetRT().funcs.GetMainName()+".java.\"");
 		out.push_back("");
 	}
 	if (have_subprocesos && !for_test) {
@@ -230,7 +231,7 @@ void JavaExporter::header(t_output &out) {
 	out.push_back("import java.io.*;");
 	if (include_cmath) out.push_back("import java.math.*;");
 	if (!for_test) out.push_back("");
-	out.push_back(string("public class ")+ToLower(GetRT().funcs.GetMainName())+" {");
+	out.push_back(std::string("public class ")+ToLower(GetRT().funcs.GetMainName())+" {");
 	if (!for_test) out.push_back("");
 }
 
@@ -249,7 +250,7 @@ void JavaExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &p
 	bloque(out_proc,++proc.begin(),proc.end(),"\t\t");
 	
 	// excepciones que puede tirar el método y deben declararse en el prototipo
-	string exceptions;
+	std::string exceptions;
 	if ((use_esperar_tecla||use_reader) && use_esperar_tiempo) {
 		exceptions = "throws IOException, InterruptedException ";
 	} else if (use_reader||use_esperar_tecla) {

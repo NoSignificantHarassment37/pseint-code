@@ -10,7 +10,6 @@
 #include "Events.h"
 #include "Load.h"
 #include "MainWindow.h"
-using namespace std;
 
 ZOCKET zocket=ZOCKET_ERROR; // para comunicarse con wxPSeInt
 
@@ -18,9 +17,9 @@ ZOCKET zocket=ZOCKET_ERROR; // para comunicarse con wxPSeInt
 bool Connect(int port, int id) {
 	zocket = zocket_llamar(port,"127.0.0.1");
 	if (zocket==ZOCKET_ERROR) return false;
-	stringstream ss;
+	std::stringstream ss;
 	ss<<"hello-flow "<<id<<"\n";
-	string s=ss.str();
+	std::string s=ss.str();
 	zocket_escribir(zocket,s.c_str(),s.size());
 	if (zocket==ZOCKET_ERROR) return false;
 	return true;
@@ -57,7 +56,7 @@ bool SendHelp() {
 
 bool SendConfig(const char *key, bool val) {
 	if (zocket==ZOCKET_ERROR) return false;
-	string msg = "config:"; msg += key; msg += (val?"=1\n":"=0\n");
+	std::string msg = "config:"; msg += key; msg += (val?"=1\n":"=0\n");
 	zocket_escribir(zocket,msg.c_str(),msg.size());
 	if (zocket==ZOCKET_ERROR) return false;
 	return true;
@@ -72,10 +71,10 @@ void CloseComm( ) {
 void ReadComm( ) {
 	static char *rec=new char[256]; int cant=256;
 	if (zocket!=ZOCKET_ERROR && zocket_leer(zocket,rec,cant)) {
-		rec[cant]=0; string sr_full=rec;
+		rec[cant]=0; std::string sr_full=rec;
 		size_t pn=sr_full.find('\n'),lpn=0;
-		while (pn!=string::npos) {
-			string sr=sr_full.substr(lpn,pn-lpn); lpn=pn+1;
+		while (pn!=std::string::npos) {
+			std::string sr=sr_full.substr(lpn,pn-lpn); lpn=pn+1;
 			if (sr=="edit") { 
 				g_state.edit_on=true; Raise();
 			}
@@ -104,12 +103,12 @@ void ReadComm( ) {
 			else if (sr.substr(0,11)=="errors add ") {
 				sr=sr.substr(11);
 				size_t p=sr.find(' ');
-				map<string,LineInfo>::iterator it = g_code.code2draw.find(sr.substr(0,p));
+				auto it = g_code.code2draw.find(sr.substr(0,p));
 				if (it!=g_code.code2draw.end()) it->second.entidad->error+=sr.substr(p+1)+"  ";
 			}
 			else if (sr.substr(0,5)=="step ") {
 				sr=sr.substr(5);
-				map<string,LineInfo>::iterator it = g_code.code2draw.find(sr);
+				auto it = g_code.code2draw.find(sr);
 				if (it!=g_code.code2draw.end()) 
 					FocusEntity(&(it->second));
 			}

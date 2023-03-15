@@ -17,7 +17,7 @@ include Makefile.common
 clean:
 	${RM} ${OBJS} ../${BIN}/psdrawE${EXT}
 
-../${BIN}/psdrawE${EXT}: ${OBJS} ${ICON}
+../${BIN}/psdrawE${EXT}: ../${BIN} ${OBJS} ${ICON}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:
@@ -27,3 +27,6 @@ ifdef WINDOWS
 ${ICON}: ../wxPSeInt/icon.rc ../bin/imgs/icon.ico
 	${WINDRES} -I${WX_DIR}/include -i ../wxPSeInt/icon.rc -o $@
 endif
+
+../${BIN}:
+	${MKDIR} ../${BIN}

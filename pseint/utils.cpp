@@ -9,18 +9,18 @@
 #include "RunTime.hpp"
 #include "strFuncs.hpp"
 
-void show_user_info(string msg) {
+void show_user_info(std::string msg) {
 	if (fix_win_charset) fixwincharset(msg);
 	if (colored_output) setForeColor(COLOR_INFO);
 	if (with_io_references) Inter.SendErrorPositionToTerminal(); // para que no asocie el error/mensaje con la última entrada/salida
-	cout<<msg<<endl;
+	std::cout << msg << std::endl;
 }
 
-void show_user_info(string msg1, int num, string msg2) {
+void show_user_info(std::string msg1, int num, std::string msg2) {
 	if (fix_win_charset) { fixwincharset(msg1); fixwincharset(msg2); }
 	if (colored_output) setForeColor(COLOR_INFO);
 	if (with_io_references) Inter.SendErrorPositionToTerminal(); // para que no asocie el error/mensaje con la última entrada/salida
-	cout<<msg1<<num<<msg2<<endl;
+	std::cout << msg1 << num << msg2 << std::endl;
 }
 
 
@@ -29,29 +29,29 @@ void show_user_info(string msg1, int num, string msg2) {
 // ------------------------------------------------------------
 //    Informa un error en tiempo de ejecucion
 // ------------------------------------------------------------
-void ExeError_impl(int num, string s) { 
+void ExeError_impl(int num, std::string s) { 
 	if (Inter.EvaluatingForDebug()) {
-		Inter.SetError(string("<<")+s+">>");
+		Inter.SetError(std::string("<<")+s+">>");
 	} else {
 		if (raw_errors) {
-			cout<<"=== Line "<<Inter.GetLocation().linea<<": ExeError "<<num<<endl;
+			std::cout << "=== Line " << Inter.GetLocation().linea << ": ExeError " << num << std::endl;
 			exit(0);
 		}
 		if (colored_output) setForeColor(COLOR_ERROR);
 		if (with_io_references) Inter.SendErrorPositionToTerminal();
-		cout<<"Lin "<<Inter.GetLocation().linea<<" (inst "<<Inter.GetLocation().linea<<"): ERROR "<<num<<": "<<s<<endl;
+		std::cout << "Lin " << Inter.GetLocation().linea << " (inst " << Inter.GetLocation().linea << "): ERROR " << num << ": " << s << std::endl;
 		for(int i=Inter.GetBacktraceLevel()-1;i>0;i--) {  
 			FrameInfo fi=Inter.GetFrame(i);
-			cout<<"...dentro del subproceso "<<fi.func_name<<", invocado desde la línea "<<fi.loc.linea<<"."<<endl;
+			std::cout << "...dentro del subproceso " << fi.func_name << ", invocado desde la línea " << fi.loc.linea << "." << std::endl;
 		}
 		if (ExeInfoOn) {
-			ExeInfo<<"Lin "<<Inter.GetLocation().linea<<" (inst "<<Inter.GetLocation().instruccion<<"): ERROR "<<num<<": "<<s<<endl;
+			ExeInfo << "Lin " << Inter.GetLocation().linea << " (inst " << Inter.GetLocation().instruccion << "): ERROR " << num << ": " << s << std::endl;
 			for(int i=Inter.GetBacktraceLevel()-1;i>0;i--) {  
 				FrameInfo fi=Inter.GetFrame(i);
-				ExeInfo<<"Lin "<<fi.loc.linea<<" (inst "<<fi.loc.instruccion<<"): ";
-				ExeInfo<<"...dentro del subproceso "<<fi.func_name<<", invocado desde aquí."<<endl;
+				ExeInfo << "Lin " << fi.loc.linea<<" (inst " << fi.loc.instruccion<<"): ";
+				ExeInfo << "...dentro del subproceso " << fi.func_name << ", invocado desde aquí." << std::endl;
 			}
-			ExeInfo<<"*** Ejecucion Interrumpida. ***"<<endl;
+			ExeInfo << "*** Ejecucion Interrumpida. ***" << std::endl;
 		} 
 		if (wait_key) {
 			show_user_info("*** Ejecución Interrumpida. ***");
@@ -66,30 +66,30 @@ void ExeError_impl(int num, string s) {
 // ------------------------------------------------------------
 //    Informa un error de syntaxis antes de la ejecucion
 // ------------------------------------------------------------
-void SynError_impl(int num,string s) { 
+void SynError_impl(int num, std::string s) { 
 	SynError_impl(num,s,Inter.GetLocation());
 }
 
-void SynError_impl(int num,string s, CodeLocation loc) { 
+void SynError_impl(int num, std::string s, CodeLocation loc) { 
 #ifdef _FOR_PSEXPORT
 	return;
 #endif
 	if (raw_errors) {
-		cout<<"=== Line "<<loc.linea<<": SynError "<<num<<endl;
+		std::cout << "=== Line " << loc.linea << ": SynError " << num << std::endl;
 		return;
 	}
 	if (Inter.EvaluatingForDebug()) {
-		Inter.SetError(string("<<")+s+">>");
+		Inter.SetError(std::string("<<")+s+">>");
 	} else {
 		if (colored_output) setForeColor(COLOR_ERROR);
 		if (with_io_references) Inter.SendErrorPositionToTerminal(); // para que no asocie el error con la última entrada/salida
-		cout<<"Lin "<<loc.linea;
-		if (loc.instruccion>0) cout<<" (inst "<<loc.instruccion<<")";
-		cout<<": ERROR "<<num<<": "<<s<<endl;
+		std::cout << "Lin " << loc.linea;
+		if (loc.instruccion>0) std::cout << " (inst " << loc.instruccion << ")";
+		std::cout << ": ERROR " << num << ": " << s << std::endl;
 		if (ExeInfoOn) {
-			ExeInfo<<"Lin "<<loc.linea;
-			if (loc.instruccion>0) ExeInfo<<" (inst "<<loc.instruccion<<")";
-			ExeInfo<<": ERROR "<<num<<": "<<s<<endl;
+			ExeInfo << "Lin " << loc.linea;
+			if (loc.instruccion>0) ExeInfo << " (inst " << loc.instruccion << ")";
+			ExeInfo << ": ERROR " << num << ": " << s << std::endl;
 		}
 	}
 }
@@ -100,9 +100,9 @@ void SynError_impl(int num,string s, CodeLocation loc) {
 //    A diferencia del anterior, no tiene en cuenta las
 //  funciones predefinidas.
 // ------------------------------------------------------------
-bool CheckVariable(RunTime &rt, string str, int errcode) { 
+bool CheckVariable(RunTime &rt, std::string str, int errcode) { 
 	size_t pi=str.find("(",0);
-	if (pi!=string::npos && str[str.size()-1]==')') {
+	if (pi!=std::string::npos && str[str.size()-1]==')') {
 		CheckDims(rt,str);
 		str.erase(pi,str.size()-pi); // si es arreglo corta los subindices
 	}
@@ -122,7 +122,7 @@ bool CheckVariable(RunTime &rt, string str, int errcode) {
 		ret=false;
 	else if (lang[LS_ENABLE_USER_FUNCTIONS] && (str=="FINSUBPROCESO" || str=="SUBPROCESO" ||str=="FINFUNCION" || str=="FUNCION" ||str=="FINFUNCIÓN" || str=="FUNCIÓN") )
 		ret=false;
-	if (!ret && errcode!=-1) rt.err.SyntaxError(errcode,string("Identificador no válido (")+str+")."); 
+	if (!ret && errcode!=-1) rt.err.SyntaxError(errcode,std::string("Identificador no válido (")+str+")."); 
 	return ret;
 }
 
@@ -194,9 +194,9 @@ bool CheckVariable(RunTime &rt, string str, int errcode) {
 // ----------------------------------------------------------------------
 //    Averigua el tipo de variable para un dato
 // ----------------------------------------------------------------------
-tipo_var GuestTipo(string str) { 
+tipo_var GuestTipo(std::string str) { 
 	tipo_var ret=vt_desconocido;
-	string strb;
+	std::string strb;
 	strb=str;
 	if (str.size()==0) ret=vt_desconocido; else {
 		if (strb=="VERDADERO" || strb=="FALSO") {
@@ -223,16 +223,16 @@ tipo_var GuestTipo(string str) {
 // ----------------------------------------------------------------------
 //    Reemplaza una cadena por otra si es que se encuentra
 // ----------------------------------------------------------------------
-bool ReplaceIfFound(string &str, string str1, string str2, bool saltear_literales) { 
+bool ReplaceIfFound(std::string &str, std::string str1, std::string str2, bool saltear_literales) { 
 	size_t x=str.find(str1,0);
 	size_t ox=0;
 	bool ret=false;
-	while (x!=string::npos) {
+	while (x!=std::string::npos) {
 		if (saltear_literales) {
 			size_t xc=str.find("\'",ox);
-			if (xc!=string::npos && xc<x) {
+			if (xc!=std::string::npos && xc<x) {
 				xc=str.find("\'",xc+1);
-				if (xc==string::npos) break;
+				if (xc==std::string::npos) break;
 				x=str.find(str1,ox=(xc+1));
 				continue;
 			}
@@ -251,8 +251,8 @@ bool ReplaceIfFound(string &str, string str1, string str2, bool saltear_literale
 // funciones auxiliares para psexport
 inline int max(int a,int b){ return (a>b)?a:b; }
 inline int min(int a,int b){ return (a<b)?a:b; }
-string CutString(string s, int a, int b){
-	string r=s;
+std::string CutString(std::string s, int a, int b){
+	std::string r=s;
 	r.erase(0,a);
 	if (b!=0) r.erase(r.size()-b,b);
 	return r;
@@ -263,7 +263,7 @@ bool parteDePalabra(char c) {
 	return (EsLetra(c) || c=='_' || (c>='0' && c<='9'));
 }
 
-void fixwincharset(string &s, bool reverse) {
+void fixwincharset(std::string &s, bool reverse) {
 	if (!fix_win_charset) return;
 	if (reverse) {
 		for(unsigned int i=0;i<s.size();i++) { 
@@ -363,7 +363,7 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings
 			err_handler.SyntaxError(244,MkErrorMsg("El nombre de $ ($) no es un identificador válido.",kw2str(es_proceso?KW_ALGORITMO:KW_SUBALGORITMO),parts.nombre));
 	}
 	// argumentos
-	string str_args = parts.args; Trim(str_args);
+	std::string str_args = parts.args; Trim(str_args);
 	if (not str_args.empty())	{
 		if (str_args[0]!='(') { // si no habia argumentos no tiene que haber nada
 			if (es_proceso) err_handler.SyntaxError(252,"Se esperaba el fin de linea."); 
@@ -379,7 +379,7 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings
 			} else {
 				if (p2+1!=str_args.size())
 					err_handler.SyntaxError(251,"Se esperaba fin de linea.");
-				string args = str_args.substr(1,p2-1);
+				std::string args = str_args.substr(1,p2-1);
 				auto vargs = splitArgsList(args); 
 				for (std::string &arg : vargs) {
 					Trim(arg);
@@ -403,7 +403,7 @@ std::unique_ptr<Funcion> MakeFuncionForSubproceso(RunTime &rt, const FuncStrings
 	return the_func;
 }
 
-FuncStrings SepararCabeceraDeSubProceso(string cadena) {
+FuncStrings SepararCabeceraDeSubProceso(std::string cadena) {
 	FuncStrings ret;
 	if (not cadena.empty()) {
 		if (cadena[0]=='(') { 

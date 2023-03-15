@@ -14,7 +14,6 @@
 #include "Trash.h"
 #include "ProcessSelector.h"
 #include <wx/timer.h>
-using namespace std;
 
 #define mouse_setted_delta 1000
 static int mouse_setted_x,mouse_setted_y; // posicion del click que va a setear el mouse en una entidad cuando se mueva, con correccion de y y zoom aplicados

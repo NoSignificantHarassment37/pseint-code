@@ -8,7 +8,6 @@
 #include "mxStatusBar.h"
 #include "mxDebugWindow.h"
 #include "Logger.h"
-using namespace std;
 
 enum {MXS_TYPE_UNKNOWN, MXS_TYPE_DEBUG, MXS_TYPE_FLOW, MXS_TYPE_RUN};
 
@@ -173,7 +172,7 @@ void CommunicationsManager::SocketEvent(wxSocketEvent &event) {
 		clients.push_back(new mxSocketClient(server->Accept(false)));
 		_LOG("CommunicationsManager::SocketEvent::NewClient s="<<clients.back());
 	} else if (event.GetSocketEvent()==wxSOCKET_INPUT) { // si son datos de entrada...
-		list<mxSocketClient*>::iterator it1=clients.begin(), it2=clients.end();
+		auto it1=clients.begin(), it2=clients.end();
 		while (it1!=it2) {
 			if ((**it1)==s) { 
 				(*it1)->ProcessInput(event);
@@ -186,7 +185,7 @@ void CommunicationsManager::SocketEvent(wxSocketEvent &event) {
 		_LOG("CommunicationsManager::SocketEvent::Input error");
 	} else if (event.GetSocketEvent()==wxSOCKET_LOST) { // si por algo anormal se corto una conexion pendiente, liberar en sockets
 		_LOG("CommunicationsManager::SocketEvent::Lost s="<<s);
-		list<mxSocketClient*>::iterator it1=clients.begin(), it2=clients.end();
+		auto it1=clients.begin(), it2=clients.end();
 		while (it1!=it2) {
 			if ((**it1)==s) {
 				(*it1)->ProcessLost();

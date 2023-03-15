@@ -67,7 +67,7 @@ struct Funcion {
 
 class FuncsManager {
 public:
-	using FuncsContainer = map<string,std::unique_ptr<Funcion>>;
+	using FuncsContainer = std::map<std::string,std::unique_ptr<Funcion>>;
 	
 	void LoadPredefs();
 	void AddSub(std::unique_ptr<Funcion> &&func);
@@ -94,7 +94,7 @@ public:
 private:
 	FuncsContainer m_predefs; ///< funciones predefinidas del lenguaje
 	FuncsContainer m_subs; ///< funciones definidas por el usuario (proceso y subprocesos)
-	string m_main_name; ///< nombre de la funcion que representa al proceso principal, se asigna en SynCheck y se usa en el main para saber desde donde ejecutar
+	std::string m_main_name; ///< nombre de la funcion que representa al proceso principal, se asigna en SynCheck y se usa en el main para saber desde donde ejecutar
 
 };
 

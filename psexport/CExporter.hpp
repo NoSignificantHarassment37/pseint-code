@@ -3,7 +3,6 @@
 
 #include "ExporterBase.hpp"
 #include "CppExporter.hpp"
-using namespace std;
 
 class CExporter : public CppExporter {
 	
@@ -13,7 +12,7 @@ class CExporter : public CppExporter {
 	bool use_func_subcadena;
 	bool use_reference;
 	
-	string get_tipo(map<string,tipo_var>::iterator &mit, bool for_func=false, bool by_ref=false); // se usa tanto desde el otro get_tipo como desde declarar_variables
+	std::string get_tipo(std::map<std::string,tipo_var>::iterator &mit, bool for_func=false, bool by_ref=false); // se usa tanto desde el otro get_tipo como desde declarar_variables
 //	void declarar_variables(t_output &prog);
 //	string get_tipo(string name, bool by_ref=false); // solo se usa para cabeceras de funciones
 	void header(t_output &out);
@@ -33,13 +32,13 @@ class CExporter : public CppExporter {
 //	void repetir(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) override;
 	void para(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) override;
 	void paracada(t_output &prog, t_proceso_it r, t_proceso_it q, std::string tabs) override;
-	void comentar(t_output &prog, string text, std::string tabs) override;
+	void comentar(t_output &prog, std::string text, std::string tabs) override;
 	
 public:
 	std::string referencia(const std::string &exp) override;
-	string function(string name, string args) override;
+	std::string function(std::string name, std::string args) override;
 //	string get_constante(string name) override;
-	string get_operator(string op, bool for_string=false) override;	
+	std::string get_operator(std::string op, bool for_string=false) override;	
 //	void translate(t_output &out, t_programa &prog) override;
 	CExporter();
 	

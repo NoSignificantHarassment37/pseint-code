@@ -9,7 +9,6 @@
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
 #include <iostream>
-using namespace std;
 	
 mxArt *bitmaps = NULL;
 

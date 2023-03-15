@@ -97,8 +97,8 @@ struct GCode {
 	// la forma de gestionar todo esto es tener los diagramas cargados todos a la
 	// vez pero independientes, para lo cual trucheo start y Entity::all_any en 
 	// Load y SetProc
-	vector<Entity*> procesos;
-	map<string,LineInfo> code2draw;
+	std::vector<Entity*> procesos;
+	std::map<std::string,LineInfo> code2draw;
 	// auxiliares varios
 	Entity *start = nullptr; // entidad donde comienza el algoritmo
 	Entity *entity_to_del = nullptr; // para un delayed delete (cuando suelta uno que sale del shapebar y no queda en ningun lado)

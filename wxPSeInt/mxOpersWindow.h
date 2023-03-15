@@ -3,7 +3,6 @@
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <vector>
-using namespace std;
 
 class wxBoxSizer;
 class wxButton;
@@ -23,8 +22,8 @@ class mxOpersWindow : public wxScrolledWindow {
 		label_item(wxString _label, wxButton *_but):label(_label),but(_but),showing(true){}
 	};
 	wxBoxSizer *sizer;
-	vector<oper_item> lista;
-	vector<label_item> lista2;
+	std::vector<oper_item> lista;
+	std::vector<label_item> lista2;
 	void Replace(oper_item &o, wxString f1, wxString t1, wxString f2, wxString t2, bool sent);
 	void AddCaterory(wxString label);
 	void Add(wxString code, wxString label, wxString name, wxString desc);

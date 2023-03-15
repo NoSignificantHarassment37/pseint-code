@@ -1,7 +1,6 @@
 #include "zockets.h"
 #include <iostream>
 #include <cstring>
-using namespace std;
 
 ZOCKET zocket_llamar(short int port, const char *host) {
 #if defined(_WIN32) || defined(__WIN32__)
@@ -75,7 +74,7 @@ ZOCKET zocket_esperar_llamada(short int port) {
 	struct sockaddr cli;
 	memset(&cli, 0, sizeof(cli));
 	socklen_t long_cli=sizeof(struct sockaddr);
-	cerr<<"Presione aceptar en la ventana de PSeInt para comenzar la ejecucion paso a paso"<<endl;
+	std::cerr << "Presione aceptar en la ventana de PSeInt para comenzar la ejecucion paso a paso" << std::endl;
 	int desc_cli = accept (desc_srv, &cli, &long_cli);
 	if (desc_cli == -1)
 		return ZOCKET_ERROR;

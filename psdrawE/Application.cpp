@@ -18,7 +18,6 @@
 #include "Version.h"
 #include "mxConfig.h"
 #include "../wxPSeInt/string_conversions.h"
-using namespace std;
 
 void ProcessMenu(int) {}
 
@@ -51,7 +50,7 @@ bool mxApplication::OnInit() {
 	OSDep::AppInit();
 	
 	if (argc==1) {
-		cerr<<"Use: "<<argv[0]<<" [--use_nassi_shneiderman=1] [--use_alternative_io_shapes=1] [--shape_colors] [--nogui] <input_file> <output_file>"<<endl;
+		std::cerr<<"Use: "<<argv[0]<<" [--use_nassi_shneiderman=1] [--use_alternative_io_shapes=1] [--shape_colors] [--nogui] <input_file> <output_file>"<<std::endl;
 	}
 
 	g_lang.Reset();
@@ -161,7 +160,7 @@ bool mxApplication::OnInit() {
 	_IF_PNG(if (fout.Lower().EndsWith(".png")) type=wxBITMAP_TYPE_PNG;)
 	_IF_JPG(else if (fout.Lower().EndsWith(".jpg")||fout.Lower().EndsWith(".jpeg")) type=wxBITMAP_TYPE_JPEG;)
 	if (bmp.SaveFile(fout,type)) {
-		if (nogui) cerr << _Z("Guardado: ")<<fout<<endl;
+		if (nogui) std::cerr << _Z("Guardado: ")<<fout<<std::endl;
 		else wxMessageBox(_Z("Diagrama guardado"),_Z("PSeInt"));
 	}
 	

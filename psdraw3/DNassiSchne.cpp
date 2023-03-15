@@ -5,7 +5,6 @@
 #include "Global.h"
 #include "Draw.h"
 #include "Text.h"
-using namespace std;
 
 static int bk_x0,bk_x1,bk_y0,bk_y1;
 
@@ -36,7 +35,7 @@ static void DrawSolidRectangle(const float *color, int x, int y, int wl, int wr,
 //	bk_y0=bk_y1=g_code.start->d_y;
 //}
 
-static void DrawTextNS(const float *color, int x, int y, string label) {
+static void DrawTextNS(const float *color, int x, int y, std::string label) {
 	glColor3fv(color);
 	glPushMatrix();
 	glTranslated(x,y,0);
@@ -49,7 +48,7 @@ static void DrawTextNS(const float *color, int x, int y, string label) {
 }
 
 void Entity::DrawNassiShne(bool force) {
-	if (bwl>2000) cerr << bwl << endl;
+	if (bwl>2000) std::cerr << bwl << std::endl;
 	int icolor=g_config.shape_colors?type:ET_COUNT;
 	if (icolor==ET_OPCION) icolor=ET_SEGUN;
 //	if (this==g_code.start) DrawBackground();

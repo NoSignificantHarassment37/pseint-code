@@ -1,8 +1,7 @@
 #include "zcurlib.h"
 #include <iostream>
-using namespace std;
 
-#ifdef WIN32
+#if defined(WIN32) or defined(WIN64)
 
 // codigo windows, basado en http://www.gamedev.net/community/forums/topic.asp?topic_id=308393
 
@@ -44,7 +43,7 @@ void win_setForeColor(int c) {
 }
 
 void win_clrscr() {
-	cout.flush();
+	std::cout.flush();
 	static HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD coord = {0, 0};	
 	DWORD dw;	

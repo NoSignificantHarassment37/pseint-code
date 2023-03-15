@@ -7,7 +7,6 @@
 #include "Entity.h"
 #include "Text.h"
 #include "Global.h"
-using namespace std;
 
 // función basada en código tomado de http://wiki.wxwidgets.org/Using_wxImage_to_load_textures_for_OpenGL
 static bool loadImage(GLuint &ID, wxString path, int* imageWidth, int* imageHeight, int* textureWidth, int* textureHeight) {
@@ -162,11 +161,11 @@ static bool loadImage(GLuint &ID, wxString path, int* imageWidth, int* imageHeig
 bool Texture::Load () {
 	int tex_w=0, tex_h=0; w=h=0;
 	if (!loadImage(m_id,m_fname.c_str(), &w, &h, &tex_w, &tex_h)) {
-		cerr << "ERROR: LOADING TEXTURE: " << m_fname << endl;
+		std::cerr << "ERROR: LOADING TEXTURE: " << m_fname << std::endl;
 		return false;
 	}
 	if (w==0||h==0) {
-		cerr << "ERROR: EMPTY TEXTURE: " << m_fname << endl;
+		std::cerr << "ERROR: EMPTY TEXTURE: " << m_fname << std::endl;
 		return false;
 	}
 	r=double(w)/h;
@@ -177,7 +176,7 @@ bool Texture::Load () {
 
 Texture g_texture_font;
 
-set<Texture*> Texture::m_to_load;
+std::set<Texture*> Texture::m_to_load;
 bool Texture::LoadTextures() {
 # ifdef _USE_DF
 	g_texture_font.SetTexture(g_constants.imgs_path+"../font.png");
@@ -186,7 +185,7 @@ bool Texture::LoadTextures() {
 # endif
 	
 	bool all_ok = true;
-	for( set<Texture*>::iterator it=m_to_load.begin(); it!=m_to_load.end(); ++it ) { 
+	for( auto it=m_to_load.begin(); it!=m_to_load.end(); ++it ) { 
 		if (!(*it)->Load()) all_ok = false;
 	}
 	m_to_load.clear();

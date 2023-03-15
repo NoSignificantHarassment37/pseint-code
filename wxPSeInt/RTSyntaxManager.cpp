@@ -8,7 +8,6 @@
 #include "ids.h"
 #include "Logger.h"
 #include "string_conversions.h"
-using namespace std;
 
 RTSyntaxManager *RTSyntaxManager::the_one = NULL;
 RTSyntaxManager::Info RTSyntaxManager::extra_args;
@@ -85,7 +84,7 @@ void RTSyntaxManager::ContinueProcessing() {
 		return;
 	}
 	while(true) {
-		static string aux_line; aux_line.clear();
+		static std::string aux_line; aux_line.clear();
 		while (IsInputAvailable()) {
 			char c=input.GetChar();
 			if (c=='\n') break;

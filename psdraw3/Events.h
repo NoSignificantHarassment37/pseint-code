@@ -1,7 +1,6 @@
 #ifndef EVENTS_H
 #define EVENTS_H
 #include <cstddef>
-using namespace std;
 
 enum MENU_OPTIONS { MO_NONE=0,
 	MO_ZOOM_EXTEND, MO_TOGGLE_FULLSCREEN, MO_TOGGLE_COLORS,

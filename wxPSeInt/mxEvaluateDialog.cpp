@@ -5,7 +5,6 @@
 #include <wx/button.h>
 #include "DebugManager.h"
 #include <wx/msgdlg.h>
-using namespace std;
 
 BEGIN_EVENT_TABLE(mxEvaluateDialog, wxDialog)
 	EVT_BUTTON(wxID_OK,mxEvaluateDialog::OnEvaluateButton)

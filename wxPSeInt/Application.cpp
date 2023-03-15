@@ -23,7 +23,6 @@
 #include "mxStatusBar.h"
 #include "osdep.h"
 #include "mxSplashScreen.h"
-using namespace std;
 
 IMPLEMENT_APP(mxApplication)
 

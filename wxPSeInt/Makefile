@@ -39,9 +39,10 @@ include Makefile.common
 clean:
 	${RM} ${OBJS} ../${BIN}/wxPSeInt{EXT} ${EXTRA_BINS} ${ICON}
 
-../${BIN}/wxPSeInt${EXT}: ${OBJS} ${ICON}
+../${BIN}/wxPSeInt${EXT}: ../${BIN} ${OBJS} ${ICON}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:
 	${MKDIR} ${OBJS_DIR}
+
 

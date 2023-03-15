@@ -11,7 +11,6 @@
 #include "string_conversions.h"
 #include "Logger.h"
 #include "mxBacktrace.h"
-using namespace std;
 
 DebugManager *debug = NULL;
 
@@ -196,13 +195,13 @@ void DebugManager::ProcessSocketLost() {
 }
 
 void DebugManager::InvalidateLambda (void * ptr) {
-	for ( map<wxString,DebugLambda*>::iterator it=on_evaluar.begin(), end=on_evaluar.end(), aux; it!=end; ) {
-		if (it->second->Invalidate(ptr)) { aux = it++; on_evaluar.erase(aux); } else ++it;
+	for (auto it=on_evaluar.begin(), end=on_evaluar.end(); it!=end; ) {
+		if (it->second->Invalidate(ptr)) { auto aux = it++; on_evaluar.erase(aux); } else ++it;
 	}
 }
 
 void DebugManager::RunLambda (wxString key, wxString ans) {
-	map<wxString,DebugLambda*>::iterator it=on_evaluar.find(key);
+	auto it=on_evaluar.find(key);
 	if (it==on_evaluar.end()) return;
 	it->second->Do(ans); delete it->second; on_evaluar.erase(it);
 }

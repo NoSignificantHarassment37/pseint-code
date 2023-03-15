@@ -9,6 +9,8 @@
 #include "exportexp.h"
 #include "TiposExporter.hpp"
 
+using namespace std;
+
 MatLabExporter::MatLabExporter() {
 	output_base_zero_arrays=false;
 	use_comparar_cadenas=false;

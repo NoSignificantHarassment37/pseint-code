@@ -29,7 +29,7 @@
 		"  by Pablo Novara (zaskar_84@yahoo.com.ar)"<<std::endl
 
 #define _write_version_info(what,where) \
-	std::ofstream fout(where); \
+	std::ofstream fout((std::string(where))); \
 	if (fout.is_open()) \
 		fout<<what<<" "<<VERSION<<"-"<<ARCHITECTURE<<ARCH_EXTRA<<std::endl; \
 	fout.close()

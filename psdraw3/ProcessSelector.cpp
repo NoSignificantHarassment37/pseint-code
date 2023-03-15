@@ -78,17 +78,17 @@ void ProcessSelector::Draw ( ) {
 			glLineWidth(g_config.big_icons?2:1);
 			begin_texto();
 			{
-				string &sp = g_code.procesos[i]->lpre;
+				std::string &sp = g_code.procesos[i]->lpre;
 				int p=0; int l=sp.size();
 				while (p<l)
 					dibujar_caracter(sp[p++]);
 			}
 			
 			{
-				string &s = g_code.procesos[i]->label;
+				std::string &s = g_code.procesos[i]->label;
 				int l=s.size(),p=0; size_t f=s.find('<');
-				if (f==string::npos) f=s.find('='); else f++;
-				if (f==string::npos) f=0; else f++;
+				if (f==std::string::npos) f=s.find('='); else f++;
+				if (f==std::string::npos) f=0; else f++;
 				int t=f; while (t<l && s[t]!=' ' && s[t]!='(') t++;
 				while (p<l) {
 					if (p==int(f)) glColor3fv(g_colors.menu_front_bold);

@@ -14,7 +14,6 @@
 #include <wx/msgdlg.h>
 #include <cstdlib>
 #include "mxArt.h"
-using namespace std;
 
 BEGIN_EVENT_TABLE(mxTestPanel,wxPanel)
 	EVT_BUTTON(mxID_TESTPACK_RUN,mxTestPanel::OnRun)

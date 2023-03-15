@@ -3,7 +3,6 @@
 
 #include "ExporterBase.hpp"
 #include "CppExporter.hpp"
-using namespace std;
 
 class PhpExporter : public CppExporter {
 	
@@ -15,7 +14,7 @@ protected:
 //	void footer(t_output &out);
 	void translate_single_proc(t_output &out, Funcion *f, t_proceso &proc) override;
 	
-	void esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) override;
+	void esperar_tiempo(t_output &prog, std::string tiempo, bool mili, std::string tabs) override;
 	void esperar_tecla(t_output &prog, std::string tabs) override;
 	void borrar_pantalla(t_output &prog, std::string tabs) override;
 //	void invocar(t_output &prog, std::string func_name, std::string args, std::string tabs) override;
@@ -32,11 +31,11 @@ protected:
 	void dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) override;
 	
 public:
-	string make_string(string cont) override;
-	string function(string name, string args) override;
-	string make_varname(string varname) override;
-//	string get_constante(string name) override;
-	string get_operator(string op, bool for_string=false) override;
+	std::string make_string(std::string cont) override;
+	std::string function(std::string name, std::string args) override;
+	std::string make_varname(std::string varname) override;
+//	std::string get_constante(string name) override;
+	std::string get_operator(std::string op, bool for_string=false) override;
 	void translate(t_output &out, Programa &prog) override;
 	PhpExporter();
 	

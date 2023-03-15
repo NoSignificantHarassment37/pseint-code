@@ -1,6 +1,8 @@
 #include "exportexp.h"
 #include "CSharpExporter.hpp"
 
+using namespace std;
+
 CSharpExporter::CSharpExporter():CppExporter() {
 	use_threading=false;
 	have_subprocesos=false;

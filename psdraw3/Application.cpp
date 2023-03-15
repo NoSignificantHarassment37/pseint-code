@@ -34,9 +34,9 @@ bool mxApplication::OnInit() {
 	GlobalInitPre();
 	
 	int id=-1, port=-1;
-	string fname;
+	std::string fname;
 	for(int i=1;i<argc;i++) { 
-		string a(argv[i]);
+		std::string a(argv[i]);
 		if (a=="--shapecolors") g_config.shape_colors=true;
 		else if (a=="--darktheme") { g_config.dark_theme=true; SetColors(); }
 		else if (a=="--noedit") g_state.edit_on=false;

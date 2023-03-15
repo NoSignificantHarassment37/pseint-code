@@ -7,7 +7,7 @@ class JSExporter : public CppExporter {
 	bool for_html;
 	
 //	string get_tipo(map<string,tipo_var>::iterator &mit, bool for_func=false, bool by_ref=false); // se usa tanto desde el otro get_tipo como desde declarar_variables
-	void declarar_variables(t_output &prog, string tab);
+	void declarar_variables(t_output &prog, std::string tab);
 //	string get_tipo(string name, bool by_ref=false); // solo se usa para cabeceras de funciones
 	void header(t_output &out);
 	void footer(t_output &out);
@@ -16,7 +16,7 @@ class JSExporter : public CppExporter {
 	
 	void definir(t_output &prog, t_arglist &variables, tipo_var tipo, std::string tabs) override;
 	void dimension(t_output &prog, t_arglist &nombres, t_arglist &tamanios, std::string tabs) override;
-	void esperar_tiempo(t_output &prog, string tiempo, bool mili, std::string tabs) override;
+	void esperar_tiempo(t_output &prog, std::string tiempo, bool mili, std::string tabs) override;
 	void esperar_tecla(t_output &prog, std::string tabs) override;
 	void borrar_pantalla(t_output &prog, std::string tabs) override;
 //	void invocar(t_output &prog, string param, std::string tabs) override;
@@ -32,9 +32,9 @@ class JSExporter : public CppExporter {
 	
 public:
 //	string make_string(string cont) override;
-	string function(string name, string args) override;
-	string get_constante(string name) override;
-	string get_operator(string op, bool for_string=false) override;
+	std::string function(std::string name, std::string args) override;
+	std::string get_constante(std::string name) override;
+	std::string get_operator(std::string op, bool for_string=false) override;
 //	void translate(t_output &out, t_programa &prog) override;
 	JSExporter(bool for_html=false);
 	
