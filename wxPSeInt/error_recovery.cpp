@@ -57,7 +57,7 @@ void er_sigsev(int sig) {
 			fil2 << sr->src->GetPageText() << std::endl;
 			fil2 << (sr->src->sin_titulo?"":sr->src->filename) << std::endl;
 			fil2 << (er_dir+kname).c_str() << std::endl;
-			sr->src->wxStyledTextCtrl::SaveFile(wxString((er_dir+kname).c_str(),wxConvLibc));
+			sr->src->SaveFile(wxString((er_dir+kname).c_str(),wxConvLibc));
 		}
 		sr = sr->next;
 	}
