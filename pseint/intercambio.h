@@ -107,12 +107,6 @@ public:
 	
 };
 
-#define _sub_msg(i,s) { Inter.SetLocation(programa[i].loc); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); } }
-#define _sub_wait() { if (Inter.subtitles_on) Inter.ChatWithGUI(); }
-#define _sub(i,s) { Inter.SetLocation(programa[i].loc); if ( Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); Inter.ChatWithGUI(); } }
-#define _pos(i)   { Inter.SetLocation(programa[i].loc); if (!Inter.subtitles_on) { Inter.SendPositionToGUI();                        Inter.ChatWithGUI(); } }
-#define _sub_raise() { if (Inter.subtitles_on && for_pseint_terminal) { cout<<"\033[zr"; } }
-
 extern Intercambio Inter;        // clase para enviar informacion de depuración al editor
 
 // *****************************************************************

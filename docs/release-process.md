@@ -45,8 +45,14 @@ El proceso se hace en una máquina virtual (utilizo VirtualBox).
 
 Uso distribuciones de GNU/Linux populares y viejas, para evitar que los binarios se compilen con dependencias a versiones muy recientes de bibliotecas del sistema y eso les impida correr en máquinas desactualizadas. Actualmente:
 
-* 64bits:  *Ubuntu 18.04*
+* 64bits:  *Mint 19-xfce*
 * 32bits: *Mint 19-xfce*
+
+Para instalar las dependencias necesarias:
+
+* compilador c++: `sudo apt-get install g++`
+* para  wx: `sudo apt-get install libgtk-3-dev`
+* para opengl: `sudo apt-get install libgl1-mesa-dev` y `sudo apt-get install libglu1-mesa-dev` (o instalar `freeglut3-dev` que tiene a ambos por dependencia)
 
 ### Compilación de wxWidgets
 
@@ -82,7 +88,7 @@ Para agilizar el proceso de ida y vuelta de archivos entre le host y la máquina
 
 1. Antes de comenzar, en el host hay que generar el tgz con los fuentes. Para ello, correr `./pack.sh src` en el directorio de fuentes de pseint.
 2. Ejecutar `./pseint-packer.sh 20230314` (se le pasa el nro de versión como argumento, el que tenga en el nombre el archivo del paso 1)
-3. Listo, el archivo quedará en el directorio `pseint/dist` del host
+   * El archivo quedará en el directorio `pseint/dist` del host
 
 ## MacOS
 

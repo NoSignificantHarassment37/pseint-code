@@ -12,6 +12,13 @@
 #include "strFuncs.hpp"
 using namespace std;
 
+// para la ejecucion explicada
+#define _sub_msg(i,s) { Inter.SetLocation(rt.prog[i].loc); if (Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); } }
+#define _sub_wait()   { if (Inter.subtitles_on) Inter.ChatWithGUI(); }
+#define _sub(i,s)     { Inter.SetLocation(rt.prog[i].loc); if ( Inter.subtitles_on) { Inter.SendPositionToGUI(); Inter.SendSubtitle(s); Inter.ChatWithGUI(); } }
+#define _pos(i)       { Inter.SetLocation(rt.prog[i].loc); if (!Inter.subtitles_on) { Inter.SendPositionToGUI();                        Inter.ChatWithGUI(); } }
+#define _sub_raise()  { if (Inter.subtitles_on && for_pseint_terminal) { cout<<"\033[zr"; } }
+
 // ********************* Ejecutar un Bloque de Instrucciones **************************
 // Ejecuta desde linestart+1 hasta lineend inclusive, o hasta finproceso/finsubproceso si lineend es -1.
 // Las variables aux?, tmp? y tipo quedaron del código viejo, se reutilizan para diferentes
@@ -47,7 +54,6 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 				Inter.OnFunctionIn(inst_impl.nombre);
 				_pos(line);
 				_sub(line,string(inst_impl.principal?"El algoritmo comienza con el proceso ":"Se ingresa en el subproceso ")+inst_impl.nombre);
-				continue;
 			} break;
 			case IT_BORRARPANTALLA: {
 				_pos(line);
@@ -158,7 +164,8 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 						_sub(line,string("El valor ingresado se almacena en ")+name);
 					}
 					memoria->DefinirTipo(variable,tipo);
-					memoria->EscribirValor(variable,DataValue(tipo,aux1));
+					DataValue dv(tipo,aux1);
+					memoria->EscribirValor(variable,dv);
 				}
 			} break;
 			

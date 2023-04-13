@@ -11,7 +11,7 @@ if ! test -e ./pseint-packer.cfg; then
 	touch ./pseint-packer.cfg
 	echo '# usuario, ip, y ruta hacia el directorio donde se encuentran los fuentes' >> ./pseint-packer.cfg
 	echo '# de pseint, y donde se va a copiar luego el resultado' >> ./pseint-packer.cfg
-	echo 'SSHSRC="usuario@10.0.2.4:/home/usuario/pseint-src/dist"' >> ./pseint-packer.cfg
+	echo 'SSHSRC="usuario@10.0.2.4:/home/usuario/pseint/dist"' >> ./pseint-packer.cfg
 	echo '' >> ./pseint-packer.cfg
 	echo '# tipo de arquitectura para la que se compila, que se usara para el nombre' >> ./pseint-packer.cfg
 	echo '# del paquete generado (l32 o l64)' >> ./pseint-packer.cfg
@@ -19,7 +19,7 @@ if ! test -e ./pseint-packer.cfg; then
 	echo '' >> ./pseint-packer.cfg
 	echo '# directorio con los .so de a incluir en el paquete... debería haber allí dos' >> ./pseint-packer.cfg
 	echo '# subdirectorios, png y wx, cada uno con sus .so y un txt con la licencia' >> ./pseint-packer.cfg
-	echo 'LIBSDIR="libs"' >> ./pseint-packer.cfg
+	echo 'LIBSDIR="libs-pseint"' >> ./pseint-packer.cfg
 	echo '' >> ./pseint-packer.cfg
 	echo '# puede modificar aquí otras variables si fuera necesario' >> ./pseint-packer.cfg
 	echo '#PATH=/home/usuario/wx/bin:$PATH' >> ./pseint-packer.cfg

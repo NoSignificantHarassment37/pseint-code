@@ -32,7 +32,7 @@ function pack_src {
 	clean
 	cd ..
 	FNAME=dist/pseint-src-`cat pseint/bin/version`.tgz
-	tar -czf pseint/$FNAME pseint/license.txt pseint/pack.sh pseint/configs pseint/Makefile* pseint/fuentes.txt pseint/pseint pseint/updatem pseint/wxPSeInt pseint/psterm pseint/pseval pseint/psexport pseint/psdrawE pseint/psdraw3 pseint/bin pseint/dist/license.txt pseint/dist/log.sh pseint/dist/pseint.nsh pseint/dist/pseint-packer.sh pseint/dist/get_arch pseint/dist/Info.plist pseint/test pseint/hoewrap pseint/dtl/C* pseint/dtl/R* pseint/dtl/dtl
+	tar -czf pseint/$FNAME pseint/license.txt pseint/pack.sh pseint/configs pseint/Makefile* pseint/pseint pseint/updatem pseint/wxPSeInt pseint/psterm pseint/pseval pseint/psexport pseint/psdrawE pseint/psdraw3 pseint/bin pseint/dist/license.txt pseint/dist/log.sh pseint/dist/pseint.nsh pseint/dist/pseint-packer.sh pseint/dist/get_arch pseint/dist/Info.plist pseint/test pseint/hoewrap pseint/dtl/C* pseint/dtl/R* pseint/dtl/dtl pseint/docs
 	echo 
 	echo -n "DONE: "
 	cd pseint
@@ -82,6 +82,7 @@ function pack_lnx {
 	rm -f dist/pseint/windows.txt
 	cp dist/log.sh dist/pseint/
 	cd dist && tar -czf pseint-${ARCH}-`cat pseint/version`.tgz pseint 
+	cd ..
 	echo 
 	echo -n "DONE: "
 	ls -sh dist/pseint-${ARCH}-`cat bin/version`.tgz
