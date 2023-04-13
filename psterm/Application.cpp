@@ -1,10 +1,10 @@
-#include <wx/msgdlg.h>
 #include <iostream>
+#include <wx/msgdlg.h>
+#include <wx/image.h>
 #include "../wxPSeInt/osdep.h"
 #include "Application.h"
 #include "mxFrame.h"
 #include "version.h"
-#include <wx/image.h>
 
 IMPLEMENT_APP(mxApplication)
 	

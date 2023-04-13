@@ -590,6 +590,7 @@ inline int auxGetPosition(const wxMouseEvent &evt, int margin, int char_w, int c
 	if (r<0) r=0; else if (r>=buffer_w*buffer_h) r=buffer_w*buffer_h-1;
 	return r;
 }
+
 void mxConsole::OnMouseLeftDown (wxMouseEvent & evt) {
 	selecting=true; 
 	selection_start=auxGetPosition(evt,margin,char_w,char_h,buffer_w,buffer_h);
@@ -599,9 +600,11 @@ void mxConsole::OnMouseLeftDown (wxMouseEvent & evt) {
 }
 
 void mxConsole::OnMouseLeftUp (wxMouseEvent & evt) {
-	selecting=false;
-	if (selection_end==-1) 
-		GetSourceLocationFromOutput(selection_start);
+	if (selecting) { // si por ej maximizamos con doble-click, los 2 click bajan el boton fuera de la consola, pero el 2do click suelta dentro
+		selecting=false;
+		if (selection_end==-1) 
+			GetSourceLocationFromOutput(selection_start);
+	}
 	evt.Skip();
 }
 
