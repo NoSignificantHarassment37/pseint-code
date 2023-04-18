@@ -97,7 +97,6 @@ mxConsole::mxConsole(mxFrame *parent, wxScrollBar *scroll, bool dark_theme, cons
 	
 	SetRandSeed();
 	
-	selection_start=selection_end=-1; selecting=false; selection_is_input=false;
 	wxAcceleratorEntry entries[2];
 	entries[0].Set(wxACCEL_CTRL, 'v', CONSOLE_ID_POPUP_PASTE);
 	entries[1].Set(wxACCEL_CTRL, 'c', CONSOLE_ID_POPUP_COPY);
@@ -107,16 +106,13 @@ mxConsole::mxConsole(mxFrame *parent, wxScrollBar *scroll, bool dark_theme, cons
 	if (dark_theme) colors=colors_black;
 	
 	for(int i=0;i<16;i++) 
-		colors[i][1]=wxColour((colors[i][0].Red()+colors[0][0].Red())/2,(colors[i][0].Green()+colors[0][0].Green())/2,(colors[i][0].Blue()+colors[0][0].Blue())/2);
-	this->scroll=scroll;
+		colors[i][1] = wxColour((colors[i][0].Red()+colors[0][0].Red())/2,(colors[i][0].Green()+colors[0][0].Green())/2,(colors[i][0].Blue()+colors[0][0].Blue())/2);
+	this->scroll = scroll;
 	if (scroll) scroll->SetScrollbar(0,1,1,1,false);
-	this->parent=parent;
-	margin=2;
-	the_process=NULL;
-	timer_size=new wxTimer(this,CONSOLE_ID_TIMER_SIZE);
-	timer_caret=new wxTimer(this,CONSOLE_ID_TIMER_CARET);
-	timer_process=new wxTimer(this,CONSOLE_ID_TIMER_PROCESS);
-	buffer_h=buffer_w=0; buffer=NULL;
+	this->parent = parent;
+	timer_size = new wxTimer(this,CONSOLE_ID_TIMER_SIZE);
+	timer_caret = new wxTimer(this,CONSOLE_ID_TIMER_CARET);
+	timer_process = new wxTimer(this,CONSOLE_ID_TIMER_PROCESS);
 	Reset(true);
 	m_font_size = font_size;
 	m_font_name = font_name;

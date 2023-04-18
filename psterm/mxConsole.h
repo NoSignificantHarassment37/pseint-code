@@ -33,7 +33,7 @@ public:
 	int cur_event; ///< ultimo evento que se esta mostrando actualmente, o -1 si va en tiempo real
 	void SetTime(int t); ///< elige un evento para que la consola muestre solo hasta ese evento
 	
-	wxProcess *the_process; ///< running process, or NULL if process have ended/not started
+	wxProcess *the_process = nullptr; ///< running process, or NULL if process have ended/not started
 	int the_process_pid; ///< [last] running process id
 	void KillProcess(); ///< kills current process if any
 	void OnProcessTerminate( wxProcessEvent &event ); ///< si el proceso hijo termina, actualiza el estado de la clase
@@ -42,7 +42,7 @@ public:
 	void OnTimerProcess( wxTimerEvent &event ); ///< llama a GetProcessOutput regularmente, para actualizar la salida
 	void GetProcessOutput(bool refresh=true); ///< extract unprocessed text from output stream for current process
 	
-	int margin; ///< margin in pixels for text inside the console
+	int margin = 2; ///< margin in pixels for text inside the console
 	int char_w; ///< width in pixels for a char with current fontsize
 	int char_h; ///< height in pixels for a char with current fontsize
 	int bg; ///< index for current console background color (the same for the whole console)
@@ -61,9 +61,9 @@ public:
 		code_location loc; ///< instruccion en el pseudocódigo de la instruccion que genero esta entrada/salida
 		console_char():the_char(' '),fg(0) {}
 	};
-	console_char *buffer; ///< current content for the visible part of the console (size buffer_w*buffer_h), ordered by rows
-	int buffer_w; ///< number of columns for current console size
-	int buffer_h; ///< number of rows for current console size
+	console_char *buffer = nullptr; ///< current content for the visible part of the console (size buffer_w*buffer_h), ordered by rows
+	int buffer_w = 0; ///< number of columns for current console size
+	int buffer_h = 0; ///< number of rows for current console size
 	void OnPaint( wxPaintEvent &event ); ///< redraw the console based on buffers' content
 	
 	int cur_fg; ///< index for current text foreground color, will be used for printing int Print
@@ -91,9 +91,9 @@ public:
 	wxFont font; ///< current font
 	void OnMouseWheel(wxMouseEvent &evt); ///< scroll y zoom
 	
-	bool selecting; ///< true if the user is selection (moving the mouse wiht left button down)
-	int selection_start; ///< one selection limit (only valid if selection_end!=-1)
-	int selection_end; ///< the other selection limit (can be less than selection_start), or -1 if there is no selection
+	bool selecting = false; ///< true if the user is selection (moving the mouse wiht left button down)
+	int selection_start = -1; ///< one selection limit (only valid if selection_end!=-1)
+	int selection_end = -1; ///< the other selection limit (can be less than selection_start), or -1 if there is no selection
 	void OnMouseLeftDown(wxMouseEvent &evt); ///< para seleccionar y copiar
 	void OnMouseLeftUp(wxMouseEvent &evt); ///< para seleccionar y copiar
 	void OnMouseMotion(wxMouseEvent &evt); ///< para seleccionar y copiar
@@ -120,8 +120,8 @@ public:
 	wxTimer *timer_caret; ///< timer to blink caret if caret_visible
 	void OnTimerCaret( wxTimerEvent &event ); ///< anima el parpadeo del cursor
 	
-	int dimmed; /// puede valer 0 o 1, 0 es lo normal, 1 muestra el texto "apagado", se usa para indicar que la salida ya está desactualizada (es int y no bool para poder usarlo de indice para elegir el color)
-	bool selection_is_input; /// si es true, la selección actual es una entrada, que eventualmente el usuario podría querer editar (se muestra un mensaje indicando esta situación)
+	int dimmed = 0; /// puede valer 0 o 1, 0 es lo normal, 1 muestra el texto "apagado", se usa para indicar que la salida ya está desactualizada (es int y no bool para poder usarlo de indice para elegir el color)
+	bool selection_is_input = false; /// si es true, la selección actual es una entrada, que eventualmente el usuario podría querer editar (se muestra un mensaje indicando esta situación)
 	
 	mxConsole(mxFrame *parent, wxScrollBar *scroll, bool dark_theme, const wxString &font_name, int font_size);
 	
