@@ -742,7 +742,7 @@
 
 256
   Uno de los argumentos para la acción de lectura está siendo utilizado como si fuera un arreglo (es decir, incluyendo un conjunto de índices entre paréntesis o corchetes), pero no lo es (no está declarado con la directiva DIMENSION en su algoritmo).
-  * Declare el arreglo previamente utilizando la palabra clave <A href="dimension.html">Dimensión</A>.
+  * Declare el arreglo previamente utilizando la palabra clave <A href="arreglos.html">Dimensión</A>.
   * O elimine los subíndices en caso de que no lo sea.
 
 268
