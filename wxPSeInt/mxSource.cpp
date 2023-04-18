@@ -1518,11 +1518,11 @@ void mxSource::OnSavePointLeft (wxStyledTextEvent & evt) {
 	main_window->notebook->SetPageText(main_window->notebook->GetPageIndex(this),page_text+"*");	
 }
 
-std::vector<int> &mxSource::FillAuxInstr(int _l) {
+std::vector<int> &mxSource::FillAuxInstr(int line) {
 	static std::vector<int> v; v.clear();
-	wxString s=GetLine(_l);
-	int i=0,len=s.Len(),last_ns=1;
-	bool starting=true,comillas=false;
+	wxString s = GetLine(line);
+	int i=0, len=s.Len(), last_ns=1;
+	bool starting=true, comillas=false;
 	while (i<len) {
 		if (s[i]=='\''||s[i]=='\"') comillas=!comillas;
 		else if (!comillas && i+1<len && s[i]=='/' && s[i+1]=='/') break;
@@ -1550,15 +1550,27 @@ std::vector<int> &mxSource::FillAuxInstr(int _l) {
 	if (comillas) last_ns=len;
 	if (v.empty()) v.push_back(last_ns);
 	v.push_back(last_ns);
+	// corregir tabs (se contaron como 1, valen config->tabw)
+	int is = 0, tab_count = 0, tab_w = config->tabw-1;
+	for(int &iv : v) {
+		while (is<iv) 
+			if (s[is++]=='\t') ++tab_count;
+		iv += tab_count*tab_w;
+	}
 	return v;
 }
 
-void mxSource::SelectInstruccion (int _l, int _i) {
-	std::vector<int> &v=FillAuxInstr(_l);
-	_l=PositionFromLine(_l);
-	if (2*_i>int(v.size())) SetSelection(_l+v[0],_l+v[v.size()-1]);
-	else SetSelection(_l+v[2*_i],_l+v[2*_i+1]);
+void mxSource::SelectLineAndCol(int line, int col0, int col1) {
+	int p0 = FindColumn(line,col0);
+	int p1 = col1==-1 ? p0 : FindColumn(line,col1);
+	SetSelection(p0,p1);
 	EnsureCaretVisible();
+}
+void mxSource::SelectInstruccion (int line, int inst) {
+	if (line<0 or line>=GetLineCount()) return;
+	std::vector<int> &v = FillAuxInstr(line);
+	if (2*inst+1>=int(v.size())) SelectLineAndCol(line, v[0], v[v.size()-1]);
+	else SelectLineAndCol(line, v[2*inst],v[2*inst+1]);
 }
 
 void mxSource::DoRealTimeSyntax (RTSyntaxManager::Info *args) {
@@ -1590,31 +1602,32 @@ void mxSource::MarkError(wxString line) {
 * @param str texto del mensaje corto de error
 * @param specil indica que va de otro color (se usa para los "falta cerrar....")
 **/
-void mxSource::MarkError(int l, int i, int n, wxString str, bool special) {
-	if (l<0 || l>=GetLineCount()) return; // el error debe caer en una linea valida
-	std::vector<int> &v=FillAuxInstr(l);
-	int pos =PositionFromLine(l)+v[2*i], len = v[2*i+1]-v[2*i];
+void mxSource::MarkError(int line, int inst, int n, wxString str, bool special) {
+	if (line<0 || line>=GetLineCount()) return; // el error debe caer en una linea valida
+	std::vector<int> &v=FillAuxInstr(line);
+	int pos = FindColumn(line,v[2*inst]);
+	int len = FindColumn(line,v[2*inst+1])-pos;
 	// ver que no sea culpa de una plantilla sin completar
 	for(int p=0;p<len;p++) { 
 		int indics = IndicatorAllOnFor(pos+p);
 		if (indics&indic_to_mask[INDIC_FIELD]) return;
 	}
 	// ok, entonces agregarlo como error
-	while (l>=int(rt_errors.size())) rt_errors.push_back(rt_err()); // hacer lugar en el arreglo de errores por linea si no hay
-	rt_errors[l].Add(i,n,str); // guardarlo en el vector de errores
+	while (line>=int(rt_errors.size())) rt_errors.push_back(rt_err()); // hacer lugar en el arreglo de errores por linea si no hay
+	rt_errors[line].Add(inst,n,str); // guardarlo en el vector de errores
 	if (flow_socket) { // avisarle al diagrama de flujo
-		wxString msg("errors add "); msg<<l+1<<':'<<i+1<<' '<<str<<'\n';
+		wxString msg("errors add "); msg<<line+1<<':'<<inst+1<<' '<<str<<'\n';
 		flow_socket->Write(msg.c_str(),msg.Len());
 	}
 	
 	// marcarlo en el pseudocódigo subrayando la instrucción y poniendo la cruz en el margen
-	if (int(v.size())<=2*i+1) return;
-	if (!(MarkerGet(l)&(1<<MARKER_ERROR_LINE))) MarkerAdd(l,MARKER_ERROR_LINE);
+	if (int(v.size())<=2*inst+1) return;
+	if (!(MarkerGet(line)&(1<<MARKER_ERROR_LINE))) MarkerAdd(line,MARKER_ERROR_LINE);
 	// agregar el error como anotacion y subrayar la instruccion
 	if (config->rt_annotate) {
-		wxString prev = AnnotationGetText(l); if (!prev.IsEmpty()) prev<<"\n";
-		AnnotationSetText(l,prev<<L"\u25ba en inst. "<<i+1<<": "<<str);
-		AnnotationSetStyle(l,ANNOTATION_STYLE);
+		wxString prev = AnnotationGetText(line); if (!prev.IsEmpty()) prev<<"\n";
+		AnnotationSetText(line,prev<<L"\u25ba en inst. "<<inst+1<<": "<<str);
+		AnnotationSetStyle(line,ANNOTATION_STYLE);
 	}
 	SetIndics(pos,len,special?INDIC_ERROR_2:INDIC_ERROR_1,true);
 }

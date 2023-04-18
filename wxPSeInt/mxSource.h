@@ -154,8 +154,9 @@ public:
 	wxString GetTempFilenamePSD(); // nombre de archivo temporal para el diagrama de flujo
 	
 	// retorna las posiciones donde empieza y termina cada instruccion de una linea
-	std::vector<int> &FillAuxInstr(int _l);
-	void SelectInstruccion(int _l, int _i);
+	std::vector<int> &FillAuxInstr(int line);
+	void SelectInstruccion(int line, int inst);
+	void SelectLineAndCol(int line, int col0, int col1=1);
 	
 	void DoRealTimeSyntax(RTSyntaxManager::Info *args=NULL);
 	void ClearErrorData();

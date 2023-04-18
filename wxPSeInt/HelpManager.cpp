@@ -101,6 +101,10 @@ wxString HelpManager::GetQuickHelp(wxString key, wxString def_val) {
 	else if (key==_Z("escritura")) str="escritura.html";
 	else if (key==_Z("dimension")) str="arreglos.html";
 	else if (key==_Z("dimensión")) str="arreglos.html";
+	else if (key==_Z("dimensionar")) str="arreglos.html";
+	else if (key==_Z("redimension")) str="arreglos.html";
+	else if (key==_Z("redimensión")) str="arreglos.html";
+	else if (key==_Z("redimensionar")) str="arreglos.html";
 	else if (key==_Z("matriz")) str="arreglos.html";
 	else if (key==_Z("matrices")) str="arreglos.html";
 	else if (key==_Z("arreglos")) str="arreglos.html";

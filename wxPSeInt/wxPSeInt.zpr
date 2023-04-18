@@ -16,7 +16,7 @@ tab_use_spaces=0
 explorer_path=../../pseint
 inspection_improving_template=wxString|${EXP}.m_impl._M_dataplus._M_p
 inherits_from=
-current_source=error_recovery.cpp
+current_source=../bin/help/cambios.html
 path_char=/
 [source]
 path=DebugManager.cpp
@@ -345,7 +345,7 @@ path=../pseint/version_common.h
 cursor=44:0
 [other]
 path=../bin/help/cambios.html
-cursor=140:32
+cursor=11:24
 open=true
 [other]
 path=../bin/help/errores.hlp
