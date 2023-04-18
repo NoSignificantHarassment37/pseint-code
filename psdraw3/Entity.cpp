@@ -669,7 +669,7 @@ void Entity::Print(std::ostream &out, std::string tab, Entity *process, int &lin
 				<< " " <<_fix(GetChild(2)->label,"{arreglo}") <<" " << _kw(KW_HACER) << _endl_this;
 		} else {
 			std::string paso;
-			if (GetChild(2)->label!="1"&&GetChild(2)->label!="+1"&&GetChild(2)->label!="")
+			if (/*GetChild(2)->label!="1"&&GetChild(2)->label!="+1"&&*/(not GetChild(2)->label.empty())) // comento 1 y +1 por si cuenta hacia atras
 				paso = " " + _kw(KW_CONPASO)+" " + _fix(GetChild(2)->label,"{paso}");
 			out << tab << _kw(KW_PARA) << " " << _fix(label,"{variable}") << "<-" << _fix(GetChild(1)->label,"{valor_inicial}")
 				<< " " << _kw(KW_HASTA) << " " << _fix(GetChild(3)->label,"{valor_final}")
