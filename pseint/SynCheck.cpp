@@ -722,7 +722,7 @@ void Instrucciones(RunTime &rt) {
 						if (bucles.back()==prog_idx) ++bucles.back(); // por si justo se habria otro bloque en la inst actual
 						++prog_idx;
 					} else 
-						err_handler.SyntaxError(32,MkErrorMsg("Se esperaba $.",kw2str(KW_ENTONCES)));
+						err_handler.SyntaxError(32,MkErrorMsg("Falta $.",kw2str(KW_ENTONCES)),Inter.GetPreviousLocation());
 				}
 			// si entro en segun comprobar que haya opción
 			if (!bucles.empty()) {

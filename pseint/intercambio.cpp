@@ -13,7 +13,7 @@ string IntToStr(int f);
 // *********************** Intercambio ****************************
 
 // Linea que se esta ejecutando actualmente
-Intercambio::Intercambio() : loc(-1,-1) {
+Intercambio::Intercambio() {
 	subtitles_on=false;
 	backtraceLevel=0;
 	debugLevel=0;
@@ -295,6 +295,7 @@ FrameInfo Intercambio::GetFrame(int level) {
 }
 
 void Intercambio::SetLocation(CodeLocation _loc) {
+	prev_loc = loc;
 	loc.linea = _loc.linea; 
 	loc.instruccion = _loc.instruccion; 
 }

@@ -37,7 +37,7 @@ class Intercambio {
 	
 	RunTime *rt= nullptr;
 	bool running = false;
-	CodeLocation loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
+	CodeLocation loc, prev_loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
 	std::vector <std::string> Archivo; // Archivo original
 	std::vector <std::string> Errores; // Descripcion de los errores encontrados
 	std::vector <int> Lineas;     // Numeros de lines correspondientes a los errores	
@@ -86,6 +86,7 @@ public:
 	void SetStarted();
 	void SetFinished(bool interrupted=false);
 	CodeLocation GetLocation() const { return loc; }
+	CodeLocation GetPreviousLocation() const { return prev_loc; }
 //	int GetLineNumber() const { return lineNumber; }
 //	int GetInstNumber() const { return instNumber; }
 	bool IsRunning() const { return running; }
