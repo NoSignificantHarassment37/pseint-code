@@ -1053,6 +1053,7 @@ bool mxSource::IndentLine(int l, bool goup) {
 	int btype;
 	int cur = GetIndentLevel(l,goup,btype);
 	wxString line = GetLine(l);
+	if (line.StartsWith("//\t")) return false;
 	int len = line.Len();
 	int ws = SkipWhite(line,0,len); // ws = word start
 	if (ws<len && !(line[ws]=='/'&&line[ws+1]=='/')) {
@@ -1496,8 +1497,9 @@ bool mxSource::LineHasSomething ( int l ) {
 	int i1=PositionFromLine(l);
 	int i2=GetLineEndPosition(l);
 	for (int i=i1;i<=i2;i++) {
-		char c=GetCharAt(i); int s=GetStyleAt(i);
-		if (c!='\n' && c!=' ' && c!='\r' && c!='\t' && s!=wxSTC_C_COMMENT && s!=wxSTC_C_COMMENTDOC && s!=wxSTC_C_COMMENTLINE && s!=wxSTC_C_COMMENTLINEDOC && s!=wxSTC_C_COMMENTDOCKEYWORD && s!=wxSTC_C_COMMENTDOCKEYWORDERROR) return true;
+		char c=GetCharAt(i);
+		if (c!='\n' && c!=' ' && c!='\r' && c!='\t')
+			return i+2>i2 or GetCharAt(i)!='/' or GetCharAt(i+1)!='/';
 	}
 	return false;
 }
