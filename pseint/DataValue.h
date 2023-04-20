@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <variant>
+#include <charconv>
 
 #define FALSO "FALSO"
 #define VERDADERO "VERDADERO"
@@ -11,25 +12,25 @@
 
 
 inline double StrToDbl(const std::string &s) {
-	return atof(s.c_str());
+	double d=0;
+	auto p = s.data(); if (*p=='+') ++p;
+	auto r1 = std::from_chars(p, s.data()+s.size(), d);
+	return d;
+	
 }
 
 inline std::string DblToStr(double d) {
-	char buf[512]; // DBL_MAX ocupa 310 caracteres
-	sprintf(buf,"%.50f",d);
-	// eliminar los ceros que sobren y el punto si era entero
-	int i=0; while (buf[i]!=0) i++;
-	while (buf[--i]=='0'); // contar ceros de atras para adelante
-	if (buf[i]=='.') i--; // si llegamos al '.' sacarlo tambien
-	if (buf[0]=='-'&&buf[1]=='0'&&i==1) buf[i=0]='0'; // si quedo "-0" sacar el -
-	buf[++i]='\0'; // aplicar el corte
-	return buf;
+	thread_local static char sout[24];
+	auto [p,ec] = std::to_chars(sout,sout+sizeof(sout),d); *p='\0';
+	if (ec!=std::errc()) { sout[0]='0'; p=sout+1; }
+	*p = '\0';
+	return sout;
 }
 
 inline std::string DblToStr(double d, bool low) {
 	_expects(low);
 	char buf[512]; // DBL_MAX ocupa 310 caracteres
-	sprintf(buf,"%.10f",d); // version de baja presición, se debería usar solo para mostrar
+	sprintf(buf,"%.10f",d); // version de baja precisión, se debería usar solo para mostrar
 	// eliminar los ceros que sobren y el punto si era entero
 	int i=0; while (buf[i]!=0) i++;
 	while (buf[--i]=='0'); // contar ceros de atras para adelante
