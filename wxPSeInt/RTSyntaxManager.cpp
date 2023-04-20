@@ -90,7 +90,7 @@ void RTSyntaxManager::ContinueProcessing() {
 			if (c=='\n') break;
 			if (c!='\r') aux_line+=c;
 		}
-		wxString line(_Z(aux_line.c_str()));;
+		wxString line(_Z(aux_line.c_str()));
 		if (line.Len()) {
 			if (line=="<!{[END_OF_OUTPUT]}!>") { 
 				_LOG("RTSyntaxManager::ContinueProcessing fase 1 src="<<src);

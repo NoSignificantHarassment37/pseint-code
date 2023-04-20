@@ -26,6 +26,24 @@ void show_user_info(std::string msg1, int num, std::string msg2) {
 
 // ***************** Control de Errores y Depuración **********************
 
+void WarnError_impl(int num, std::string s, bool runtime) {
+	if (runtime!=Inter.IsRunning()) return;
+	if (Inter.EvaluatingForDebug()) {
+		Inter.SetError(std::string("<<")+s+">>");
+	} else {
+		if (raw_errors) {
+			std::cout << "=== Line " << Inter.GetLocation().linea << ": Warning " << num << std::endl;
+		} else {
+			if (colored_output) setForeColor(COLOR_WARNING);
+			if (with_io_references) Inter.SendErrorPositionToTerminal();
+			if (runtime)
+				std::cout << "*** Advertencia " << num << ": " << s << std::endl;
+			else
+				std::cout << "Lin " << Inter.GetLocation().linea << " (inst " << Inter.GetLocation().instruccion << "): Advertencia " << num << ": " << s << std::endl;
+		}
+	}
+}
+
 // ------------------------------------------------------------
 //    Informa un error en tiempo de ejecucion
 // ------------------------------------------------------------
@@ -39,7 +57,7 @@ void ExeError_impl(int num, std::string s) {
 		}
 		if (colored_output) setForeColor(COLOR_ERROR);
 		if (with_io_references) Inter.SendErrorPositionToTerminal();
-		std::cout << "Lin " << Inter.GetLocation().linea << " (inst " << Inter.GetLocation().linea << "): ERROR " << num << ": " << s << std::endl;
+		std::cout << "Lin " << Inter.GetLocation().linea << " (inst " << Inter.GetLocation().instruccion << "): ERROR " << num << ": " << s << std::endl;
 		for(int i=Inter.GetBacktraceLevel()-1;i>0;i--) {  
 			FrameInfo fi=Inter.GetFrame(i);
 			std::cout << "...dentro del subproceso " << fi.func_name << ", invocado desde la línea " << fi.loc.linea << "." << std::endl;
@@ -425,4 +443,14 @@ FuncStrings SepararCabeceraDeSubProceso(std::string cadena) {
 	return ret;
 }
 
-
+bool TooManyDigits(const std::string &s) {
+	auto p=s.begin(), e=s.end();
+	while(p!=e and (*p<'1' or *p>'9')) 
+		++p;
+	int d = 0, z = 0;
+	while (p!=e) {
+		if (*p>='0' and *p<='9') ++d;
+		++p;
+	}
+	return d>16;
+}

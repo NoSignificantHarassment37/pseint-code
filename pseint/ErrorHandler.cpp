@@ -3,18 +3,29 @@
 #include "intercambio.h"
 
 void ErrorHandler::SyntaxError (int num, const std::string & desc) {
-	++errors_count;
+	++m_errors_count;
 	SynError_impl(num,desc);
 }
 
 void ErrorHandler::SyntaxError (int num, const std::string & desc, CodeLocation loc) {
-	++errors_count;
+	++m_errors_count;
 	SynError_impl(num,desc,loc);
 }
 
 void ErrorHandler::ExecutionError (int num, const std::string & desc) {
-	++errors_count;
+	++m_errors_count;
 	ExeError_impl(num,desc);
+}
+
+void ErrorHandler::RunTimeWarning(int num, const std::string & desc) {
+	++m_warnings_count;
+	WarnError_impl(num,desc,true);
+}
+
+void ErrorHandler::CompileTimeWarning(int num, const std::string & desc) {
+	if (not m_for_realtime_syntax) return;
+	++m_warnings_count;
+	WarnError_impl(num,desc,false);
 }
 
 void ErrorHandler::AnytimeError (int num, const std::string & desc) {
@@ -25,3 +36,4 @@ void ErrorHandler::AnytimeError (int num, const std::string & desc) {
 void ErrorHandler::ErrorIfRunning(int num, const std::string & desc) {
 	if (Inter.IsRunning()) ExecutionError(num,desc);
 }
+

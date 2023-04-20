@@ -745,6 +745,12 @@
   * Declare el arreglo previamente utilizando la palabra clave <A href="arreglos.html">Dimensión</A>.
   * O elimine los subíndices en caso de que no lo sea.
 
+260
+  La line inicial de la estrucuta PARA CADA debe tener la forma "PARA CADA &lt;id_elemento&gt; DE &lt;id_arreglo&gt; HACER". 
+  * Compruebe que la linea tenga las 4 partes luego de PARA CADA: el identificador del elemento, la palabra clave DE, el identificador del arreglo y la palabra clave HACER (esta última puede omitirse en algunos perfiles).
+  * &lt;id_elemento&gt es el nombre que se representará cada elemento del arreglo individualmente en cada iteración
+  * &lt;id_arreglo&gt es el nombre del arreglo que se quiere recorrer con esta estructura.
+
 268
   Cuando se realiza pasaje por referencia, la variable que se usa como argumento en la función/subproces será en realidad la misma variable que se indique en la llamada a la función (dos identificadores para una misma variable). Entonces la función/subproceso podrá modificar esa variable. Para que esto tenga sentido, al momento de invocar a la función se debe usar como argumento siempre una variable, y no una constante o cualquier otra expresión (ya que no tendría sentido que la función intente modificar el valor de una "constante" por ejemplo).
   * Verifique que todos los argumentos que en la función se definen "por referencia", sean variables en la invocación/llamada.
@@ -803,12 +809,9 @@
   Nota: Esta expresión debe colocarse luego de las diferentes opciones para la variable de control, e indica el camino a seguir cuando el valor de la misma no coincide con ninguna de las opciones. 
 
 322
-  Está intentando modificar mediante una lectura o asignación el valor de una variable que no debería modificar. Este suele ser el caso del conador de una estructura repetitiva Para. Dado que la estructura se encarga de gestionar el contador automáticamente, el programador no debería modificar el mismo.
+  Está intentando modificar mediante una lectura o asignación el valor de una variable que no debería modificar. Este suele ser el caso del contador de una estructura repetitiva Para. Dado que la estructura se encarga de gestionar el contador automáticamente, el programador no debería modificar el mismo.
   * Verifique que no esté intentando leer o escribir en una variale que funciona como contador de un Para.
   * Si su intención era efectivamente modificar el contador para alterar el funcionamiento del Para, debería considerar reemplazarlo por una estructura diferente: Mientras o Repetir.
 
-260
-  La line inicial de la estrucuta PARA CADA debe tener la forma "PARA CADA &lt;id_elemento&gt; DE &lt;id_arreglo&gt; HACER". 
-  * Compruebe que la linea tenga las 4 partes luego de PARA CADA: el identificador del elemento, la palabra clave DE, el identificador del arreglo y la palabra clave HACER (esta última puede omitirse en algunos perfiles).
-  * &lt;id_elemento&gt es el nombre que se representará cada elemento del arreglo individualmente en cada iteración
-  * &lt;id_arreglo&gt es el nombre del arreglo que se quiere recorrer con esta estructura.
+329
+  Debido a la forma en que se almacenan los números en la memoria, y a que el tamaño de una variable numérica es fijo, estas solo pueden guardar una cierta cantidad de dígitos. Si se intenta guardar un número con mayor cantidad de dígitos (más de 16), este podría sufrir un redondeo, y consecuentemente los cálculos sobre ese valor resultar inexactos.

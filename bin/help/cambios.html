@@ -2,6 +2,7 @@
 <UL>
 	
 </UL><BR><BR><B>Release 202304XX</B><BR><UL>
+	<LI>Ahora el intérprete advierte en algunos casos cuando se quiere ingresar un número (como constante en el código, o mediante una lectura) con demasiados dígitos (tal que muy probablemente los calculos se tornen inexactos).</LI>
 	<LI>Corregido un error por el cual al marcar una instrucción en el editor (cuando se hace click en la consola, se genera un error de ejecución, o se ejecuta paso paso), no se seleecionaba completa si contenía caracteres especiales unicode.</LI>
 	<LI>Corregido un error por el cual la recuperación de algoritmos luego de un cierre inesperado no funcionaba en la mayoría de los casos.</LI>
 	<LI>Corregido un error por el cual podía cerrarse el editor al maximizar la ventana de ejecución con doble-click sobre la barra de título.</LI>
@@ -154,7 +155,7 @@
 	<LI>Mejoras en la verificación de tipos relacionada al uso de subprocesos.</LI>
 	<LI>Corregido el nro de linea que se muestra en la terminal al volver con el scroll al tiempo 0.</LI>
 	<LI>Corregido un error por el cual no se detectaba como error al uso de "Sino" fuera de un proceso o función.</LI>
-	<LI>Cambios internos en la función Trunc para intentar esconder algunos efectos no deseados de la aritmética con presición finita.</LI>
+	<LI>Cambios internos en la función Trunc para intentar esconder algunos efectos no deseados de la aritmética con precisión finita.</LI>
 	<LI>Se agregó una opción en el menú de configuración del editor para utilizar un coloreado de sintaxis alternativa con texto claro sobre fondo oscuro.</LI>
 	<LI>En el editor de pseudocódigo, al colocar el cursor de texto sobre un paréntesis o una llave, se resalta el complementario.</LI>
 	<LI>Agregados los perfiles UTM, PUCE, UCM, UTCD e ITMina; y actualizado el perfil UNL-FICH.</LI>
@@ -351,7 +352,7 @@
 	<LI>Ahora se puede exportar el pseudocódigo a código C# (gracias a los ejemplos enviados por el Ing. José Antonio Espino López).</LI>
 	<LI>Corregido el problema por el cual al exportar un diagrama de flujo a un archivo de imágen no se consideraba el nombre de archivo seleccionado por el usuario.</LI>
 	<LI>Se cambió la política con que se actualiza automáticamente el panel de ayuda rápida.</LI>
-	<LI>Se implementó una tolerancia implícita en las comparaciones entre reales para absorber pequeños errores de presición numérica.</LI>
+	<LI>Se implementó una tolerancia implícita en las comparaciones entre reales para absorber pequeños errores de precisión numérica.</LI>
 	<LI>Agregados los perfiles CBTis45, IUTM-Machiques, UNMSM-FII, UniMoron, UNICEN-FIO, PIO-IX, UNAN-Managua, UNT, ESPE, StoTomas, UNAULA, UDI, ITC, ITNL, UAnahuac, UDOYM, TESJI, ITNL, CIAF, ISTP, ITCG, ElValleColegio, ISTPanuco, ITIZ, USBMed, UNIVES, ITSZO, ITSSY-Oxkutzcab e IPLosLagos.</LI>
 
 </UL><BR><BR><B>Release 20140311</B><BR><UL>

@@ -203,6 +203,7 @@ int main(int argc, char* argv[]) {
 	ErrorHandler &err_handler = rt.err;
 	
 	if (real_time_syntax) {
+		err_handler.SetForRealTimeSyntax();
 		while (cin) {
 //			memoria->HardReset();
 			programa.HardReset();

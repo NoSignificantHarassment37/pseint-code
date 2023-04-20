@@ -164,6 +164,10 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 						_sub(line,string("El valor ingresado se almacena en ")+name);
 					}
 					memoria->DefinirTipo(variable,tipo);
+					if (memoria->LeerTipo(variable)==vt_numerica) {
+						if (TooManyDigits(aux1))
+							err_handler.RunTimeWarning(329,"Posible pérdida de precisión (demasiados dígitos)");
+					}
 					DataValue dv(tipo,aux1);
 					memoria->EscribirValor(variable,dv);
 				}

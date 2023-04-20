@@ -841,7 +841,7 @@ void mxSource::OnUpdateUI (wxStyledTextEvent &event) {
 		last_s1=GetSelectionStart(); last_s2=GetSelectionEnd();
 	} 
 	else if (indics&(indic_to_mask[INDIC_ERROR_1]|indic_to_mask[INDIC_ERROR_2])) { // si estoy sobre un error del rt_syntax muestra el calltip con el mensaje
-		unsigned int l=GetCurrentLine();
+		unsigned int l = GetCurrentLine();
 		if (rt_errors.size()>l && rt_errors[l].is) ShowRealTimeError(p,rt_errors[l].s);
 	} else if (!AutoCompActive()) { // para que un error por no haber terminado de escribir detectado por rt_syntax no oculte el autocompletado
 		if (p) p--; indics = GetStyleAt(p);
@@ -1606,7 +1606,8 @@ void mxSource::MarkError(wxString line) {
 **/
 void mxSource::MarkError(int line, int inst, int n, wxString str, bool special) {
 	if (line<0 || line>=GetLineCount()) return; // el error debe caer en una linea valida
-	std::vector<int> &v=FillAuxInstr(line);
+	std::vector<int> &v = FillAuxInstr(line);
+	if (2*inst+1>=int(v.size())) return;
 	int pos = FindColumn(line,v[2*inst]);
 	int len = FindColumn(line,v[2*inst+1])-pos;
 	// ver que no sea culpa de una plantilla sin completar
@@ -1615,15 +1616,14 @@ void mxSource::MarkError(int line, int inst, int n, wxString str, bool special) 
 		if (indics&indic_to_mask[INDIC_FIELD]) return;
 	}
 	// ok, entonces agregarlo como error
-	while (line>=int(rt_errors.size())) rt_errors.push_back(rt_err()); // hacer lugar en el arreglo de errores por linea si no hay
+	if (line>=int(rt_errors.size())) rt_errors.resize(line+1); // hacer lugar en el arreglo de errores por linea si no hay
 	rt_errors[line].Add(inst,n,str); // guardarlo en el vector de errores
 	if (flow_socket) { // avisarle al diagrama de flujo
 		wxString msg("errors add "); msg<<line+1<<':'<<inst+1<<' '<<str<<'\n';
 		flow_socket->Write(msg.c_str(),msg.Len());
 	}
-	
 	// marcarlo en el pseudocódigo subrayando la instrucción y poniendo la cruz en el margen
-	if (int(v.size())<=2*inst+1) return;
+//	if (int(v.size())<=2*inst+1) return;
 	if (!(MarkerGet(line)&(1<<MARKER_ERROR_LINE))) MarkerAdd(line,MARKER_ERROR_LINE);
 	// agregar el error como anotacion y subrayar la instruccion
 	if (config->rt_annotate) {
@@ -1680,8 +1680,9 @@ void mxSource::OnTimer (wxTimerEvent & te) {
 //			_LOG("mxSource::OnTimer out");
 			return; // solo si tiene el foco
 		}
-		if (!just_created) 
+		if (!just_created) {
 			DoRealTimeSyntax(); 
+		}
 		HighLightBlock();
 	} else if (obj==reload_timer) {
 		_LOG("mxSource::OnTimes(reload) "<<this);

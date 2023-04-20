@@ -336,7 +336,10 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 		if ( c=='\''||c=='\"') { // si empieza con comillas, es cadena de caracteres
 			ev_return( DataValue::MakeString(expresion.substr(p1+1,p2-p1-1)) );
 		} else if ( (c>='0'&&c<='9') || c=='.' || c=='-' || c=='+') { // si empieza con un numero o un punto, es nro
-			ev_return( DataValue::MakeReal(expresion.substr(p1,p2-p1+1)) );
+			std::string val = expresion.substr(p1,p2-p1+1);	
+			if (TooManyDigits(val))
+					err_handler.CompileTimeWarning(329,"Posible pérdida de precisión (demasiados dígitos)");
+			ev_return( DataValue::MakeReal(val) );
 		} else if (expresion.substr(p1,p2-p1+1)==VERDADERO || expresion.substr(p1,p2-p1+1)==FALSO) { // veradero o falso, logica
 			ev_return( DataValue::MakeLogic(expresion.substr(p1,p2-p1+1)) );
 		} else { // sino es variable... ver si es comun o arreglo

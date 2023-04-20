@@ -139,6 +139,10 @@ static void Execute(const wxString &command, wxArrayString &output) {
 	}
 }
 
+static bool IsError(const wxString &line) {
+	return line.Find(": ERROR ")!=wxNOT_FOUND;
+}
+
 bool mxProcess::CheckSyntax(wxString file, wxString extra_args) {
 	
 	if (what==mxPW_NULL) what=mxPW_CHECK;
@@ -158,13 +162,17 @@ bool mxProcess::CheckSyntax(wxString file, wxString extra_args) {
 	main_window->RTreeReset();
 	main_window->last_source=source;
 	if (_avoid_results_tree) source->ClearErrorData();
-	if (output.GetCount()) {
-		if (output.GetCount()==1)
+	int errors_count = 0, warnings_count = 0;
+	for (unsigned int i=0;i<output.GetCount();i++) {
+		bool is_error = IsError(output[i]);
+		main_window->RTreeAdd(output[i],1,source);
+		++(is_error?errors_count:warnings_count);
+	}
+	if (errors_count!=0) {
+		if (errors_count==1)
 			main_window->RTreeAdd(filename+": Sintaxis Incorrecta: un error.",0);
 		else
 			main_window->RTreeAdd(filename+wxString(": Sintaxis Incorrecta: ")<<output.GetCount()<<" errores.",0);
-		for (unsigned int i=0;i<output.GetCount();i++) 
-			main_window->RTreeAdd(output[i],1,source);
 		if (source) source->SetStatus(STATUS_SYNTAX_CHECK_ERROR);
 		main_window->RTreeAdd("",3);
 		main_window->RTreeAdd("Las lineas con errores se marcan con una cruz sobre el margen izquierdo. Seleccione un error para ver su descripción:",3);
@@ -192,7 +200,7 @@ bool mxProcess::CheckSyntax(wxString file, wxString extra_args) {
 		}
 	}
 	if (_avoid_results_tree) source->ClearErrorMarks();
-	return output.GetCount()==0;
+	return errors_count==0;
 }
 
 bool mxProcess::Run(wxString file, bool check_first) {

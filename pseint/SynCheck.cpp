@@ -13,7 +13,7 @@
 #include "ErrorHandler.hpp"
 #include "strFuncs.hpp"
 
-// ULTIMO NRO DE ERROR UTILIZADO: 328
+// ULTIMO NRO DE ERROR UTILIZADO: 329
 
 static int PSeudoFind(const std::string &s, char x, int from=0, int to=-1) {
 	if (to==-1) to=s.size();
@@ -41,9 +41,9 @@ static int PSeudoFind(const std::string &s, char x, int from=0, int to=-1) {
 }
 
 // para checkear que las dimensiones de los arreglos no involucren variables
-static bool IsNumericConstant(std::string &str) {
-	for (unsigned int i=0;i<str.size();i++)
-		if (EsLetra(str[i])) return false;
+static bool IsNumericConstant(const std::string &str) {
+	for (char c:str)
+		if (EsLetra(c)) return false;
 	return true;
 }
 

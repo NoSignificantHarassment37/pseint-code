@@ -17,6 +17,7 @@ void show_user_info(std::string msg1, int num, std::string msg2);
 // ------------------------------------------------------------
 //    Informa un error en tiempo de ejecucion
 // ------------------------------------------------------------
+void WarnError_impl(int num,std::string s, bool runtime) ;
 void ExeError_impl(int num,std::string s) ;
 void ExeError_impl(int num,std::string s, bool use_syn_if_not_running);
 
@@ -55,6 +56,8 @@ tipo_var GuestTipo(std::string str) ;
 //    Reemplaza una cadena por otra si es que se encuentra
 // ----------------------------------------------------------------------
 bool ReplaceIfFound(std::string &str, std::string str1, std::string str2,bool saltear_literales=false) ;
+
+bool TooManyDigits(const std::string &s);
 
 
 // **************************************************************************
