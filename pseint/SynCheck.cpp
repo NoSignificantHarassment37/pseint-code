@@ -1006,43 +1006,35 @@ void Instrucciones(RunTime &rt) {
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							std::string var_name = cadena.substr(expr_start,i-expr_start);
 							inst_impl.variables.push_back(var_name);
-							if (var_name.find("(",0)==std::string::npos) {
+							auto pos_par = var_name.find("(",0);
+							if (pos_par==std::string::npos) {
 								if (CheckVariable(rt,var_name,65)) {
 									if (!memoria->EstaDefinida(var_name)) memoria->DefinirTipo(var_name,vt_desconocido); // para que aparezca en la lista de variables
 									if (memoria->LeerDims(var_name) && !ignore_logic_errors) err_handler.SyntaxError(255,MkErrorMsg("Faltan subindices para el arreglo ($).",var_name));
 								}
 							} else if (!memoria->EsArgumento(var_name.substr(0,var_name.find('(',0)))) {
 								bool name_ok=true;
-								std::string aname=var_name.substr(0,var_name.find("(",0));
+								std::string aname = var_name.substr(0,pos_par);
 								if (!CheckVariable(rt,aname,66)) { name_ok=false; }
 								else if (!memoria->EstaDefinida(aname)) memoria->DefinirTipo(aname,vt_desconocido); // para que aparezca en la lista de variables
 								if (!memoria->LeerDims(aname) && !ignore_logic_errors) { 
-									err_handler.SyntaxError(256,MkErrorMsg("La variable ($) no es un arreglo.",aname)); name_ok=false;
-								}
-								var_name=cadena;
-								var_name.erase(i,var_name.size()-i);
-								var_name.erase(0,expr_start);
-								var_name.erase(0,var_name.find("(",0));
-								if (LastCharIs(var_name,')')) EraseLastChar(var_name); /// @todo: ver si esto es necesario
-								var_name.erase(0,1);
-								var_name += ',';
-								std::string str2;
-								// comprobar los indices
-								int ca=0;
-								while (var_name.find(",",0)!=std::string::npos){
-									str2=var_name;
-									str2.erase(var_name.find(",",0),var_name.size()-var_name.find(",",0));
-									// if (str2=="") err_handler.SyntaxError(67,"Parametro nulo.");
-									DataValue res;
-									if (this_instruction_is_ok()) res = EvaluarSC(rt,str2,vt_numerica);
-									if (res.IsOk()&&!res.CanBeReal())
-										err_handler.SyntaxError(154,"No coinciden los tipos.");
-									var_name.erase(0,str2.size()+1);
-									ca++;
-								}
-								if (name_ok && memoria->LeerDims(aname)[0]!=ca && !ignore_logic_errors) {
-									err_handler.SyntaxError(257,MkErrorMsg("Cantidad de indices incorrecta para el arreglo ($).",aname));
-									return;
+									err_handler.SyntaxError(256,MkErrorMsg("La variable ($) no es un arreglo.",aname));
+								} else if (matchParentesis(var_name,pos_par)!=i-1) {
+									err_handler.SyntaxError(330,MkErrorMsg("Identificador o lista de índices incorrecta ($)",var_name));
+								} else {
+									std::string s_indexes = var_name.substr(pos_par+1,pos_par-i-2);
+									auto v_indexes = splitArgsList(s_indexes);
+									for(const auto &one_index : v_indexes) {
+										// if (str2=="") err_handler.SyntaxError(67,"Parametro nulo.");
+										DataValue res;
+										if (this_instruction_is_ok()) res = EvaluarSC(rt,one_index,vt_numerica);
+										if (res.IsOk()&&!res.CanBeReal())
+											err_handler.SyntaxError(154,"No coinciden los tipos.");
+									}
+									if (name_ok && memoria->LeerDims(aname)[0]!=int(v_indexes.size()) && !ignore_logic_errors) {
+										err_handler.SyntaxError(257,MkErrorMsg("Cantidad de indices incorrecta para el arreglo ($).",aname));
+										return;
+									}
 								}
 							}
 							expr_start=i+1;
