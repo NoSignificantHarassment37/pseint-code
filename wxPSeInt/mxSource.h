@@ -5,6 +5,7 @@
 #include <wx/timer.h>
 #include "RTSyntaxManager.h"
 #include <set>
+#include "../pseint/debug.h"
 class mxInputDialog;
 class mxProcess;
 class wxTimer;
@@ -47,17 +48,6 @@ private:
 	
 	int debug_line, debug_line_handler_1, debug_line_handler_2;
 	wxString page_text;
-	struct rt_err {
-		wxString s;
-		int n;
-		bool is;
-		rt_err():is(false){};
-		void Add(int _i, int _n, const wxString _s) {
-			if (is) { s<<"\n["<<_i+1<<"] "<<_s; }
-			else { s<<"["<<_i+1<<"] "<<_s; n=_n; is=true; }
-		}
-	};
-	std::vector<rt_err> rt_errors; ///< vector errores por linea
 	int status; // estado actual para este fuente
 	bool status_should_change; // para no cambiar ciertos estados hasta que no se modifique el pseudocódigo
 	
@@ -158,7 +148,33 @@ public:
 	void SelectInstruccion(int line, int inst);
 	void SelectLineAndCol(int line, int col0, int col1=1);
 	
-	void DoRealTimeSyntax(RTSyntaxManager::Info *args=NULL);
+private:
+	struct rt_result_t {
+		struct rt_line_t { // hay uno de estos por linea de codigo
+			wxString msg; // aqui se concatenan todos los mensajes de error de esa linea
+			int code = -1; // numero de error de uno de los de la linea (o -1 si no hay)
+			bool HasError() const { return code!=-1; }
+			void Clear() { msg.clear(); code = -1; }
+			void Add(int inst_num, int err_code, const wxString err_msg) {
+				if (code!=-1) { msg<<"\n["<<inst_num+1<<"] "<<err_msg; }
+				else          { msg<<  "["<<inst_num+1<<"] "<<err_msg; code=err_code; }
+			}
+		};
+		std::vector<rt_line_t> lines;
+		int errors_count = 0;
+		void Clear() { for(rt_line_t &l : lines) l.Clear(); errors_count = 0; }
+		void Add(int line_num, int inst_num, int err_code, const wxString err_msg, bool is_error=true) {
+			if (line_num>=lines.size()) lines.resize(line_num+1);
+			lines[line_num].Add(inst_num, err_code, err_msg);
+			if (is_error) ++errors_count;
+		}
+		bool HasError(int line_num) const { return lines.size()>line_num and lines[line_num].HasError(); }
+		const rt_line_t &GetError(int line_num) const { _expects(line_num<lines.size()); return lines[line_num]; }
+		bool IsOk() const { return errors_count==0; }
+		int GetLinesCount() const { return lines.size(); }
+	} rt_results;
+public:
+	void DoRealTimeSyntax(std::function<void()> &&action_post={});
 	void ClearErrorData();
 	void ClearErrorMarks();
 	void MarkError(wxString line);

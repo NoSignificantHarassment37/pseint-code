@@ -165,22 +165,22 @@ bool mxProcess::CheckSyntax(wxString file, wxString extra_args) {
 	int errors_count = 0, warnings_count = 0;
 	for (unsigned int i=0;i<output.GetCount();i++) {
 		bool is_error = IsError(output[i]);
-		main_window->RTreeAdd(output[i],1,source);
+		main_window->RTreeAdd(output[i],mxMainWindow::RTAddType::Level1Node,source);
 		++(is_error?errors_count:warnings_count);
 	}
 	if (errors_count!=0) {
 		if (errors_count==1)
-			main_window->RTreeAdd(filename+": Sintaxis Incorrecta: un error.",0);
+			main_window->RTreeAdd(filename+": Sintaxis Incorrecta: un error.",mxMainWindow::RTAddType::TreeRoot);
 		else
-			main_window->RTreeAdd(filename+wxString(": Sintaxis Incorrecta: ")<<output.GetCount()<<" errores.",0);
+			main_window->RTreeAdd(filename+wxString(": Sintaxis Incorrecta: ")<<output.GetCount()<<" errores.",mxMainWindow::RTAddType::TreeRoot);
 		if (source) source->SetStatus(STATUS_SYNTAX_CHECK_ERROR);
-		main_window->RTreeAdd("",3);
-		main_window->RTreeAdd("Las lineas con errores se marcan con una cruz sobre el margen izquierdo. Seleccione un error para ver su descripción:",3);
+		main_window->RTreeAdd("",mxMainWindow::RTAddType::OutOfTree);
+		main_window->RTreeAdd("Las lineas con errores se marcan con una cruz sobre el margen izquierdo. Seleccione un error para ver su descripción:",mxMainWindow::RTAddType::OutOfTree);
 		main_window->RTreeDone(true,true);
 		proc_for_killing = this;
 	} else {
 		if (!source) return false; // si el fuente se cerro mientras se analizaba (muy poco probable)
-		main_window->RTreeAdd(filename+": Sintaxis Correcta",0);
+		main_window->RTreeAdd(filename+": Sintaxis Correcta",mxMainWindow::RTAddType::TreeRoot);
 		if (what==mxPW_CHECK_AND_RUN)
 			return Run(file,false);
 		else if (what==mxPW_CHECK_AND_DEBUG)
@@ -195,7 +195,7 @@ bool mxProcess::CheckSyntax(wxString file, wxString extra_args) {
 			return ExportLang(file,export_lang,false);
 		else if (what==mxPW_CHECK) {
 			source->SetStatus(STATUS_SYNTAX_CHECK_OK);
-			main_window->RTreeAdd("Presione F9 para ejecutar el algoritmo.",3);
+			main_window->RTreeAdd("Presione F9 para ejecutar el algoritmo.",mxMainWindow::RTAddType::OutOfTree);
 			main_window->RTreeDone(true,false);
 		}
 	}

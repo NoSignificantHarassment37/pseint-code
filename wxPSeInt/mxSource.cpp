@@ -842,12 +842,12 @@ void mxSource::OnUpdateUI (wxStyledTextEvent &event) {
 	} 
 	else if (indics&(indic_to_mask[INDIC_ERROR_1]|indic_to_mask[INDIC_ERROR_2])) { // si estoy sobre un error del rt_syntax muestra el calltip con el mensaje
 		unsigned int l = GetCurrentLine();
-		if (rt_errors.size()>l && rt_errors[l].is) ShowRealTimeError(p,rt_errors[l].s);
+		if (rt_results.HasError(l)) ShowRealTimeError(p,rt_results.GetError(l).msg);
 	} else if (!AutoCompActive()) { // para que un error por no haber terminado de escribir detectado por rt_syntax no oculte el autocompletado
 		if (p) p--; indics = GetStyleAt(p);
 		if (indics&(indic_to_mask[INDIC_ERROR_1]|indic_to_mask[INDIC_ERROR_2])) { // si estoy justo despues de un error del rt_syntax tambien muestra el calltip con el mensaje
 			unsigned int l=GetCurrentLine();
-			if (rt_errors.size()>l && rt_errors[l].is) ShowRealTimeError(p,rt_errors[l].s);
+			if (rt_results.HasError(l)) ShowRealTimeError(p,rt_results.GetError(l).msg);
 		} else { // si no estoy sobre ningun error, oculta el calltip si es que habia
 			HideCalltip(true,false);
 		}
@@ -1575,14 +1575,14 @@ void mxSource::SelectInstruccion (int line, int inst) {
 	else SelectLineAndCol(line, v[2*inst],v[2*inst+1]);
 }
 
-void mxSource::DoRealTimeSyntax (RTSyntaxManager::Info *args) {
-	RTSyntaxManager::Process(this,args);
+void mxSource::DoRealTimeSyntax (std::function<void()> &&action_post) {
+	RTSyntaxManager::Process(this,std::move(action_post));
 //	SetStatus(); // si lo hago aca setea el estado antes de terminar de analizar todo, mejor que lo haga el rt_syntax
 }
 
 void mxSource::ClearErrorData() {
 	if (flow_socket) flow_socket->Write("errors reset\n",13);
-	rt_errors.clear();
+	rt_results.Clear();
 	SetIndics(0,GetLength(),INDIC_ERROR_1,false);
 	SetIndics(0,GetLength(),INDIC_ERROR_2,false);
 	AnnotationClearAll();
@@ -1593,8 +1593,9 @@ void mxSource::MarkError(wxString line) {
 	line.AfterFirst(':').BeforeFirst(':').AfterLast(' ').ToLong(&n);
 	line.AfterFirst(' ').BeforeFirst(' ').ToLong(&l);
 	line.BeforeFirst(':').AfterLast(' ').BeforeLast(')').ToLong(&i);
+	bool is_error = line.Find(": ERROR ")!=wxNOT_FOUND;
 	line=line.AfterFirst(':').AfterFirst(':').Mid(1);
-	MarkError(l-1,i-1,n,line,line.StartsWith("Falta cerrar "));
+	MarkError(l-1,i-1,n,line,((not is_error) or line.StartsWith("Falta cerrar ")));
 }
 
 /**
@@ -1616,8 +1617,7 @@ void mxSource::MarkError(int line, int inst, int n, wxString str, bool special) 
 		if (indics&indic_to_mask[INDIC_FIELD]) return;
 	}
 	// ok, entonces agregarlo como error
-	if (line>=int(rt_errors.size())) rt_errors.resize(line+1); // hacer lugar en el arreglo de errores por linea si no hay
-	rt_errors[line].Add(inst,n,str); // guardarlo en el vector de errores
+	rt_results.Add(line,inst,n,str); // guardarlo en el vector de errores
 	if (flow_socket) { // avisarle al diagrama de flujo
 		wxString msg("errors add "); msg<<line+1<<':'<<inst+1<<' '<<str<<'\n';
 		flow_socket->Write(msg.c_str(),msg.Len());
@@ -1686,7 +1686,7 @@ void mxSource::OnTimer (wxTimerEvent & te) {
 		HighLightBlock();
 	} else if (obj==reload_timer) {
 		_LOG("mxSource::OnTimes(reload) "<<this);
-		if (run_socket && rt_errors.empty()) UpdateRunningTerminal();
+		if (run_socket && rt_results.IsOk()) UpdateRunningTerminal();
 	}
 //	_LOG("mxSource::OnTimer out");
 }
@@ -1702,9 +1702,10 @@ void mxSource::ShowCalltip (int pos, const wxString & l, bool is_error) {
 	// si era un error y está el panel de ayuda rápida muestra también la descripción larga
 	if (!is_error || !main_window->QuickHelp().IsVisible()) return;
 	int il=LineFromPosition(pos);
-	if (il<0||il>int(rt_errors.size())) return;
-	rt_err &e=rt_errors[il];
-	if (e.is) main_window->QuickHelp().ShowRTError(e.n,e.s);
+	if (rt_results.HasError(il)) {
+		const auto &err = rt_results.GetError(il);
+		main_window->QuickHelp().ShowRTError(err.code,err.msg);
+	}
 }
 
 void mxSource::ShowRealTimeError (int pos, const wxString & l) {
@@ -1714,7 +1715,7 @@ void mxSource::ShowRealTimeError (int pos, const wxString & l) {
 void mxSource::HideCalltip (bool if_is_error, bool if_is_not_error) {
 	if (current_calltip.is_error && if_is_error) {
 		CallTipCancel();
-		main_window->QuickHelp().ShowRTResult(!rt_errors.empty());
+		main_window->QuickHelp().ShowRTResult(not rt_results.IsOk());
 		
 	} else if (!current_calltip.is_error && if_is_not_error) CallTipCancel();
 }
@@ -1814,7 +1815,7 @@ void mxSource::OnToolTipTime (wxStyledTextEvent &event) {
 		int indics = IndicatorAllOnFor(p);
 		if (indics&(indic_to_mask[INDIC_ERROR_1]|indic_to_mask[INDIC_ERROR_2])) {
 			unsigned int l=LineFromPosition(p);
-			if (rt_errors.size()>l && rt_errors[l].is) ShowRealTimeError(p,rt_errors[l].s);
+			if (rt_results.HasError(l)) ShowRealTimeError(p,rt_results.GetError(l).msg);
 		}
 	}
 }
@@ -1860,7 +1861,7 @@ void mxSource::SetStatus (int cual) {
 //		return;
 //	}
 	if (config->rt_syntax) { // ...con verificacion de sintaxis en tiempo real
-		if (!rt_errors.empty()) status_bar->SetStatus(status=STATUS_SYNTAX_ERROR);
+		if (not rt_results.IsOk()) status_bar->SetStatus(status=STATUS_SYNTAX_ERROR);
 		else if (run_socket) status_bar->SetStatus(status=STATUS_RUNNING_CHANGED);
 		else status_bar->SetStatus(status=STATUS_SYNTAX_OK);
 	} else // ...sin verificacion de sintaxis en tiempo real
@@ -1931,7 +1932,7 @@ wxString mxSource::SaveTemp() {
 **/
 bool mxSource::UpdateRunningTerminal (bool raise, bool ignore_rt) {
 	if (!run_socket) return false;
-	if (!ignore_rt && rt_running && !rt_timer->IsRunning() && !rt_errors.empty()) return false; // el rt_timer ya dijo que estaba mal, no vale la pena intentar ejecutar
+	if (!ignore_rt && rt_running && !rt_timer->IsRunning() && !rt_results.IsOk()) return false; // el rt_timer ya dijo que estaba mal, no vale la pena intentar ejecutar
 	reload_timer->Stop();
 	SaveTemp();
 	run_socket->Write("reload\n",7);
@@ -2005,9 +2006,10 @@ wxString mxSource::GetNameForExport() {
 void mxSource::OnCalltipClick (wxStyledTextEvent & event) {
 	if (!current_calltip.is_error) return;
 	int l=LineFromPosition(current_calltip.pos);
-	if (l<0||l>int(rt_errors.size())) return;
-	rt_err &e=rt_errors[l];
-	if (e.is) main_window->QuickHelp().ShowRTError(e.n,e.s,true);
+	if (rt_results.HasError(l)) {
+		const auto &err = rt_results.GetError(l);
+		main_window->QuickHelp().ShowRTError(err.code,err.msg,true);
+	}
 }
 
 void mxSource::ProfileChanged ( ) {
@@ -2033,15 +2035,15 @@ void mxSource::RTOuputStarts ( ) {
 void mxSource::RTOuputEnds ( ) {
 	if (config->rt_syntax) ClearErrorMarks();
 	if (current_calltip.is_error) CallTipCancel();
-	main_window->QuickHelp().ShowRTResult(!rt_errors.empty());
+	main_window->QuickHelp().ShowRTResult(not rt_results.IsOk());
 	SetStatus(); // para que diga en la barra de estado si hay o no errores
 }
 
 void mxSource::ClearErrorMarks ( ) {
-	int sl=GetLineCount(), el=rt_errors.size();
+	int sl=GetLineCount(), el=rt_results.GetLinesCount();
 	int n=sl>el?el:sl;
 	for(int l=0;l<n;l++) { 
-		if (!rt_errors[l].is && (MarkerGet(l)&(1<<MARKER_ERROR_LINE))) MarkerDelete(l,MARKER_ERROR_LINE);
+		if (!rt_results.HasError(l) && (MarkerGet(l)&(1<<MARKER_ERROR_LINE))) MarkerDelete(l,MARKER_ERROR_LINE);
 	}
 	for(int l=el;l<sl;l++) { 
 		if ((MarkerGet(l)&(1<<MARKER_ERROR_LINE))) MarkerDelete(l,MARKER_ERROR_LINE);
@@ -2051,9 +2053,9 @@ void mxSource::ClearErrorMarks ( ) {
 void mxSource::OnMarginClick (wxStyledTextEvent & event) {
 	event.Skip();
 	int l = LineFromPosition(event.GetPosition());
-	if (l<rt_errors.size()) {
-		rt_err &e = rt_errors[l];
-		if (e.is) main_window->QuickHelp().ShowRTError(e.n,e.s,true);
+	if (rt_results.HasError(l)) {
+		const auto &err = rt_results.GetError(l);
+		main_window->QuickHelp().ShowRTError(err.code,err.msg,true);
 	}
 }
 
@@ -2237,23 +2239,13 @@ void mxSource::DefineVar(int where, wxString var_name, int line_from, int type) 
 }
 
 void mxSource::OnDefineVar (wxCommandEvent & evt) {
-	if (config->show_vars) {
-		DefineVar(GetCurrentLine(),GetCurrentKeyword());
-	} else {
-		RTSyntaxManager::Info info;
-		info.SetForVarDef(GetCurrentLine(),GetCurrentKeyword());
-		DoRealTimeSyntax(&info);
-	}
+	auto f = [src=this, line=GetCurrentLine(), keyw=GetCurrentKeyword()](){ src->DefineVar(line, keyw); };
+	if (config->show_vars) f(); else DoRealTimeSyntax(std::move(f));
 }
 
 void mxSource::OnRenameVar (wxCommandEvent & evt) {
-	if (config->show_vars) {
-		RenameVar(GetCurrentLine(),GetCurrentKeyword());
-	} else {
-		RTSyntaxManager::Info info;
-		info.SetForVarRename(GetCurrentLine(),GetCurrentKeyword());
-		DoRealTimeSyntax(&info);
-	}
+	auto f = [src=this, line=GetCurrentLine(), keyw=GetCurrentKeyword()]() { src->RenameVar(line,keyw); };
+	if (config->show_vars) f(); else DoRealTimeSyntax( std::move(f) );
 }
 
 

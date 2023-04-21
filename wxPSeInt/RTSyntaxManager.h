@@ -1,6 +1,7 @@
 #ifndef RTSYNTAXMANAGER_H
 #define RTSYNTAXMANAGER_H
 #include <wx/process.h>
+#include <functional>
 
 class mxSource;
 class wxTimer;
@@ -9,7 +10,7 @@ class wxTimer;
 * Esta clase gestiona el subproceso del intérprete (pseint.bin) que se utiliza de 
 * fondo para analizar la sintaxis (extrayendo tambien la lista de variables y los
 * bloques para resaltar en amarillo). Hay una sola instancia, que es privada para
-* que se manejo mediante los métodos estáticos, y estos métodos controlan que 
+* que se maneja mediante los métodos estáticos, y estos métodos controlan que 
 * sea una y siempre que se requiera exista (similar a un singleton). La comunicacion
 * con el proceso hijo va por tuberias, y el parseo de la salida lo hace la 
 * función ContinueProcessing. mxSource llama a Process(algo) cuando el código 
@@ -24,40 +25,30 @@ class wxTimer;
 * cosa en medio (como el mismísimo algoritmo en la terminal).
 **/
 
-enum RTArgs { RTA_NULL, RTA_DEFINE_VAR, RTA_RENAME_VAR };
-
 class RTSyntaxManager:public wxProcess {
 	wxCSConv conv;
 	wxTimer *timer;
 	static RTSyntaxManager *the_one;
-	static int lid;
-	int id, pid, fase_num;
-	bool restart,running,processing;
-	mxSource *src;
+	int pid = -1;
+	bool restart = false, running = false, processing = false;
+	mxSource *src = nullptr;
 	RTSyntaxManager();
 	~RTSyntaxManager();
 	void ContinueProcessing();
 	void OnTerminate(int pid, int status);
+	
+	enum class Step { None, SendCode, ReadErrors, 
+		              ReadVars, ReadBlocks, PostAction };
+	Step m_current_step = Step::None;
 public:
-	struct Info {
-		RTArgs action;
-		wxString sarg;
-		int iarg;
-		Info() : action(RTA_NULL) {}
-		void SetForVarDef(int line, const wxString &vname) {
-			action=RTA_DEFINE_VAR; sarg=vname; iarg=line;
-		}
-		void SetForVarRename(int line, const wxString &vname) {
-			action=RTA_RENAME_VAR; sarg=vname; iarg=line;
-		}
-	};
-	static Info extra_args;
+	std::function<void()> m_action_post;
+public:
 	
 	static void Start();
 	static void Restart();
 	static void Stop();
 	static bool IsLoaded();
-	static bool Process(mxSource *src, Info *args=NULL);
+	static bool Process(mxSource *src = nullptr, std::function<void()> &&action_post = {});
 	static void OnSourceClose(mxSource *src);
 };
 

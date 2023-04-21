@@ -255,7 +255,8 @@ private:
 	wxString RTreeAdd_auxHtml(wxString str); // pasa a html un mesaje de error, reemplazando caracteres especiales y convirtiendolo en hyperlink si corresponde
 public:
 	void RTreeReset();
-	void RTreeAdd(wxString text, int type, mxSource *source=NULL);
+	enum class RTAddType { TreeRoot, Level1Node, Level2Node, OutOfTree };
+	void RTreeAdd(wxString text, RTAddType type, mxSource *source=NULL);
 	void RTreeDone(bool show, bool error);
 	
 	void OnKillFocus(wxFocusEvent &event);

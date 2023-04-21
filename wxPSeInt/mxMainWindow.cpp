@@ -1888,18 +1888,18 @@ void mxMainWindow::ParseResults(mxSource *source) {
 			if (str[0]=='*') {
 				if (str.Contains(_Z("Finalizada"))) {
 					happy_ending=true;
-					if (!_avoid_results_tree) RTreeAdd(source->GetPageText()+_Z(": Ejecución Finalizada"),0);
+					if (!_avoid_results_tree) RTreeAdd(source->GetPageText()+_Z(": Ejecución Finalizada"),RTAddType::TreeRoot);
 					source->SetStatus(STATUS_RUNNED_OK);
 				}
 			} else if (str.Len()) {
-					RTreeAdd(str,str.AfterFirst(':').StartsWith(" ...")?2:1);
+					RTreeAdd(str,str.AfterFirst(':').StartsWith(" ...")?RTAddType::Level1Node:RTAddType::Level2Node);
 			}
 		}
 		fil.Close();
 //		wxRemoveFile(temp_filename);
 		if (!happy_ending) {
 			source->SetStatus(STATUS_RUNNED_INT);
-			RTreeAdd(source->GetPageText()+_Z(": Ejecución Interrumpida"),0);
+			RTreeAdd(source->GetPageText()+_Z(": Ejecución Interrumpida"),RTAddType::TreeRoot);
 //			Raise(); // comentado porque con la nueva terminal, al presionar f9 se pasa el foco a la terminal, yu si hay error vuelve al editor sin dejar ver que paso
 //		} else {
 //			source->SetFocus(); // en linux, con wx2+gtk3 hace activa a la ventana, es muy molesto, no llegamos a ver el resultado en la terminal
@@ -1961,7 +1961,7 @@ void mxMainWindow::ReorganizeForDebugging ( ) {
 
 void mxMainWindow::OnRTSyntaxAuxTimer (wxTimerEvent & event) {
 //	_LOG("mxMainWindow::OnRTSyntaxAuxTimer in");
-	RTSyntaxManager::Process(NULL);
+	RTSyntaxManager::Process();
 //	_LOG("mxMainWindow::OnRTSyntaxAuxTimer out");
 }
 
@@ -2106,30 +2106,34 @@ wxString mxMainWindow::RTreeAdd_auxHtml(wxString str) {
 /**
 * @param type 0=en el root, 1=hijo, 2=hijo del hijo, 3=comentario solo para el html
 **/
-void mxMainWindow::RTreeAdd (wxString text, int type, mxSource *source) {
+void mxMainWindow::RTreeAdd (wxString text, RTAddType type, mxSource *source) {
 	if (_avoid_results_tree && source) source->MarkError(text);
-	if (type==0) {
+	switch (type) {
+	case RTAddType::TreeRoot:
 		results_tree_text=wxString("<B>")<<RTreeAdd_auxHtml(text)<<"</B><BR><BR>"<<results_tree_text;
 		results_tree_ctrl->SetItemText(results_root,text);
-	} else if (type==1) {
+		break;
+	case RTAddType::Level1Node:
 		if (result_tree_text_level==0) results_tree_text<<"<UL><LI>";
 		else if (result_tree_text_level==2) results_tree_text<<"</LI></UL></LI><LI>";
 		else results_tree_text<<"</LI><LI>";
 		result_tree_text_level=1;
 		results_tree_text<<RTreeAdd_auxHtml(text);
 		results_last=results_tree_ctrl->AppendItem(results_root,text,1);
-	} else if (type==2) {
+		break;
+	case RTAddType::Level2Node:
 		if (result_tree_text_level==1) results_tree_text<<"<UL><LI>";
 		else results_tree_text<<"</LI><LI>";
 		result_tree_text_level=2;
 		results_tree_text<<RTreeAdd_auxHtml(text)<<"<BR>";
 		results_tree_ctrl->AppendItem(results_last,text,1);
-	} else {
+	case RTAddType::OutOfTree:
 		if (result_tree_text_level==2) results_tree_text<<"</LI></UL></LI></UL><BR>";
 		else if (result_tree_text_level==1) results_tree_text<<"</LI></UL><BR>";
 //		else results_tree_text;
 		result_tree_text_level=0;
 		results_tree_text<<RTreeAdd_auxHtml(text)<<"<BR>";
+		break;
 	}	
 }
 

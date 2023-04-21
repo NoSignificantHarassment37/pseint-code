@@ -9,15 +9,12 @@
 #include "Logger.h"
 #include "string_conversions.h"
 
-RTSyntaxManager *RTSyntaxManager::the_one = NULL;
-RTSyntaxManager::Info RTSyntaxManager::extra_args;
-int RTSyntaxManager::lid=0;
+RTSyntaxManager *RTSyntaxManager::the_one = nullptr;
 
 RTSyntaxManager::RTSyntaxManager():wxProcess(wxPROCESS_REDIRECT),conv("ISO-8851") {
 	_LOG("RTSyntaxManager::RTSyntaxManager");
 	processing=running=restart=false;
 	timer = new wxTimer(main_window->GetEventHandler(),mxID_RT_TIMER);
-	id=++lid;
 }
 
 void RTSyntaxManager::Start ( ) {
@@ -45,7 +42,7 @@ void RTSyntaxManager::Restart ( ) {
 	else { the_one->restart=true; Stop(); }
 }
 
-bool RTSyntaxManager::Process (mxSource *src, Info *args) {
+bool RTSyntaxManager::Process (mxSource *src, std::function<void()> &&action_post) {
 	if (!src) { 
 		if (the_one && the_one->processing) { the_one->ContinueProcessing(); return true; }
 		_LOG("RTSyntaxManager::Process ERROR: the_one->Process(NULL) && (!the_one || !the_one->processing): the_one="<<the_one);
@@ -53,22 +50,22 @@ bool RTSyntaxManager::Process (mxSource *src, Info *args) {
 	}
 	if (!the_one) Start(); else if (the_one->processing || the_one->restart) return false;
 	_LOG("RTSyntaxManager::Process in src="<<src);
-	if (args) extra_args=*args; else extra_args.action=RTA_NULL;
-	the_one->src=src;
+	the_one->src = src; the_one->m_action_post = action_post;
+	the_one->m_current_step = Step::SendCode;
 	wxTextOutputStream output(*(the_one->GetOutputStream())
 #ifdef UNICODE
 							  ,wxEOL_NATIVE,the_one->conv
 #endif
 							  );
-	the_one->processing=true;
-	for(int i=0;i<src->GetLineCount();i++) {
+	the_one->processing = true;
+	for(int i=0; i<src->GetLineCount(); ++i) {
 		wxString s=src->GetLine(i); src->ToRegularOpers(s); src->FixExtraUnicode(s);
 		while ( (not s.IsEmpty()) and (s.Last()=='\r' or s.Last()=='\n') ) s.RemoveLast();
 		output<<s<<"\n"; wxMilliSleep(0); // el millisleep evita problemas cuando se manda mucho y no alcanza a "flushear" (en wx 2.9 ya hay un .flush(), tendria que probar con eso, en 2.8 no hay caso)
 	}
 	output<<"<!{[END_OF_INPUT]}!>\n";
 	src->RTOuputStarts();
-	the_one->fase_num=0;
+	the_one->m_current_step = Step::ReadErrors;
 	vars_window->BeginInput();
 	the_one->ContinueProcessing();
 	_LOG("RTSyntaxManager::Process out src="<<src);
@@ -78,7 +75,7 @@ bool RTSyntaxManager::Process (mxSource *src, Info *args) {
 void RTSyntaxManager::ContinueProcessing() {
 	_LOG("RTSyntaxManager::ContinueProcessing in src="<<src);
 	wxTextInputStream input(*(GetInputStream()));	
-	if (!src) {
+	if (!src) { // si se cerro el fuente que estabamos analizando
 		_LOG("RTSyntaxManager::ContinueProcessing out src="<<src);
 		while (IsInputAvailable()) { /*char c=*/input.GetChar(); }
 		return;
@@ -91,42 +88,56 @@ void RTSyntaxManager::ContinueProcessing() {
 			if (c!='\r') aux_line+=c;
 		}
 		wxString line(_Z(aux_line.c_str()));
-		if (line.Len()) {
-			if (line=="<!{[END_OF_OUTPUT]}!>") { 
-				_LOG("RTSyntaxManager::ContinueProcessing fase 1 src="<<src);
-				fase_num=1;
-			} else if (line=="<!{[END_OF_VARS]}!>") {
-				_LOG("RTSyntaxManager::ContinueProcessing fase 2 src="<<src);
-				vars_window->EndInput();
-				fase_num=2;
-			} else if (line=="<!{[END_OF_BLOCKS]}!>") {
-				processing=false;
-				_LOG("RTSyntaxManager::ContinueProcessing out end src="<<src);
-				src->RTOuputEnds();
-				if (extra_args.action==RTA_DEFINE_VAR) src->DefineVar(extra_args.iarg,extra_args.sarg);
-				else if (extra_args.action==RTA_RENAME_VAR) src->RenameVar(extra_args.iarg,extra_args.sarg);
-				return;
-			} else if (fase_num==0 && config->rt_syntax) {
-				src->MarkError(line);
-			} else if (fase_num==1) {
-				wxString what=line.BeforeFirst(' ');
-				if (config->show_vars || extra_args.action!=RTA_NULL) {
-					if (what=="PROCESO"||what=="SUBPROCESO")
-						vars_window->AddProc(line.AfterFirst(' '),what=="PROCESO");
-					else
-						vars_window->AddVar(what,line.Last());
-				} else {
-					if (what=="SUBPROCESO") 
-						vars_window->RegisterAutocompKey(line.AfterFirst(' ').BeforeFirst(':'));
-					else if (what!="PROCESO")
-						vars_window->RegisterAutocompKey(what.BeforeFirst('['));
-				}
-				if (what=="PROCESO")
-					src->SetMainProcessTitleFromRTSM(line.AfterFirst(' ').BeforeFirst(':'));
-			} else if (fase_num==2 && config->highlight_blocks) {
-				long l1,l2;
-				if (line.BeforeFirst(' ').ToLong(&l1) && line.AfterFirst(' ').ToLong(&l2)) 
-					src->AddBlock(l1-1,l2-1);
+		if (not line.IsEmpty()) {
+			switch(m_current_step) {
+				case Step::None: _impossible; break;
+				case Step::SendCode: _impossible; break;
+				case Step::ReadErrors:
+					if (line=="<!{[END_OF_OUTPUT]}!>") { 
+						_LOG("RTSyntaxManager::ContinueProcessing fase 1 src="<<src);
+						m_current_step = Step::ReadVars;
+					} else 
+						if (config->rt_syntax) src->MarkError(line);
+					break;
+				case Step::ReadVars:
+					if (line=="<!{[END_OF_VARS]}!>") {
+						_LOG("RTSyntaxManager::ContinueProcessing fase 2 src="<<src);
+						vars_window->EndInput();
+						m_current_step = Step::ReadBlocks;
+					} else {
+						wxString what=line.BeforeFirst(' ');
+						if (config->show_vars || m_action_post) {
+							if (what=="PROCESO"||what=="SUBPROCESO")
+								vars_window->AddProc(line.AfterFirst(' '),what=="PROCESO");
+							else
+								vars_window->AddVar(what,line.Last());
+						} else {
+							if (what=="SUBPROCESO") 
+								vars_window->RegisterAutocompKey(line.AfterFirst(' ').BeforeFirst(':'));
+							else if (what!="PROCESO")
+								vars_window->RegisterAutocompKey(what.BeforeFirst('['));
+						}
+						if (what=="PROCESO")
+							src->SetMainProcessTitleFromRTSM(line.AfterFirst(' ').BeforeFirst(':'));
+					}
+					break;
+				case Step::ReadBlocks:
+					if (line=="<!{[END_OF_BLOCKS]}!>") {
+						processing=false;
+						_LOG("RTSyntaxManager::ContinueProcessing out end src="<<src);
+						src->RTOuputEnds();
+						m_current_step = Step::PostAction;
+						if (m_action_post) { m_action_post(); m_action_post = {}; }
+						m_current_step = Step::None;
+						if (config->highlight_blocks) src->HighLightBlock();
+						return;
+					} else if (config->highlight_blocks) {
+						long l1,l2;
+						if (line.BeforeFirst(' ').ToLong(&l1) && line.AfterFirst(' ').ToLong(&l2)) 
+							src->AddBlock(l1-1,l2-1);
+					}
+					break;
+				case Step::PostAction: _impossible; break;
 			}
 		} else {
 			_LOG("RTSyntaxManager::ContinueProcessing out continue src="<<src);
