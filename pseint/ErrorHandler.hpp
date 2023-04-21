@@ -14,11 +14,14 @@ public:
 	void AnytimeError(int num, const std::string &desc);
 	bool IsOk() const { return m_errors_count==0; }
 	int GetErrorsCount() const { return m_errors_count; }
-	
-	void SetForRealTimeSyntax() { m_for_realtime_syntax = true; }
 private:
 	int m_errors_count = 0, m_warnings_count = 0;
-	bool m_for_realtime_syntax = false;
+	
+	// hasta que haga las herencias e integre el interprete como lib a los otros modulos
+	// necesito esto para psterm
+	bool m_disable_compile_time_warnings = false;
+public:
+	void DisableCompileTimeWarnings() { m_disable_compile_time_warnings = true; }
 };
 
 #endif

@@ -25,6 +25,7 @@ extern bool ignore_logic_errors; // para que al generar el diagrama de flujo no 
 
 #define COLOR_INFO COLOR_LBLUE
 #define COLOR_ERROR COLOR_LRED
+#define COLOR_WARNING COLOR_INFO
 #define COLOR_INPUT COLOR_YELLOW
 #define COLOR_OUTPUT COLOR_LGREEN
 

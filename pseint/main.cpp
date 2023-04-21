@@ -203,7 +203,6 @@ int main(int argc, char* argv[]) {
 	ErrorHandler &err_handler = rt.err;
 	
 	if (real_time_syntax) {
-		err_handler.SetForRealTimeSyntax();
 		while (cin) {
 //			memoria->HardReset();
 			programa.HardReset();
@@ -280,6 +279,8 @@ int main(int argc, char* argv[]) {
 	archivo.close();
 
 	// comprobar sintaxis y ejecutar
+	if (with_io_references) // asumo que esto equivale a que el cliente es psterm
+		err_handler.DisableCompileTimeWarnings();
 	SynCheck(rt);
 	Inter.InitDebug(delay);
 	

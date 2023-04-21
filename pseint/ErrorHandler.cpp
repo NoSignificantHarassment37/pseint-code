@@ -23,7 +23,7 @@ void ErrorHandler::RunTimeWarning(int num, const std::string & desc) {
 }
 
 void ErrorHandler::CompileTimeWarning(int num, const std::string & desc) {
-	if (not m_for_realtime_syntax) return;
+	if (m_disable_compile_time_warnings) return;
 	++m_warnings_count;
 	WarnError_impl(num,desc,false);
 }
