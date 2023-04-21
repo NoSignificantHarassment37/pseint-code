@@ -2108,8 +2108,9 @@ void mxSource::OnPopupMenu(wxMouseEvent &evt) {
 
 void mxSource::PopupMenu(wxMouseEvent &evt) {
 	wxMenu menu("");
-	int p=GetCurrentPos(); int s=GetStyleAt(p);
-	wxString key=GetCurrentKeyword(p);
+	int p = GetCurrentPos(); 
+	int s = GetStyleAt(p);
+	wxString key = GetCurrentKeyword(p);
 	
 	if (key.Len()!=0 && (s==wxSTC_C_IDENTIFIER||s==wxSTC_C_GLOBALCLASS)) {
 		if (IsProcOrSub(GetCurrentLine())) {
@@ -2134,6 +2135,8 @@ void mxSource::PopupMenu(wxMouseEvent &evt) {
 	menu.Append(mxID_EDIT_CUT,_Z("Cortar"));
 	menu.Append(mxID_EDIT_COPY,_Z("Copiar"));
 	menu.Append(mxID_EDIT_PASTE,_Z("Pegar"));
+	menu.AppendSeparator();
+	menu.Append(mxID_ZOOM_TO_SELECTION,_Z("Ajustar Zoom\tCtrl+0"));
 	
 	auto pos_menu = main_window->ScreenToClient(this->ClientToScreen(wxPoint(evt.GetX(),evt.GetY())));
 	main_window->PopupMenu(&menu,pos_menu);
@@ -2681,3 +2684,20 @@ wxString mxSource::GetFileName (bool sugest) const {
 	if (sin_titulo) return sugest ? m_main_process_title+".psc" : wxString();
 	return wxFileName(filename).GetFullName();
 }
+
+void mxSource::ZoomToSelection ( ) {
+	int sp0 = GetSelectionStart(), sp1 = GetSelectionEnd();
+	int sl0 = sp0==sp1 ? 0 : LineFromPosition(sp0);
+	int sl1 = sp0==sp1 ? GetLineCount() : LineFromPosition(sp1)+1;
+	float ch = 0;
+	for(int l = sl0; l<sl1; ++l) 
+		ch += TextHeight(l);
+	if (sl1-sl0<5) ch = (ch * 5.f)/(sl1-sl0); // no menos de 5 lineas
+	int sh = GetClientSize().GetHeight();
+	float czm = GetZoom();
+	float fs = config->wx_font_size;
+	float nzm = sh*(fs+czm)/ch-fs;
+	SetZoom(std::max(-fs+1,nzm));
+	SetFirstVisibleLine(sl0);
+}
+

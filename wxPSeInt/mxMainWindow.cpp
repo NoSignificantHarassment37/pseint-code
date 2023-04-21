@@ -164,6 +164,7 @@ BEGIN_EVENT_TABLE(mxMainWindow, wxFrame)
 	
 	EVT_MENU(mxID_VIEW_NOTEBOOK_PREV, mxMainWindow::OnViewNotebookPrev)
 	EVT_MENU(mxID_VIEW_NOTEBOOK_NEXT, mxMainWindow::OnViewNotebookNext)
+	EVT_MENU(mxID_ZOOM_TO_SELECTION, mxMainWindow::OnViewZoomToSelection)
 
 	EVT_TREE_ITEM_ACTIVATED(wxID_ANY, mxMainWindow::OnSelectError)
 	EVT_TREE_SEL_CHANGED(wxID_ANY, mxMainWindow::OnSelectError)
@@ -1598,7 +1599,7 @@ void mxMainWindow::OnConfigLanguage(wxCommandEvent &evt) {
 }
 
 void mxMainWindow::SetAccelerators() {
-	wxAcceleratorEntry entries[7];
+	wxAcceleratorEntry entries[8];
 	entries[0].Set(wxACCEL_CTRL|wxACCEL_SHIFT, WXK_TAB, mxID_VIEW_NOTEBOOK_PREV);
 	entries[1].Set(wxACCEL_CTRL, WXK_TAB, mxID_VIEW_NOTEBOOK_NEXT);
 	entries[2].Set(wxACCEL_CTRL, WXK_PAGEUP, mxID_VIEW_NOTEBOOK_PREV);
@@ -1606,8 +1607,13 @@ void mxMainWindow::SetAccelerators() {
 	entries[4].Set(wxACCEL_CTRL|wxACCEL_SHIFT, WXK_F5, mxID_DO_THAT);
 	entries[5].Set(0, WXK_F6, mxID_DEBUG_STEP);
 	entries[6].Set(wxACCEL_ALT|wxACCEL_SHIFT, WXK_RETURN, mxID_VARS_RENAME);
-	wxAcceleratorTable accel(7, entries);
+	entries[7].Set(wxACCEL_CTRL, '0', mxID_ZOOM_TO_SELECTION);
+	wxAcceleratorTable accel(8, entries);
 	SetAcceleratorTable(accel);
+}
+
+void mxMainWindow::OnViewZoomToSelection(wxCommandEvent &evt){
+	IF_THERE_IS_SOURCE { CURRENT_SOURCE->ZoomToSelection(); }	
 }
 
 void mxMainWindow::OnViewNotebookNext(wxCommandEvent &evt){

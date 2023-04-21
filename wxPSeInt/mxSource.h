@@ -71,6 +71,7 @@ public:
 	~mxSource();
 	
 	void OnZoomChange(wxStyledTextEvent &evt);
+	void ZoomToSelection();
 	
 	void OnEditCut(wxCommandEvent &evt);
 	void OnEditCopy(wxCommandEvent &evt);

@@ -127,6 +127,7 @@ public:
 
 	void OnViewNotebookNext (wxCommandEvent &event);
 	void OnViewNotebookPrev (wxCommandEvent &event);
+	void OnViewZoomToSelection(wxCommandEvent &event);
 	
 	void OnConfigCalltipHelps(wxCommandEvent &evt);
 	void OnConfigAutoComp(wxCommandEvent &evt);
