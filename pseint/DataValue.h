@@ -10,13 +10,32 @@
 #define VERDADERO "VERDADERO"
 #include "debug.h"
 
+#ifdef __APPLE__
+// prefiero usar las implementaciones del else, basadas en from_chars y to_chars,
+// pero en el SDK para mac que uso solo estan las versiones para enteros
+inline double StrToDbl(const std::string &s) {
+	return atof(s.c_str());
+}
+
+inline std::string DblToStr(double d) {
+	char buf[512]; // DBL_MAX ocupa 310 caracteres
+	sprintf(buf,"%.50f",d);
+	// eliminar los ceros que sobren y el punto si era entero
+	int i=0; while (buf[i]!=0) i++;
+	while (buf[--i]=='0'); // contar ceros de atras para adelante
+	if (buf[i]=='.') i--; // si llegamos al '.' sacarlo tambien
+	if (buf[0]=='-'&&buf[1]=='0'&&i==1) buf[i=0]='0'; // si quedo "-0" sacar el -
+	buf[++i]='\0'; // aplicar el corte
+	return buf;
+}
+
+#else
 
 inline double StrToDbl(const std::string &s) {
 	double d=0;
 	auto p = s.data(); if (*p=='+') ++p;
 	auto r1 = std::from_chars(p, s.data()+s.size(), d);
 	return d;
-	
 }
 
 inline std::string DblToStr(double d) {
@@ -27,6 +46,11 @@ inline std::string DblToStr(double d) {
 	return sout;
 }
 
+#endif
+
+// esta es la version para escribir en pantalla, no para las conversiones internas...
+// por eso mantengo la implementacion "vieja", para controlar la cantidad de decimales
+// y la notacion
 inline std::string DblToStr(double d, bool low) {
 	_expects(low);
 	char buf[512]; // DBL_MAX ocupa 310 caracteres
@@ -40,6 +64,8 @@ inline std::string DblToStr(double d, bool low) {
 	return buf;
 }
 
+/// @todo: usar to_chars/from_chars aca tambien
+// en este caso el cambio no es crítico, no hay problemas de redondeo cuando son enteros
 inline int StrToInt(const std::string &s) {
 	return atoi(s.c_str());
 }
