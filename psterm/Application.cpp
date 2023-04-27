@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "mxFrame.h"
 #include "version.h"
+#include <wx/filename.h>
 
 IMPLEMENT_APP(mxApplication)
 	
@@ -23,6 +24,15 @@ static wxString EscapeString(wxString what) {
 	else return what;
 }
 
+wxString DIR_PLUS_FILE(wxString dir, wxString fil) {
+	if (dir.Len()==0 || (fil.Len()>1 && (fil[0]=='\\' || fil[0]=='/' || fil[1]==':')))
+		return fil;
+	else if (dir.Last()==wxFileName::GetPathSeparator())
+		return dir+fil;
+	else
+		return dir+wxFileName::GetPathSeparator()+fil;
+}
+
 bool mxApplication::OnInit() {
 	
 	_handle_version_query("psTerm",false);
@@ -30,6 +40,33 @@ bool mxApplication::OnInit() {
 	OSDep::AppInit();
 	
 	srand(time(0));
+	
+	
+	wxFileName f_path = wxGetCwd(); 
+	f_path.MakeAbsolute();
+	wxString cmd_path = f_path.GetFullPath();
+	wxFileName f_cmd(argv[0]);
+	wxFileName f_zpath = f_cmd.GetPathWithSep();
+	f_zpath.MakeAbsolute();
+	wxString zpath(f_zpath.GetPathWithSep());
+	bool flag=false;
+	if (f_zpath!=f_path) {
+		if ( (flag=(wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("pseint.dir"))) || wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("PSeInt.dir")))) ) )
+			wxSetWorkingDirectory(zpath);
+#ifdef __APPLE__
+		else if ( (flag=(wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("../Resources/pseint.dir"))) ||wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("../Resources/PSeInt.dir")))) ) ) {
+			zpath = DIR_PLUS_FILE(zpath,_T("../Resources"));
+			wxSetWorkingDirectory(zpath);
+		}
+#elif !defined(__WIN32__)
+		else if ( (flag=(wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("../pseint.dir"))) ||wxFileName::FileExists(DIR_PLUS_FILE(zpath,_T("../PSeInt.dir")))) ) ) {
+			zpath = DIR_PLUS_FILE(zpath,_T(".."));
+			wxSetWorkingDirectory(zpath);
+		}
+#endif
+		else 
+				 zpath = cmd_path;
+	}
 	
 	bool no_arg=false, debug=false;
 	long port=-1, src_id=-1;

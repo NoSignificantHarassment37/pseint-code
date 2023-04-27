@@ -208,46 +208,57 @@ void mxConsole::OnSize (wxSizeEvent & event) {
 }
 
 void mxConsole::OnChar (wxKeyEvent & event) {
-	if (event.GetKeyCode()==3) { parent->ShouldClose(); return; } // que era ese 3????
+//	if (event.GetKeyCode()==3) { parent->ShouldClose(); return; } // esto debe haber sido el ctrl+C, en la version unicode no funciona
 	if (the_process) {
 		if (!want_input || cur_event!=-1) return;
 		wxOutputStream *output=the_process->GetOutputStream();
-		wxChar c = event.GetUnicodeKey();
+		auto uni_key = event.GetUnicodeKey();
+		auto key_code = event.GetKeyCode();
 		if (wait_one_key) {
-			if (c=='\r') c='\n';
+			if (uni_key=='\r') uni_key='\n';
 		 	wait_one_key=false;
-			RecordInput(wxString()<<c);
-			output->Write(&c,1);
+			RecordInput(wxString()<<uni_key);
+			output->Write(&uni_key,1);
 		} else {
-			if (c==27) { 
+			if (key_code==WXK_ESCAPE) { 
 				for(int i=current_input.Len();i>0;i--) 
 					Process("\b"); 
 				current_input="";
 				Refresh();
 				return;
-			} else if (c=='\r'||c=='\n') { 
+			} else if (uni_key=='\r'||uni_key=='\n') {
 				current_input<<"\n";
 				string val((const char*)(current_input.mb_str(wxCSConv("ISO-8859"))));
 				cerr << current_input << current_input.size()<<endl;
 				cerr << val << val.size()<<endl;
 				output->Write(val.c_str(),val.size());
 				RecordInput(current_input);
-				c='\n';
-			} else if (c=='\b') {
+				uni_key='\n';
+			} else if (key_code==WXK_DELETE or key_code==WXK_BACK) {
 				if (!current_input.Len()) return;
 				current_input.RemoveLast();
-			} else
-				current_input<<c;
-			Print(wxString()<<c,true/*,true*/);
+				uni_key='\b';
+			} else if (uni_key!=WXK_NONE) {
+				current_input<<uni_key;
+			} else // tecla no soportada (por ej, flechas)
+				return;
+			Print(wxString()<<uni_key,true/*,true*/);
 			Refresh();
 		}
 	} else parent->ShouldClose();
 }
 
 void mxConsole::SetFont() {
-	font = wxFont(m_font_size,wxFONTFAMILY_TELETYPE,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_NORMAL,false,m_font_name);
+	parent->SetTitle(m_font_name);
+	font = wxFont(wxFontInfo(m_font_size).Family(wxFONTFAMILY_MODERN).FaceName(m_font_name));
 	wxClientDC dc(this); dc.SetFont(font);
-	char_h=dc.GetCharHeight(); char_w=dc.GetCharWidth();
+	// calcular el ancho promedio de esta forma, porque si le pregunto el ancho generico de 
+	// un caracter me lo da como int, pero en mac parece ser un valor no entero (si calculo
+	// mal el cursor se ubica mal y la seleccion se marca mal)
+	static wxString sample_text = "ASDFGHJKLqwertyuio12345678 .,-";
+	auto tex_ext = dc.GetTextExtent(sample_text);
+	char_w = float(tex_ext.GetWidth())/float(sample_text.Len());
+	char_h = tex_ext.GetHeight();
 }
 
 void mxConsole::Print (wxString text, bool record/*, bool do_print*/) {

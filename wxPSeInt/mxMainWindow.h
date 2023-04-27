@@ -268,6 +268,7 @@ public:
 	void UpdatePSDrawSettings(); // cuando psdraw cambia una conf, invoca a esta func para que se refleje en los menues
 	
 	DECLARE_EVENT_TABLE();
+	
 };
 
 extern mxMainWindow *main_window;

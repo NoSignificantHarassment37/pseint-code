@@ -44,6 +44,14 @@ ConfigManager::ConfigManager(wxString apath) : lang(LS_INIT) {
 		unicode_opers = true;
 	}
 	
+#ifdef __APPLE__
+	// por alguna extraña razon no logro hacer que la terminal tome la fuente Inconsolata
+	// (llamar a wxDC::SetFont(f) modifica a f y la convierte en Helvetica ¿?), asi que
+	// uso una monospaced del sistema para salir del paso hasta que lo solucione
+	if (version<20230426 and term_font_name=="Inconsolata")
+		term_font_name="Menlo";
+#endif
+		
 	lang.Log();
 	
 	er_init(temp_dir);

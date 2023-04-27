@@ -2035,6 +2035,12 @@ void mxSource::RTOuputStarts ( ) {
 void mxSource::RTOuputEnds ( ) {
 	if (config->rt_syntax) ClearErrorMarks();
 	if (current_calltip.is_error) CallTipCancel();
+	Update(); // sin esto revienta extrañamente luego al hacer un update del aui desde el QuickHelpPanelPolicy...
+	          // depurando veo que setear los indicators marca como dirty alguna parte de scintilla y si no 
+	          // hacermos el update, en algun momento revienta. Aca pasa en el EnsureVisible cuando ya estaba 
+	          // visible el panel y el update del aui se hace solo para que actualice un caption... pero al
+	          // intentar reproducirlo el comportamiento es raro.. podría ser undefined behavior (bug de wx?)
+			  // 100% reproducible con wx 3.1 y 3.2.2 en linux y gtk-3.0
 	main_window->QuickHelp().ShowRTResult(not rt_results.IsOk());
 	SetStatus(); // para que diga en la barra de estado si hay o no errores
 }

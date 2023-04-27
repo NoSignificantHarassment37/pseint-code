@@ -43,7 +43,7 @@ public:
 	void GetProcessOutput(bool refresh=true); ///< extract unprocessed text from output stream for current process
 	
 	int margin = 2; ///< margin in pixels for text inside the console
-	int char_w; ///< width in pixels for a char with current fontsize
+	float char_w; ///< width in pixels for a char with current fontsize
 	int char_h; ///< height in pixels for a char with current fontsize
 	int bg; ///< index for current console background color (the same for the whole console)
 	struct code_location { ///< linea and instruction number in source pseudocode
