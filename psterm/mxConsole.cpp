@@ -194,7 +194,7 @@ void mxConsole::OnPaint (wxPaintEvent & event) {
 			dc.SetPen(wxPen(cb));
 			dc.SetBrush(wxBrush(cb));
 			dc.SetTextForeground(ct);
-			int x0 = w-tw-2*margin, y0 = cur_y<=2*buffer_h/3?h-th-2*margin:0;
+			int x0 = w-tw-2*margin, y0 = cur_y<=2*buffer_h/3?h-th-2*margin:i*th;
 			dc.DrawRectangle(x0,y0,tw+2*margin,th+2*margin);
 			dc.SetTextForeground(ct);
 			dc.DrawText(status[i],x0+margin,y0+margin);
@@ -229,8 +229,6 @@ void mxConsole::OnChar (wxKeyEvent & event) {
 			} else if (uni_key=='\r'||uni_key=='\n') {
 				current_input<<"\n";
 				string val((const char*)(current_input.mb_str(wxCSConv("ISO-8859"))));
-				cerr << current_input << current_input.size()<<endl;
-				cerr << val << val.size()<<endl;
 				output->Write(val.c_str(),val.size());
 				RecordInput(current_input);
 				uni_key='\n';
@@ -358,6 +356,7 @@ void mxConsole::Process (wxString input, bool record/*, bool do_print*/) {
 				if (input_history_position>=int(input_history.size())) { 
 					want_input=true; wait_one_key=true;
 				} else {
+					input_history[input_history_position].loc = cur_loc; // cambiar una entrada puede hacer que este input ahora sea para otro leer
 					wxString aux=input_history[input_history_position++].text;
 					wxOutputStream *output=the_process->GetOutputStream();
 					output->Write(aux.c_str(),aux.Len());
@@ -370,6 +369,7 @@ void mxConsole::Process (wxString input, bool record/*, bool do_print*/) {
 //					output->Write(current_input.c_str(),current_input.Len());
 					Print(current_input,true/*,true*/); // true,true, porque estas cosas solo llegan en vivo, no se guardan en el historial
 				} else {
+					input_history[input_history_position].loc = cur_loc; // cambiar una entrada puede hacer que este input ahora sea para otro leer
 					wxString aux=input_history[input_history_position++].text;
 					wxOutputStream *output=the_process->GetOutputStream();
 					output->Write(aux.c_str(),aux.Len());
