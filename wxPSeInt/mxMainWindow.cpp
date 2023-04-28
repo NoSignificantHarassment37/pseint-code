@@ -2092,10 +2092,11 @@ void mxMainWindow::HidePanel (wxWindow * panel, bool anim) {
 
 void mxMainWindow::RTreeReset ( ) {
 	results_tree_errors.Clear();
-	result_tree_done=false; 
-	result_tree_text_level=0; 
+	result_tree_done = false; 
+	result_tree_text_level = 0; 
 	results_tree_text.Clear();
-	results_tree_ctrl->DeleteChildren(results_root);	
+	results_tree_ctrl->DeleteChildren(results_root);
+	results_last = results_root;
 }
 
 wxString mxMainWindow::RTreeAdd_auxHtml(wxString str) {
