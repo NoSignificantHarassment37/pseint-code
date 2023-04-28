@@ -299,13 +299,14 @@ int main(int argc, char* argv[]) {
 			ExeInfo.close();
 			ExeInfoOn=false;
 		} else if (run) {
-			if (ExeInfoOn) if (user) ExeInfo<<"*** Ejecucion Iniciada. ***"<<endl;
-			if (user) show_user_info("*** Ejecución Iniciada. ***");
 			for(auto &pf : rt.funcs.GetAllSubs()) pf.second->memoria->FakeReset();
 			checksum(programa);
 			Inter.SetStarted();
 			const Funcion *main_func = rt.funcs.GetMainFunc();
 			memoria = main_func->memoria.get();
+			Inter.SetLocation(rt.prog[main_func->line_start].loc);
+			if (ExeInfoOn) if (user) ExeInfo<<"*** Ejecucion Iniciada. ***"<<endl;
+			if (user) show_user_info("*** Ejecución Iniciada. ***");
 			Ejecutar(rt,main_func->line_start);
 			Inter.SetFinished();
 			if (ExeInfoOn) ExeInfo<<"*** Ejecucion Finalizada. ***";
