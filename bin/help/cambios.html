@@ -1,10 +1,13 @@
 <HTML><HEAD><TITLE>PSeInt - Registro de Cambios</TITLE></HEAD><BODY>
 <UL>
 	
-</UL><BR><BR><B>Release 202304XX</B><BR><UL>
+</UL><BR><BR><B>Release 202305XX</B><BR><UL>
+	<LI>Nueva opción para mostrar el código en pantalla completa (F11 o menú Configurar).</LI>
+	<LI>Mejoras en la presentación y el funcionamiento de la terminal de ejecución en macOS.</LI>
 	<LI>Nueva opción en el menú contextual del editor de pseudocódigo para ajustar el nivel de zoom de forma tal que el algoritmo (o un conjunto de lineas seleccionadas) se vea completo y lo más grande posible en la ventana.</LI>
 	<LI>Mejorada la detección de errores en los argumentos de la instrucción Leer cuando se involucran arreglos.</LI>
 	<LI>Ahora el intérprete advierte en algunos casos cuando se quiere ingresar un número (como constante en el código, o mediante una lectura) con demasiados dígitos (tal que muy probablemente los calculos se tornen inexactos).</LI>
+	<LI>Corregido un error por el cual a veces no se seleccionaban correctamente algunos valores de entrada ingresado en psterm luego de haber modificado alguno otro previo individualmente.</LI>
 	<LI>Corregido un error por el cual al marcar una instrucción en el editor (cuando se hace click en la consola, se genera un error de ejecución, o se ejecuta paso paso), no se seleecionaba completa si contenía caracteres especiales unicode.</LI>
 	<LI>Corregido un error por el cual la recuperación de algoritmos luego de un cierre inesperado no funcionaba en la mayoría de los casos.</LI>
 	<LI>Corregido un error por el cual podía cerrarse el editor al maximizar la ventana de ejecución con doble-click sobre la barra de título.</LI>
@@ -17,9 +20,11 @@
 	<LI>Reestructuración interna del código del intérprete.</LI>
 	<LI>Reestructuración de los scripts para compilar las distintas versiones desde el código fuente</LI>
 	<LI>Agregados casos de prueba para psdraw en el paquete de fuentes.</LI>
-	<LI>Agregada documentación sobre el proceso de release en el paquete de fuentes.</LI>
-	<LI>Agregados los perfiles CCCOOOMMMPPLLLEEETTTAAARRRR</LI>
+	<LI>Agregada documentación sobre el proceso de release y otros detalles internos sen el paquete de fuentes (nuevo directorio docs).</LI>
+	<LI>Agregados los perfiles CFT-Valparaiso, UCR-CI0202, UniMagdalena, IES-EnriqueTiernoGalvan, CEVaP, USergioArboleda, UAGRM-IntroInf, ET28, EETP480, UTSOE, FINESI-UNAP-Estricto, FINESI-UNAP-Flexible, UCLV-FIMI, CBTis118, UPC, UPTECMS, UCM, UNLa-IntroLS-EpyA, JMC, LevVygotsky, UTDFT, LeccionesConTIC, UMAR, ITST, UTA-FISEI-Jara, CPRAfundacion, FJR-Tampico, IUTIRLA-Maturin, UTN-FRM, UNTRM, UniGuajira, Motolinia, UTEC, PolitecnicoDeColombia, UEPillahuaso, UniSur, CETis156, UIDE, CEDUC, CETYS, Torremar y UNDAC-ingcivil.</LI>
 	<LI>Actualizados los perfiles UNL-Fich, UTP-Panama, UCA-Nic y UNICAES-Ingenieria.</LI>
+	<LI>Renombrados los perfiles UTA-FISEI a UTA-FISEI-Paredes, y UNDAC a UNDAC-geo.</LI>
+	<LI>Eliminado el perfil UTN-FRRe.</LI>
 
 </UL><BR><BR><B>Release 20210609</B><BR><UL>
 	<LI>Ahora se informa correctamente el error cuando se quiere pasar una constante a una función que recibe argumentos por referencia y retorna un valor (gracias a Nicolas Abram, quien encontró el error y envió el parche para el mismo).</LI>

@@ -1,4 +1,8 @@
-desc=Perfil para el curso de Fundamentos de Programación, Estudios Específicos de la Facultad de Ingeniería, Escuela de Formación Profesional de Geología, Universidad Nacional Daniel Alcides Carrión. (Docente: Mg. Ivan Poma Inche).
+desc=Universidad: Universidad Nacional Daniel Alcides Carrión
+desc=Facultad: Facultad de Ingeniería
+desc=Escuela: Escuela de Formación Profesional de Geología
+desc=Curso: Fundamentos de Programación
+desc=Enviado por: Mg. Ivan Poma Inche
 version=20160321
 force_init_vars=1
 force_define_vars=1
