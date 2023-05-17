@@ -13,63 +13,178 @@
 
 #include "string_conversions.h"
 #include "Logger.h"
-
-BEGIN_EVENT_TABLE(mxProfile,wxDialog)
-	EVT_TEXT(wxID_FIND,mxProfile::OnSearchText)
-	EVT_LIST_ITEM_SELECTED(wxID_ANY,mxProfile::OnListSelect)
-	EVT_LIST_ITEM_ACTIVATED(wxID_ANY,mxProfile::OnListActivate)
-	EVT_BUTTON(wxID_ABOUT,mxProfile::OnOptionsButton)
-	EVT_BUTTON(wxID_OPEN,mxProfile::OnLoadButton)
-	EVT_BUTTON(wxID_OK,mxProfile::OnOkButton)
-	EVT_BUTTON(wxID_CANCEL,mxProfile::OnCancelButton)
-	EVT_CLOSE(mxProfile::OnClose)
-END_EVENT_TABLE()
+#include <fstream>
+#include <wx/dc.h>
+#include <wx/settings.h>
+#include <wx/dcmemory.h>
+#include "ids.h"
 	
 static int comp_nocase(const wxString& first, const wxString& second) {
 	return first.CmpNoCase(second);
 }
 
-mxProfile::mxProfile(wxWindow *parent) : 
-	wxDialog(parent,wxID_ANY,_Z("Opciones del Lenguaje"),wxDefaultPosition,wxDefaultSize,wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER),
-	text(NULL), lang(cfg_lang)
-{
+static wxString normalize(wxString s) {
+	s.MakeLower();
+	s.Replace(_Z("á"),_T("a"),true);
+	s.Replace(_Z("é"),_T("e"),true);
+	s.Replace(_Z("í"),_T("i"),true);
+	s.Replace(_Z("ó"),_T("o"),true);
+	s.Replace(_Z("ú"),_T("u"),true);
+	s.Replace(_Z("ñ"),_T("n"),true);
+	s.Replace(_Z("ü"),_T("u"),true);
+	return s;
+}
 
-	_LOG("mxProfile::mxProfile Start");
+static std::string ReadDesc(const std::string &fname) {
+	std::ifstream fin(fname);
+	if (not fin.is_open()) return "";
+	std::string desc;
+	for(std::string line; std::getline(fin,line); ) {
+		if (line.empty()) continue;
+		if (line[0]=='#') continue;
+		if (line.size()<5) break;
+		if (not (line[0]=='d' and line[1]=='e' and line[2]=='s' and line[3]=='c' and line[4]=='=')) break;
+		desc = desc + line.substr(5) + '\n';
+	}
+	return desc;
+}
+
+mxProfilesListCtrl::mxProfilesListCtrl(wxWindow *parent) 
+	: wxVListBox(parent,mxID_PROF_LIST,wxDefaultPosition,wxSize(250,300),0),
+	  m_font(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT)),
+	  m_color_sel( wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT) ),
+	  m_color_back( wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX) ),
+	  m_color_front( wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT) ),
+	  m_brush_sel(m_color_sel,wxBRUSHSTYLE_SOLID), 
+	  m_brush_norm(m_color_back,wxBRUSHSTYLE_SOLID)
+{
+	m_null_icon.LoadFile(DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),"null.png"),wxBITMAP_TYPE_PNG);
 	
+	wxArrayString names;
 	wxDir dir(config->profiles_dir);
 	if ( dir.IsOpened() ) {
 		wxString filename;
 		wxString spec;
 		bool cont = dir.GetFirst(&filename, spec , wxDIR_FILES);
 		while ( cont ) {
-			perfiles.Add(filename);
+			names.Add(filename);
 			cont = dir.GetNext(&filename);
 		}
 	}
-	perfiles.Sort(comp_nocase);
-	for(unsigned int i=0;i<perfiles.GetCount();i++) { 
-		LangSettings l(LS_INIT); 
-		l.Load(DIR_PLUS_FILE(config->profiles_dir,perfiles[i]),true);
-		descripciones.Add(_Z(l.descripcion.c_str()));
+	names.Sort(comp_nocase);
+	
+	m_full_list.resize(names.GetCount()+1);
+	for (unsigned int i=0; i<names.GetCount(); ++i) { 
+		m_full_list[i].name = names[i];
+		wxString file = DIR_PLUS_FILE(config->profiles_dir,names[i]);
+		m_full_list[i].desc = _S2W( ReadDesc( _W2S(file) ) );
 	}
 	
-	list = new wxListCtrl(this,wxID_ANY,wxDefaultPosition,wxSize(250,300),wxLC_REPORT|wxLC_NO_HEADER|wxLC_SINGLE_SEL);
-	list->InsertColumn(0,_Z("Perfil"));
-	wxImageList *iml = new wxImageList(24,24,true);
-	wxBitmap noimage(DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),"null.png"),wxBITMAP_TYPE_PNG);
-	for(unsigned int i=0;i<perfiles.GetCount();i++) {
-		wxString ficon=DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),perfiles[i]+".png");
-		if (wxFileName::FileExists(ficon))
-			iml->Add(wxBitmap(ficon,wxBITMAP_TYPE_PNG));
-		else
-			iml->Add(noimage);
+	m_full_list.back().name = CUSTOM_PROFILE;
+	m_full_list.back().desc = _Z("Puede utilizar el botón \"Personalizar\" para definir su propia configuración.");
+	m_full_list.back().icon = new wxBitmap(DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),"personalizado.png"),wxBITMAP_TYPE_PNG);
+	
+	SetItemCount(0);
+}
+
+wxString mxProfilesListCtrl::GetCurrentDescription() const {
+	int i = GetSelection(); if (i==wxNOT_FOUND) return "";
+	return m_full_list[m_filtered[i]].desc;
+}
+
+wxString mxProfilesListCtrl::GetCurrentName() const {
+	int i = GetSelection(); if (i==wxNOT_FOUND) return "";
+	return m_full_list[m_filtered[i]].name;
+}
+
+void mxProfilesListCtrl::Search(const wxString &text, const wxString &to_sel_name) {
+	m_filtered.clear();
+	
+	if (text.IsEmpty()) {
+		m_filtered.resize(m_full_list.size());
+		for(size_t i=0;i<m_filtered.size();++i) {
+			m_filtered[i] = i;
+		}
+		
+	} else {
+		m_filtered.clear();
+		for (unsigned int i=0; i+1<m_full_list.size(); ++i) {
+			if ( m_full_list[i].name.Lower().Contains(text) or
+				 m_full_list[i].desc.Contains(text) )
+					m_filtered.push_back(i);
+		}
 	}
-	iml->Add(wxBitmap(DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),"personalizado.png"),wxBITMAP_TYPE_PNG));
-	list->AssignImageList(iml,wxIMAGE_LIST_SMALL);
+	SetItemCount(m_filtered.size());
+	
+	SetSelection(-1);
+	if (not m_filtered.empty()) {
+		if (not to_sel_name.IsEmpty()) {
+			for(size_t i=0;i<m_filtered.size();++i) { 
+				if (m_full_list[m_filtered[i]].name == to_sel_name)
+					{ SetSelection(i); break; }
+			}
+		}
+	}
+}
+
+void mxProfilesListCtrl::OnDrawItem(wxDC &dc, const wxRect &rect, size_t n) const {
+	
+	bool is_selected = IsSelected(n);
+	dc.SetBrush( is_selected ? m_brush_sel : m_brush_norm ); 
+	// si no crezco el rect en 1, al menos en linux veo un borde negro
+	dc.DrawRectangle( rect.x-1, rect.y-1, rect.width+2, rect.height+2 );
+	
+	const ProfInfo &pi = m_full_list[m_filtered[n]];
+	if (not pi.icon) {
+		wxString ficon = DIR_PLUS_FILE(DIR_PLUS_FILE(config->profiles_dir,"icons"),pi.name+".png");
+		pi.icon = wxFileName::FileExists(ficon) ? new wxBitmap(ficon,wxBITMAP_TYPE_PNG) : &m_null_icon;
+	}
+	dc.DrawBitmap(*pi.icon,rect.GetLeft()+m_item_heigth/2-12,rect.GetTop()+m_item_heigth/2-12);
+	
+	dc.SetTextForeground(m_color_front); dc.SetFont(m_font);
+	dc.DrawText(pi.name,rect.GetLeft()+m_item_heigth,rect.GetTop()+(m_item_heigth-m_text_height)/2);
+}
+
+wxCoord mxProfilesListCtrl::OnMeasureItem(size_t n) const {
+	if (m_item_heigth==0) {
+		wxMemoryDC dc;
+		dc.SetFont(m_font);
+		wxSize sz = dc.GetTextExtent("QWERTYUIOPASDFGHJKLZXCVBNMwertyuiopasdfghjklzxcvbnm0987654321");
+		m_text_height = sz.GetHeight();
+		m_item_heigth = std::max(30,(110*m_text_height)/100);
+	}
+	return m_item_heigth;
+}
+
+mxProfilesListCtrl::~mxProfilesListCtrl() {
+	for(ProfInfo &p : m_full_list) {
+		if (p.icon and p.icon!=&m_null_icon)
+			delete p.icon;
+	}
+}
+
+
+BEGIN_EVENT_TABLE(mxProfile,wxDialog)
+	EVT_TEXT(wxID_FIND,mxProfile::OnSearchText)
+	EVT_LISTBOX(mxID_PROF_LIST,mxProfile::OnListSelect)
+	EVT_LISTBOX_DCLICK(mxID_PROF_LIST,mxProfile::OnListActivate)
+	EVT_BUTTON(wxID_ABOUT,mxProfile::OnOptionsButton)
+	EVT_BUTTON(wxID_OPEN,mxProfile::OnLoadButton)
+	EVT_BUTTON(wxID_OK,mxProfile::OnOkButton)
+	EVT_BUTTON(wxID_CANCEL,mxProfile::OnCancelButton)
+	EVT_CLOSE(mxProfile::OnClose)
+END_EVENT_TABLE()
+
+mxProfile::mxProfile(wxWindow *parent) : 
+	wxDialog(parent,wxID_ANY,_Z("Opciones del Lenguaje"),wxDefaultPosition,wxDefaultSize,wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER),
+	text(NULL), lang(cfg_lang)
+{
+	_LOG("mxProfile::mxProfile Start");
+	
+	list = new mxProfilesListCtrl(this);
 	text = new wxTextCtrl(this,wxID_ANY,_T(""),wxDefaultPosition,wxDefaultSize,wxTE_MULTILINE|wxTE_READONLY);
 	
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-	
 	sizer->Add(new wxStaticText(this,wxID_ANY,_Z(" Puede buscar por nombre de la institución, materia, docente, siglas, etc.")),wxSizerFlags().Expand().Proportion(0).Border(wxTOP,5));
 	
 	wxBoxSizer *search_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -81,18 +196,10 @@ mxProfile::mxProfile(wxWindow *parent) :
 	wxBoxSizer *sizer_prof = new wxBoxSizer(wxHORIZONTAL);
 	sizer_prof->Add(list,wxSizerFlags().Expand().Proportion(2).FixedMinSize());
 	sizer_prof->Add(text,wxSizerFlags().Expand().Proportion(3).FixedMinSize());
-	sizer->Add(sizer_prof,wxSizerFlags().Expand()/*.Proportion(3)*/.FixedMinSize());
+	sizer->Add(sizer_prof,wxSizerFlags().Expand().Proportion(1).FixedMinSize());
 	
 	sizer->AddSpacer(10);
 	
-//	sizer->Add(new wxStaticText(this,wxID_ANY,_Z(" Seleccione un perfil para configurar las reglas del lenguaje: ")),wxSizerFlags().Expand().Proportion(0).Border(wxTOP,5));
-//	sizer->Add(list,wxSizerFlags().Expand().Proportion(3).FixedMinSize());
-//	sizer->Add(new wxStaticText(this,wxID_ANY,_Z("")),wxSizerFlags().Expand().Proportion(0));
-//	sizer->Add(new wxStaticText(this,wxID_ANY,_Z(" Descripción del perfil seleccionado:")),wxSizerFlags().Expand().Proportion(0));
-//	sizer->Add(text,wxSizerFlags().Expand().Proportion(1).FixedMinSize());
-//	sizer->Add(new wxStaticText(this,wxID_ANY,""),wxSizerFlags().Expand().Proportion(0));
-//	sizer->Add(button_sizer,wxSizerFlags().Expand().Proportion(0));
-
 	sizer->AddSpacer(10);
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
 	wxButton *options_button = new wxButton (this, wxID_ABOUT, _Z("Personalizar..."));
@@ -117,10 +224,9 @@ mxProfile::mxProfile(wxWindow *parent) :
 	SetSizerAndFit(sizer);
 	
 	this->Layout(); // para ajustar el tamaño de la columna de la lista
-	list->SetColumnWidth(0,list->GetSize().GetWidth()-32);
 	
 	search->SetFocus();
-	Search();
+	list->Search("",lang.name);
 	UpdateDetails();
 	
 	_LOG("mxProfile::mxProfile End");
@@ -139,14 +245,15 @@ void mxProfile::OnOkButton(wxCommandEvent &evt) {
 void mxProfile::OnCancelButton(wxCommandEvent &evt) {
 	EndModal(0);
 }
-void mxProfile::OnListSelect(wxListEvent &evt) {
-	evt.Skip(); wxString sel = GetListSelection();
-	if (sel==CUSTOM_PROFILE && lang.source==LS_LIST) lang.source = LS_CUSTOM;
-	else lang.Load(DIR_PLUS_FILE(config->profiles_dir,sel),true);
+
+void mxProfile::OnListSelect(wxCommandEvent &evt) {
+	evt.Skip(); wxString sel_name = list->GetCurrentName();
+	if (sel_name==CUSTOM_PROFILE && lang.source==LS_LIST) lang.source = LS_CUSTOM;
+	else lang.Load(DIR_PLUS_FILE(config->profiles_dir,sel_name),true);
 	UpdateDetails();
 }
 
-void mxProfile::OnListActivate(wxListEvent &evt) {
+void mxProfile::OnListActivate(wxCommandEvent &evt) {
 	evt.Skip();
 	wxCommandEvent ce;
 	OnOkButton(ce);
@@ -156,7 +263,7 @@ void mxProfile::OnOptionsButton(wxCommandEvent &evt) {
 	LangSettings custom_lang = lang;
 	if (mxConfig(this,custom_lang).ShowModal() && custom_lang!=lang) {
 		lang = custom_lang;
-		Search();
+		search->Clear(); list->Search("",CUSTOM_PROFILE);
 	}
 	list->SetFocus();
 }
@@ -167,69 +274,26 @@ void mxProfile::UpdateDetails() {
 		text->SetValue(wxString()
 					   <<_Z("Su personalización actual ha sido cargada desde el archivo: ") << _S2W(lang.name)); 
 	} else if (lang.source==LS_LIST) {
-		int p = perfiles.Index(GetListSelection());
-		text->SetValue(p==wxNOT_FOUND 
-					     ?  "Error: archivo de perfil no encontrado" 
-					     : descripciones[p]);
+		if (list->GetSelection()==-1)
+			text->SetValue(_Z("Seleccione un perfil de la lista para ver su descripción."));
+		else
+			text->SetValue(list->GetCurrentDescription());
 	} else {
 		text->SetValue(_Z("Puede utilizar el botón \"Personalizar\" para definir su propia configuración.")); 
 	}
 }
 
-wxString mxProfile::GetListSelection ( ) {
-	long item = -1;
-	item = list->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-	return list->GetItemText(item);
-}
-
-void mxProfile::SetListSelection (int i) {
-	list->SetItemState(i,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
-	list->EnsureVisible(i);
-}
-
 void mxProfile::OnSearchText (wxCommandEvent & evt) {
-	Search();
-}
-
-static wxString normalize(wxString s) {
-	s.MakeLower();
-	s.Replace(_Z("á"),_T("a"),true);
-	s.Replace(_Z("é"),_T("e"),true);
-	s.Replace(_Z("í"),_T("i"),true);
-	s.Replace(_Z("ó"),_T("o"),true);
-	s.Replace(_Z("ú"),_T("u"),true);
-	s.Replace(_Z("ñ"),_T("n"),true);
-	s.Replace(_Z("ü"),_T("u"),true);
-	return s;
-}
-
-void mxProfile::Search ( ) {
-	list->DeleteAllItems();
-	int sel=-1, cont=0;
-	wxString pat=normalize(search->GetValue());
-	wxString name = lang.source==LS_LIST ? wxString(_S2W(lang.name)).Lower() : "";
-	for(unsigned int i=0;i<perfiles.GetCount();i++) {
-		if (pat.Len()==0 || perfiles[i].Lower().Contains(pat) || normalize(descripciones[i]).Contains(pat)) {
-			list->InsertItem(cont,perfiles[i],i);
-			if (perfiles[i].Lower()==name) sel=cont;
-			cont++;
-		}
-		
-	}
-	if (!pat) {
-		list->InsertItem(cont,CUSTOM_PROFILE,perfiles.GetCount());
-		if (sel==-1) sel=cont;
-		cont++;
-	}
-	if (sel!=-1) SetListSelection(sel); 
-//	else text->SetValue(wxString()<<_Z("El perfil seleccionado actualmente (")<<lang.name<<_Z(") no aparece en esta búsqueda."));
+	wxString name = lang.source==LS_LIST ? wxString(_S2W(lang.name)) : "";
+	list->Search( normalize(search->GetValue()), name );
+	UpdateDetails();
 }
 
 void mxProfile::OnLoadButton (wxCommandEvent & evt) {
 	wxString file = mxConfig::LoadFromFile(this);
 	if (!file.IsEmpty()) {
 		lang.Load(file,false);
-		SetListSelection(perfiles.GetCount()); // personalizados
+		search->Clear(); list->Search("",CUSTOM_PROFILE);
 		UpdateDetails();
 	}
 }
