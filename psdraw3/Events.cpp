@@ -389,8 +389,8 @@ void FocusEntity(LineInfo *li) {
 		if (g_code.start!=li->proceso) SetProc(li->proceso);
 		g_state.debug_current = li->entidad;
 		if (li->entidad) {
-			double fx=(g_view.win_w/2)/g_view.zoom;
-			double fy=(g_view.win_h/2)/g_view.zoom;
+			double fx = (g_view.win_w/2)/g_view.zoom;
+			double fy = (g_view.win_h/2)/g_view.zoom;
 			// que se vea el centro en x de la entidad
 			int dx=-li->entidad->x+fx;
 			if (dx<g_view.d_dx-fx or dx>g_view.d_dx+fy) g_view.d_dx = dx;
@@ -398,8 +398,8 @@ void FocusEntity(LineInfo *li) {
 				// ..asegurar que se ven los bordes laterales
 				int dx0 = -(li->entidad->x-li->entidad->bwl-fx/40);
 				int dx1 = -(li->entidad->x+li->entidad->bwr+fx/40-2*fx);
+				if (dx1<g_view.d_dx) g_view.d_dx = dx1;
 				if (dx0>g_view.d_dx) g_view.d_dx = dx0;
-				else if (dx1<g_view.d_dx) g_view.d_dx = dx1;
 			}
 			// que se vea el centro en y de la entidad
 			int dy=-li->entidad->y+li->entidad->bh/2+fy;

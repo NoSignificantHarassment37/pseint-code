@@ -97,9 +97,9 @@ std::string join(const std::vector<std::string> &v) {
 }
 
 #define cur_pos std::to_string(inst.loc.linea)+":"+std::to_string(inst.loc.instruccion)
-#define _new_this(e) g_code.code2draw[cur_pos] = LineInfo(cur_proc,e)
-#define _new_prev()  g_code.code2draw[cur_pos] = LineInfo(nullptr,cur_proc)
-#define _new_none()  g_code.code2draw[cur_pos] = LineInfo(nullptr,nullptr)
+#define _new_this(e) g_code.code2draw[cur_pos] = LineInfo{cur_proc,e}
+#define _new_prev()  g_code.code2draw[cur_pos] = LineInfo{nullptr,cur_proc}
+#define _new_none()  g_code.code2draw[cur_pos] = LineInfo{nullptr,nullptr}
 
 void LoadProc(Programa &prog, int &i_inst) {
 	g_code.code2draw.clear();
@@ -230,10 +230,10 @@ void LoadProc(Programa &prog, int &i_inst) {
 			// En el caso normal, del segun cuelgan como hijos las opciones, y las opciones
 			// tienen como 1ros hijos a otras instrucciones... Entonces en ese caso, cuando
 			// termina el segun hay que subir a la opcion, y luego al segun... eso hace el 
-			// if que sigue.... Pero cuando el segun está vació, llegamos acá con aux apuntando
+			// if que sigue.... Pero cuando el segun está vacío, llegamos acá con aux apuntando
 			// al segun, no a una opción ni a una instrucción dentro de una opcion... Pero con
-			// ver que aux se un segun no alcanza, cuando hay dos seguns anidados, y los dos
-			// finseguns seguidos, luego del 1er fin segun aux queda en el 2do segun (el que
+			// ver que aux sea un segun no alcanza, cuando hay dos segun anidados, y los dos
+			// finsegun seguidos, luego del 1er fin segun aux queda en el 2do segun (el que
 			// le corresponde a ese finsegun), y entonces cuando venga el 2do finsegun sí
 			// hay que subir, para eso se mira children_stack
 			if (inst.type==IT_FINSEGUN && (aux->type!=ET_SEGUN or children_stack.top()==-1)) { aux=Up(children_stack,aux); aux=Up(children_stack,aux); }

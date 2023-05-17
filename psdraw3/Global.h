@@ -91,7 +91,10 @@ extern LangSettings g_lang;
 
 
 // para asociar las lineas de código al diagrama de flujo
-struct LineInfo { Entity *proceso, *entidad; LineInfo (Entity *p=nullptr, Entity *e=nullptr):proceso(p),entidad(e) {} };
+struct LineInfo { 
+	Entity *proceso = nullptr, *entidad = nullptr;
+	int variante = 0;
+};
 struct GCode {
 	// para almacenar el proceso principal y los subprocesos
 	// la forma de gestionar todo esto es tener los diagramas cargados todos a la

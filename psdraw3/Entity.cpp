@@ -601,9 +601,9 @@ bool Entity::IsInside(int x0, int y0, int x1, int y1) {
 
 // ADVERTENCIA, si estas macros se usan en un if o en un else, deben estar entre
 // llaves, porque contienen más de una instrucción
-#define _endl_this inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(process,this);} line_num++;
-#define _endl_prev inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,this);} line_num++;
-#define _endl_none inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo(nullptr,nullptr);} line_num++;
+#define _endl_this inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo{process,this};} line_num++;
+#define _endl_prev inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo{nullptr,this};} line_num++;
+#define _endl_none inline_comments<<std::endl; inline_comments=""; {std::stringstream ss; ss<<line_num<<":1"; g_code.code2draw[ss.str()]=LineInfo{nullptr,nullptr};} line_num++;
 
 #define _fix(label,def) (label.size()?label:def)
 #define _kw(id) g_lang.keywords[id].get(false)
