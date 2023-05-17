@@ -1,8 +1,6 @@
 #ifndef MXUPDATESCHECKER_H
 #define MXUPDATESCHECKER_H
 
-#ifndef DISABLE_UPDATES_CHECKER
-
 #include <wx/dialog.h>
 #include <wx/timer.h>
 #include <wx/process.h>
@@ -36,6 +34,7 @@ public:
 	bool show,done;
 	mxUpdatesChecker(bool show=true);
 	static void BackgroundCheck();
+	static bool IsAvailable();
 	void CheckNow();
 	void OnClose(wxCloseEvent &evt);
 	void OnProxyButton(wxCommandEvent &evt);
@@ -44,8 +43,6 @@ public:
 	void OnProcessEnds(wxProcessEvent &evt);
 	DECLARE_EVENT_TABLE();
 };
-
-#endif
 
 #endif
 

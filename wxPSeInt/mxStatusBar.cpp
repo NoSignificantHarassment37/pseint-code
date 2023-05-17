@@ -57,6 +57,7 @@ mxStatusBar::mxStatusBar(wxWindow *parent):wxPanel(parent,wxID_ANY,wxDefaultPosi
 	texts[STATUS_DEBUG_STOPPED]       = st_aux( azul  ,_Z("La ejecución paso a paso ha sido detenida."));
 	texts[STATUS_DEBUG_ENDED]         = st_aux( azul  ,_Z("La ejecución paso a paso ha finalizado."));
 	texts[STATUS_UPDATE_CHECKING]     = st_aux( azul  ,_Z("Buscando actualizaciones..."));
+//	texts[STATUS_UPDATE_DISABLED]     = st_aux( azul  ,_Z("Las búsqueda de actualizaciones automáticas está deshabilitada en esta versión."));
 	texts[STATUS_UPDATE_ERROR]        = st_aux( rojo  ,_Z("Error al conectarse al servidor para buscar actualizaciones."));
 	texts[STATUS_UPDATE_NONEWS]       = st_aux( azul  ,_Z("No hay actualizaciones disponibles."));
 	texts[STATUS_UPDATE_FOUND]        = st_aux( azul  ,_Z("Hay una nueva versión para descargar!"));

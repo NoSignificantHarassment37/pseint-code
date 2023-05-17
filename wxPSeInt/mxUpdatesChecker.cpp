@@ -1,5 +1,3 @@
-#ifndef DISABLE_UPDATES_CHECKER
-
 #include "mxUpdatesChecker.h"
 #include "ids.h"
 #include "mxMainWindow.h"
@@ -71,6 +69,11 @@ mxUpdatesChecker::mxUpdatesChecker(bool show) : wxDialog(main_window, wxID_ANY, 
 	CheckNow();
 }
 
+bool mxUpdatesChecker::IsAvailable() {
+	static bool is_available = wxFileExists(config->updatem_command);
+	return is_available;
+}
+
 void mxUpdatesChecker::CheckNow() {
 	
 	text->SetLabel(_Z("Consultando web..."));
@@ -129,7 +132,12 @@ void mxUpdatesChecker::OnChangesButton(wxCommandEvent &evt) {
 }
 
 void mxUpdatesChecker::BackgroundCheck() {
-	
+	if (not config->check_for_updates) return;
+	if (not mxUpdatesChecker::IsAvailable()) {
+//		status_bar->SetStatus(STATUS_UPDATE_DISABLED);
+		return;
+	}
+		
 	wxString cur_date(wxDateTime::Now().Format("%Y%m%d"));
 	wxString temp_file(DIR_PLUS_FILE(config->temp_dir,"updatem.ts"));
 	wxTextFile fil(temp_file);
@@ -181,4 +189,3 @@ void mxUpdatesChecker::OnProcessEnds(wxProcessEvent &evt) {
 	fil.Close();
 }
 
-#endif
