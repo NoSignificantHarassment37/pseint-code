@@ -1,8 +1,13 @@
+#include <fstream>
+#include <wx/dc.h>
+#include <wx/settings.h>
+#include <wx/dcmemory.h>
 #include <wx/sizer.h>
 #include <wx/dir.h>
 #include <wx/stattext.h>
 #include <wx/textfile.h>
 #include <wx/imaglist.h>
+#include <wx/hyperlink.h>
 #include "mxProfile.h"
 #include "ConfigManager.h"
 #include "mxUtils.h"
@@ -13,10 +18,6 @@
 
 #include "string_conversions.h"
 #include "Logger.h"
-#include <fstream>
-#include <wx/dc.h>
-#include <wx/settings.h>
-#include <wx/dcmemory.h>
 #include "ids.h"
 	
 static int comp_nocase(const wxString& first, const wxString& second) {
@@ -199,6 +200,8 @@ mxProfile::mxProfile(wxWindow *parent) :
 	sizer->Add(sizer_prof,wxSizerFlags().Expand().Proportion(1).FixedMinSize());
 	
 	sizer->AddSpacer(10);
+	wxHyperlinkCtrl *label_help = new wxHyperlinkCtrl(this,wxID_ANY,_Z("Soy docente, ¿cómo registro mi institución?"),"http://pseint.sourceforge.net/index.php?page=perfiles.php");
+	sizer->Add(label_help,wxSizerFlags().Center().Proportion(0));
 	
 	sizer->AddSpacer(10);
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);

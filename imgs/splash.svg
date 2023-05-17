@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="210mm"
    height="297mm"
    viewBox="0 0 210 297"
    version="1.1"
    id="svg8"
-   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
-   sodipodi:docname="splash.svg">
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="splash.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs2">
     <linearGradient
@@ -35,7 +35,11 @@
     </linearGradient>
     <filter
        inkscape:collect="always"
-       id="filter4364">
+       id="filter4364"
+       x="-0.07285596"
+       y="-0.046781483"
+       width="1.1237017"
+       height="1.0928703">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.89262767"
@@ -44,10 +48,10 @@
     <filter
        inkscape:collect="always"
        id="filter4425"
-       x="-0.051994424"
-       width="1.1039888"
-       y="-0.11426659"
-       height="1.2285331">
+       x="-0.061182932"
+       width="1.1223659"
+       y="-0.13769121"
+       height="1.2753824">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.38967718"
@@ -55,7 +59,11 @@
     </filter>
     <filter
        inkscape:collect="always"
-       id="filter4513">
+       id="filter4513"
+       x="-0.021784694"
+       y="-0.056569218"
+       width="1.0435694"
+       height="1.1131384">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.28832953"
@@ -64,10 +72,10 @@
     <filter
        inkscape:collect="always"
        id="filter4429"
-       x="-0.072339267"
-       width="1.1446785"
-       y="-0.11888709"
-       height="1.2377743">
+       x="-0.086806555"
+       width="1.1736131"
+       y="-0.14285579"
+       height="1.2857116">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.38967718"
@@ -76,7 +84,7 @@
     <filter
        inkscape:collect="always"
        id="filter4467"
-       x="-0.1938194"
+       x="-0.19381941"
        width="1.3876388"
        y="-0.28135067"
        height="1.5627013">
@@ -91,7 +99,7 @@
        x="-0.36747921"
        width="1.7349584"
        y="-0.14897802"
-       height="1.2979561">
+       height="1.297956">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.31319243"
@@ -100,9 +108,9 @@
     <filter
        inkscape:collect="always"
        id="filter4493"
-       x="-0.20080625"
+       x="-0.20080623"
        width="1.4016125"
-       y="-0.49532202"
+       y="-0.49532201"
        height="1.990644">
       <feGaussianBlur
          inkscape:collect="always"
@@ -111,7 +119,11 @@
     </filter>
     <filter
        inkscape:collect="always"
-       id="filter4567">
+       id="filter4567"
+       x="-0.031392822"
+       y="-0.074434123"
+       width="1.0627856"
+       height="1.1488682">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.2226724"
@@ -119,7 +131,11 @@
     </filter>
     <filter
        inkscape:collect="always"
-       id="filter4571">
+       id="filter4571"
+       x="-0.011766571"
+       y="-0.01476313"
+       width="1.0235331"
+       height="1.0295263">
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="0.2226724"
@@ -144,9 +160,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.3992109"
-     inkscape:cx="64.403286"
-     inkscape:cy="109.79629"
+     inkscape:zoom="6.7859932"
+     inkscape:cx="73.386457"
+     inkscape:cy="171.45611"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -155,7 +171,10 @@
      inkscape:window-height="981"
      inkscape:window-x="105"
      inkscape:window-y="24"
-     inkscape:window-maximized="0" />
+     inkscape:window-maximized="0"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -164,7 +183,6 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -582,8 +600,8 @@
        id="splash_light"
        width="25.253162"
        height="10.244537"
-       x="9.0249176"
-       y="30.055794"
+       x="9.1808777"
+       y="30.172764"
        inkscape:export-xdpi="398.23001"
        inkscape:export-ydpi="398.23001" />
     <g
@@ -746,15 +764,15 @@
            id="tspan1368"
            x="24.40016"
            y="38.677383"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;fill:#000080;fill-opacity:1;stroke-width:0.0463147">v20210609</tspan></text>
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;fill:#000080;fill-opacity:1;stroke-width:0.0463147">v20230517</tspan></text>
     </g>
     <rect
        style="opacity:1;fill:#333333;fill-opacity:1;stroke:#333333;stroke-width:0.0423428;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="splash_dark"
        width="25.253162"
        height="10.244537"
-       x="9.0249176"
-       y="44.155743"
+       x="9.1808777"
+       y="44.272713"
        inkscape:export-xdpi="398.23001"
        inkscape:export-ydpi="398.23001" />
     <g
@@ -919,7 +937,7 @@
            id="tspan1596"
            x="24.40016"
            y="52.777332"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;fill:#ffffff;fill-opacity:1;stroke-width:0.0463147">v20210609</tspan></text>
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Inconsolata;-inkscape-font-specification:Inconsolata;fill:#ffffff;fill-opacity:1;stroke-width:0.0463147">v20230517</tspan></text>
     </g>
   </g>
 </svg>

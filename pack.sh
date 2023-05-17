@@ -46,13 +46,13 @@ function pack_wine {
 	ARCH=w$1
 	rm -rf dist/pseint 
 	mkdir -p dist/pseint
+	rm -f bin/linux.txt
 	rm -rf bin/bin 
 	rm -rf bin/bin2 
 	rm -rf bin/bin3
 	cp -r bin/* dist/pseint/
 	rm -f dist/pseint/config.here
 	rm -f dist/pseint/lib
-	rm -f dist/pseint/linux.txt
 	rm -f dist/pseint/log.exe
 	rm -f dist/pseint/updatem.exe
 	cp dist/dlls$1/* dist/pseint/

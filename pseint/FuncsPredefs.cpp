@@ -1,4 +1,5 @@
 #include <cmath>
+#include <ctime>
 #include "FuncsManager.hpp"
 #include "ErrorHandler.hpp"
 #include "LangSettings.h"
@@ -7,7 +8,7 @@
 DataValue func_rc(ErrorHandler &err_handler, DataValue *arg) {
 	double x = arg[0].GetAsReal();
 	if (x<0) {
-		err_handler.ErrorIfRunning(147,"Raiz cuadrada de número negativo.");
+		err_handler.ErrorIfRunning(147,"Raíz cuadrada de número negativo.");
 		return DataValue::MakeEmpty(vt_numerica);
 	} 
 	return DataValue::MakeReal(std::sqrt(x));
@@ -71,6 +72,18 @@ DataValue func_azar(ErrorHandler &err_handler, DataValue *arg) {
 		return DataValue::MakeEmpty(vt_numerica_entera);
 	} else
 		return DataValue::MakeInt(rand()%x);
+}
+
+DataValue func_fecha(ErrorHandler &err_handler, DataValue *arg) {
+	std::time_t now = std::time(nullptr); std::tm *gt = std::gmtime(&now);
+	int aa = gt->tm_year+1900, mm = gt->tm_mon+1, dd = gt->tm_mday;
+	return DataValue::MakeInt(aa*10000+mm*100+dd);
+}
+
+DataValue func_hora(ErrorHandler &err_handler, DataValue *arg) {
+	std::time_t now = std::time(nullptr); std::tm *gt = std::localtime(&now);
+	int hh = gt->tm_hour, mm = gt->tm_min, ss = gt->tm_sec;
+	return DataValue::MakeInt(hh*10000+mm*100+ss);
 }
 
 DataValue func_aleatorio(ErrorHandler &err_handler, DataValue *arg) {
@@ -201,4 +214,6 @@ void FuncsManager::LoadPredefs() {
 		m_predefs["MINÚSCULAS"]       = std::make_unique<Funcion>(vt_caracter,func_minusculas,vt_caracter);
 		m_predefs["CONCATENAR"]       = std::make_unique<Funcion>(vt_caracter,func_concatenar,vt_caracter,vt_caracter);
 	}
+	m_predefs["FECHAACTUAL"]     = std::make_unique<Funcion>(vt_numerica,func_fecha);
+	m_predefs["HORAACTUAL"]      = std::make_unique<Funcion>(vt_numerica,func_hora);
 }

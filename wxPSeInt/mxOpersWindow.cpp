@@ -28,10 +28,12 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 	Add("/","/",_Z("división"),_Z("Ej: A/B"));
 	Add("^","^",_Z("potencia"),_Z("Ej: A^N (A elevado a la N-esima potencia)"));
 	Add("%","%",_Z("resto/modulo"),_Z("A%B (resto de dividir A por B)"));
+	
 	AddCaterory(_Z("Op. Lógicos"));
 	Add("&","&&",_Z("conjunción"),_Z("Ej: X>5 Y X<20 (Verdadero solo si ambas son Verdadero)"));
 	Add("|","|",_Z("disyunción"),_Z("Ej: X=0 O Z=5 (Verdadero si al menos una de las dos es Verdadero)"));
 	Add("~","~",_Z("negación"),_Z("Ej: NO X=5 (Invierte el resultado de la expresión lógica)"));
+	
 	AddCaterory(_Z("Op. Relacionales"));
 	Add("=","=",_Z("igual"),_Z("Ej: A=B"));
 //	Add("<>","<>",_Z("distinto"),_Z("Ej: A<>B"));
@@ -40,6 +42,7 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 	Add("<=","<=",_Z("menor o igual"),_Z("Ej: A<=B"));
 	Add(">",">",_Z("mayor"),_Z("Ej: A>B"));
 	Add(">=",">=",_Z("mayor o igual"),_Z("Ej: A>=B"));
+	
 	AddCaterory(_Z("Func. Matemáticas"));
 	Add(_Z("abs({expresión_numérica})"),"abs",_Z("valor absoluto"),_Z("abs(X) calcula el valor absoluto de x"));
 	Add(_Z("trunc({expresión_numérica})"),"trunc",_Z("valor truncado"),_Z("trunc(X) devuelve la parte entera de X"));
@@ -53,7 +56,7 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 	Add(_Z("atan({expresión_numérica})"),"atan",_Z("arcotangente"),_Z("atan(X) calcula el arcotangenta (en radianes) de X"));
 	Add(_Z("ln({expr_numérica_positiva})"),"ln",_Z("logaritmo natural"),_Z("ln(X) calcula el logaritmo natural (base e) de X"));
 	Add(_Z("exp({expresión_numérica})"),"exp",_Z("func. exponencial"),_Z("exp(X) calcula la función exponencial e^X"));
-	Add(_Z("azar({expr_num_entera_positiva})"),"azar",_Z("numero aleatorio"),_Z("Ej: Azar(N) retorna un numero aleatorio entre 0 y N-1"));
+	
 	if (cfg_lang[LS_ENABLE_STRING_FUNCTIONS]) {
 		AddCaterory(_Z("Func. p/Cadenas"));
 		Add(_Z("Longitud({cadena})"),"Longitud","",_Z("Longutid(S) retorna la cantidad de caracteres de la cadena S"));
@@ -64,6 +67,12 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 		Add(_Z("Mayusculas({cadena})"),"Mayusculas","",_Z("MAY<-Mayusculas(S) retorna en MAY el contenido de la cadena S con sus letras minusculas reemplazadas por mayusculas"));
 		Add(_Z("Minusculas({cadena})"),"Minusculas","",_Z("MIN<-Minusculas(S) retorna en MIN el contenido de la cadena S con sus letras mayusculas reemplazadas por minusculas"));
 	}
+	
+	AddCaterory(_Z("Otras Funciones"));
+	Add(_Z("azar({expr_num_entera_positiva})"),"azar",_Z("numero aleatorio"),_Z("Ej: Azar(N) retorna un numero aleatorio entre 0 y N-1"));
+	Add(_Z("HoraActual()"),"HoraActual",_Z("hora actual"),_Z("Retorna un único numero entero con la hora del sistema en formato HHMMSS"));
+	Add(_Z("FechaActual()"),"FechaActual",_Z("fecha actual"),_Z("Retorna un único numero entero con la fecha del sistema en formato AAAAMMDD"));
+	
 	AddCaterory(_Z("Constantes"));
 	Add("PI","PI","",_Z("PI o constante de Arquímides (equivale a 3.1415926...)"));
 	Add("Euler","Euler","",_Z("E o constante de Euler (equivale a 2.7182818...)"));

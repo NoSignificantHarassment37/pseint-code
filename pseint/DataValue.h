@@ -4,15 +4,15 @@
 #include <cstdlib>
 #include <cstdio>
 #include <variant>
-#include <charconv>
+#include "debug.h"
 
 #define FALSO "FALSO"
 #define VERDADERO "VERDADERO"
-#include "debug.h"
 
-#ifdef __APPLE__
-// prefiero usar las implementaciones del else, basadas en from_chars y to_chars,
+#if 1
+// preferiría usar las implementaciones del else, basadas en from_chars y to_chars,
 // pero en el SDK para mac que uso solo estan las versiones para enteros
+// y en el gcc del mint (7.x) ni está el header
 inline double StrToDbl(const std::string &s) {
 	return atof(s.c_str());
 }
@@ -30,6 +30,7 @@ inline std::string DblToStr(double d) {
 }
 
 #else
+#include <charconv>
 
 inline double StrToDbl(const std::string &s) {
 	double d=0;

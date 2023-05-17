@@ -65,10 +65,6 @@ wxString HelpManager::GetCommandText(const wxString &com) {
 	return ret;
 }
 
-HelpManager::~HelpManager() {
-	
-}
-
 wxString HelpManager::GetQuickHelp(wxString key, wxString def_val) {
 	wxString &str=def_val;
 	key.MakeLower();
@@ -172,6 +168,10 @@ wxString HelpManager::GetQuickHelp(wxString key, wxString def_val) {
 	else if (key==_Z("ln")) str="funciones.html";
 	else if (key==_Z("redon")) str="funciones.html";
 	else if (key==_Z("abs")) str="funciones.html";
+	else if (key==_Z("fecha")) str="funciones.html";
+	else if (key==_Z("hora")) str="funciones.html";
+	else if (key==_Z("fechaactual")) str="funciones.html";
+	else if (key==_Z("horaactual")) str="funciones.html";
 	else if (key==_Z("hacer")) str="hacer.html";
 	else if (key==_Z("tipos")) str="tipos.html";
 	else if (key==_Z("tipo")) str="tipos.html";

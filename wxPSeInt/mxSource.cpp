@@ -1345,6 +1345,8 @@ void mxSource::SetAutocompletion() {
 	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("Fin Segun","Fin Segun\n",""));
 
 	comp_list.push_back(comp_list_item("Aleatorio","Aleatorio(","*"));
+	comp_list.push_back(comp_list_item("FechaActual","FechaActual()","*"));
+	comp_list.push_back(comp_list_item("HoraActual","HoraActual()","*"));
 	if (cfg_lang[LS_ENABLE_STRING_FUNCTIONS]) {
 		comp_list.push_back(comp_list_item("ConvertirATexto","ConvertirATexto(","*"));
 		comp_list.push_back(comp_list_item("ConvertirANumero","ConvertirANumero(","*"));
@@ -2524,14 +2526,13 @@ void mxSource::StyleLine(int line) {
 				++p; if (c!='=' and c!= UOP_ASIGNACION) ++p;
 				MySetStyle(p0,p,wxSTC_C_ASSIGN);
 			} else {
-				if (c=='(' or c=='[') ++nesting; else if (c==']' or c==')') --nesting;
-				else if (c==':' || c==';') word_count = 0;
-				while (p<pN and not (EsLetra(c,false) or EsNumero(c,true) or EsEspacio(c) or EsComilla(c) )) {
-					if (c=='/' and prev_c=='/') { --p; break; } // comentario
-					if (nesting==0 and word_count<=1 and (c==']' or c==')')) { ++p; break; } // asignación en arreglos					prev_c = c; c = text[++p];
+				while (p<pN and not (c==':' or c==';' or EsLetra(c,false) or EsNumero(c,true) or EsEspacio(c) or EsComilla(c) )) {
 					if (c=='(' or c=='[') ++nesting; 
 					else if (c==']' or c==')') --nesting;
+					else if (c=='/' and prev_c=='/') { --p; break; } // comentario
+					if (nesting==0 and word_count<=1 and (c==']' or c==')')) { ++p; break; } // asignación en arreglos					prev_c = c; c = text[++p];
 				}
+				if (c==':' || c==';') { word_count = 0; ++p; }
 				MySetStyle(p0,p,wxSTC_C_OPERATOR);
 			}
 		}

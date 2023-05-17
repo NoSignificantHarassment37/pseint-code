@@ -17,7 +17,6 @@ public:
 	wxString GetErrorText(const wxString &text, int num);
 	wxString GetCommandText(const wxString &command);
 	wxString GetQuickHelp(wxString key, wxString def_val="nohelp.html");
-	~HelpManager();
 };
 
 
