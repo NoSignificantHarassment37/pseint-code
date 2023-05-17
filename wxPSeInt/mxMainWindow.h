@@ -79,6 +79,8 @@ private:
 	
 	mxTestPanel *test_panel = nullptr;
 	
+	bool m_fullscreen = false;
+	
 public:
 	
 	mxSource *NewProgram(const wxString &title="<sin_titulo>");
@@ -141,6 +143,7 @@ public:
 	void OnConfigSelectFonts(wxCommandEvent &evt);
 	void OnConfigBigIcons(wxCommandEvent &evt);
 	void OnConfigUseDarkTheme(wxCommandEvent &evt);
+	void OnConfigFullScreen(wxCommandEvent &evt);
 	void OnConfigUseDarkPSTerm(wxCommandEvent &evt);
 	void OnConfigUseDarkPSDraw(wxCommandEvent &evt);
 	void OnConfigPSDrawNoCrop(wxCommandEvent &evt);
@@ -162,7 +165,7 @@ public:
 		//*mi_debug_panel, *mi_toolbar, *mi_commands, *mi_vars_panel
 		*mi_shape_colors, *mi_psdraw_nocrop, *mi_calltip_helps, *mi_rt_syntax, *mi_rt_annotate, 
 		*mi_nassi_shne, *mi_use_colors, *mi_unicode_opers, *mi_reorganize_for_debug, *mi_animate_gui, 
-		*mi_use_dark_psterm, *mi_use_dark_psdraw, *mi_big_icons, *mi_use_dark_theme;
+		*mi_use_dark_psterm, *mi_use_dark_psdraw, *mi_big_icons, *mi_use_dark_theme, *mi_fullscreen;
 	
 	wxMenu *file_menu;
 	wxMenuItem *file_history[5];
@@ -266,6 +269,8 @@ public:
 	void ResetInLogMode();
 	
 	void UpdatePSDrawSettings(); // cuando psdraw cambia una conf, invoca a esta func para que se refleje en los menues
+	
+	void SetFullScreen(bool on);
 	
 	DECLARE_EVENT_TABLE();
 	

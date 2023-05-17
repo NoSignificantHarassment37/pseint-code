@@ -129,6 +129,7 @@ BEGIN_EVENT_TABLE(mxMainWindow, wxFrame)
 	EVT_MENU(mxID_CONFIG_USE_COLORS, mxMainWindow::OnConfigUseColors)
 	EVT_MENU(mxID_CONFIG_UNICODE_OPERS, mxMainWindow::OnConfigUnicodeOpers)
 	EVT_MENU(mxID_CONFIG_USE_DARK_THEME, mxMainWindow::OnConfigUseDarkTheme)
+	EVT_MENU(mxID_CONFIG_FULLSCREEN, mxMainWindow::OnConfigFullScreen)
 	EVT_MENU(mxID_CONFIG_BIG_ICONS, mxMainWindow::OnConfigBigIcons)
 	EVT_MENU(mxID_CONFIG_USE_DARK_PSTERM, mxMainWindow::OnConfigUseDarkPSTerm)
 	EVT_MENU(mxID_CONFIG_USE_DARK_PSDRAW, mxMainWindow::OnConfigUseDarkPSDraw)
@@ -315,11 +316,12 @@ void mxMainWindow::CreateMenus() {
 	mi_highlight_blocks = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_HIGHLIGHT_BLOCKS, _Z("Resaltar bloques lógicos"),"",config->highlight_blocks);
 	mi_calltip_helps = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_CALLTIP_HELPS, _Z("Utilizar Ayudas Emergentes"),"",config->calltip_helps);
 	mi_smart_indent = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_SMART_INDENT, _Z("Utilizar Indentado Inteligente"),"",config->smart_indent);
-	mi_rt_syntax = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_RT_SYNTAX, _Z("Comprobar Sintaxis Mientras Escribe"),"",config->rt_syntax);
+	mi_rt_syntax = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_RT_SYNTAX, _Z("Comprobar Sintaxis Mientras Escribe\tF12"),"",config->rt_syntax);
 	mi_quickhelp = utils->AddCheckToMenu(cfg_help,mxID_CONFIG_SHOW_QUICKHELP, _Z("Mostrar Ayuda Rapida"),"",config->auto_quickhelp);
 	cfg->AppendSubMenu(cfg_help,_Z("Asistencias"));
 	
 	wxMenu *cfg_pres = new wxMenu;
+	mi_fullscreen = utils->AddCheckToMenu(cfg_pres,mxID_CONFIG_FULLSCREEN, _Z("Pantalla Completa\tF11"),"",m_fullscreen);
 	mi_animate_gui = utils->AddCheckToMenu(cfg_pres,mxID_CONFIG_ANIMATE_GUI, _Z("Animar paneles"),"",config->animate_gui);
 	mi_reorganize_for_debug = utils->AddCheckToMenu(cfg_pres,mxID_CONFIG_REORGANIZE_FOR_DEBUG, _Z("Organizar Ventanas al Iniciar Paso a Paso"),"",config->reorganize_for_debug);
 	mi_rt_annotate = utils->AddCheckToMenu(cfg_pres,mxID_CONFIG_RT_ANNOTATE, _Z("Intercalar los mensajes de error en el pseudocódigo"),"",config->rt_annotate);
@@ -1431,6 +1433,16 @@ void mxMainWindow::OnConfigUseDarkTheme(wxCommandEvent &evt) {
 	}
 }
 
+void mxMainWindow::OnConfigFullScreen(wxCommandEvent &evt) {
+	if (!mi_fullscreen->IsChecked()) {
+		mi_fullscreen->Check(false);
+		SetFullScreen(false);
+	} else {
+		mi_fullscreen->Check(true);
+		SetFullScreen(true);
+	}
+}
+
 void mxMainWindow::OnConfigShowShapeColors (wxCommandEvent & evt) {
 	if (!mi_shape_colors->IsChecked()) {
 		mi_shape_colors->Check(false);
@@ -1569,28 +1581,31 @@ void mxMainWindow::ResetInLogMode() {
 }
 	
 void mxMainWindow::OnHelpUpdates(wxCommandEvent &evt) {
-#ifdef DISABLE_UPDATES_CHECKER
-	wxMessageBox("Esta funcionalidad ya no está disponible en\n"
-				 "sistemas Windows debido a que muchos antivirus\n"
-				 "confunden el módulo encargado de realizar esta\n"
-				 "consulta con un virus e impiden el funcionamiento\n"
-				 "de PSeInt, o hasta su descarga; dañando además la\n"
-				 "reputación del proyecto.\n"
-				 "\n"
-				 "Dado que no tengo el tiempo necesario para\n"
-				 "continuar lidiando con esta estupidez (ya he\n"
-				 "perdido demsiados días intentandolo), y que el\n"
-				 "volumen de mensaje de usuarios que me escriben\n"
-				 "(con motivos más que razonables) preocupados por\n"
-				 "las alertas sigue creciendo, lamentablemente no\n"
-				 "me ha quedado otra opción por el momento.\n"
-				 "\n\n"
-				 "Puede visitar http://pseint.sourceforge.net para\n"
-				 "verificar si existen nuevas versiones.",
-				 "Búsqueda de Actualizaciones Deshabilitada",wxOK|wxICON_EXCLAMATION,this);
-#else
-	new mxUpdatesChecker(true);
+	if (mxUpdatesChecker::IsAvailable()) {
+		new mxUpdatesChecker(true);
+	} else {
+		wxString msg = 
+			_Z("Esta funcionalidad no se está disponible en esta instalación.\n"
+			   "\n"
+			   "Puede visitar http://pseint.sourceforge.net para verificar si\n"
+			   "existen nuevas versiones (su versión actual es VERSION)."
+#if defined(__WIN32__) || defined(__WIN64__)
+			   "\n\n"
+			   "En sistemas Windows, muchos antivirus confunden el módulo\n"
+			   "encargado de realizar esta consulta con un virus e impiden el\n"
+			   "funcionamiento de PSeInt, o hasta su descarga; dañando además\n"
+			   "la reputación del proyecto.\n"
+			   "\n"
+			   "Dado que no tengo el tiempo necesario para continuar lidiando\n"
+			   "con esta estupidez (ya he perdido demasiados días intentandolo),\n"
+			   "y que el volúmen de mensaje de usuarios que me escriben (con\n"
+			   "motivos más que razonables) preocupados por las alertas sigue\n"
+			   "creciendo, lamentablemente no me ha quedado otra opción."
 #endif
+			   );
+		msg.Replace("VERSION",wxString()<<VERSION);
+		wxMessageBox(msg,_Z("Búsqueda de Actualizaciones Deshabilitada"),wxOK|wxICON_EXCLAMATION,this);
+	}
 }
 
 void mxMainWindow::OnConfigLanguage(wxCommandEvent &evt) {
@@ -1918,6 +1933,7 @@ void mxMainWindow::ParseResults(mxSource *source) {
 
 void mxMainWindow::ReorganizeForDebugging ( ) {
 	if (config->reorganize_for_debug) {
+		if (m_fullscreen) SetFullScreen(false);
 		int screen_w=wxSystemSettings::GetMetric(wxSYS_SCREEN_X);
 		int win_w,win_h;
 #ifdef __WIN32__
@@ -2346,4 +2362,12 @@ void mxMainWindow::UpdatePSDrawSettings() {
 	mi_shape_colors->Check( config->shape_colors );
 	mi_psdraw_nocrop->Check( config->psdraw_nocrop );
 	mi_nassi_shne->Check( config->GetWritableLang()[LS_USE_NASSI_SHNEIDERMAN] );
+}
+
+void mxMainWindow::SetFullScreen(bool on) {
+	m_fullscreen = on;
+	if (on) aui_manager.GetPane("status_bar").Hide();
+	else    aui_manager.GetPane("status_bar").Show();
+	aui_manager.Update();
+	ShowFullScreen(on,wxFULLSCREEN_ALL&(~wxFULLSCREEN_NOMENUBAR));
 }
