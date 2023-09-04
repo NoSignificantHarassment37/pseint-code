@@ -80,9 +80,9 @@ void Intercambio::ProcData(string order) {
 		str+= order.substr(8,(++key_end)-8);  // agregar clave en la respuesta 
 		int pos_tipo = str.size(); str+="x "; // agregar espacio para el tipo
 		string exp = order.substr(key_end); // cortar expresion
-		ParseInspection(*rt,exp); // reformatear
+		ParseInspection(*m_runtime,exp); // reformatear
 		if (!is_evaluation_error) // si parecia corrcta
-			res = Evaluar(*rt,exp); // evaluar
+			res = Evaluar(*m_runtime,exp); // evaluar
 		if (is_evaluation_error) // si no se pude evaluar
 			str+=evaluation_error+"\n"; // responder con error
 		else { // si se pudo evaluar
@@ -95,7 +95,7 @@ void Intercambio::ProcData(string order) {
 		string exp = order.substr(12);
 		evaluating_for_debug=true;
 		is_evaluation_error=false;
-		ParseInspection(*rt,exp);
+		ParseInspection(*m_runtime,exp);
 		if (is_evaluation_error) {
 			autoevaluaciones_valid.push_back(false);
 			autoevaluaciones.push_back(evaluation_error);
@@ -147,7 +147,7 @@ void Intercambio::ChatWithGUI () {
 			if (autoevaluaciones_valid[i]) {
 				stringstream autoevaluacion;
 				is_evaluation_error = false;
-				DataValue res = Evaluar(*rt,autoevaluaciones[i]);
+				DataValue res = Evaluar(*m_runtime,autoevaluaciones[i]);
 				if (is_evaluation_error)
 					autoevaluacion<<"autoevaluacion "<<i+1<<' '<<evaluation_error<<'\n';
 				else {
@@ -227,7 +227,8 @@ void Intercambio::SetPort(int p) {
 	port = p; 
 }
 
-void Intercambio::InitDebug(int _delay) { 
+void Intercambio::InitDebug(RunTime &runtime, int _delay) {
+	m_runtime = &runtime;
 	if ( (delay=_delay) ) {
 		zocket = zocket_llamar(port);
 		if (zocket==ZOCKET_ERROR) 

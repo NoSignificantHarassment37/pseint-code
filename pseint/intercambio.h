@@ -35,7 +35,7 @@ class Intercambio {
 	int debugLevel; // solo interesa depurar si debugLevel<=backtraceLevel (si es 0 depura todo)
 	std::vector<FrameInfo> backtrace;
 	
-	RunTime *rt= nullptr;
+	RunTime *m_runtime= nullptr;
 	bool running = false;
 	CodeLocation loc, prev_loc;        // Numero de linea e instruccion que se está ejecutando (base 1)
 	std::vector <std::string> Archivo; // Archivo original
@@ -72,7 +72,7 @@ public:
 #ifdef USE_ZOCKETS
 	void ProcData(std::string order);
 	void ProcInput();
-	void InitDebug(int _delay); // si _delay!=0 inicializa la ejecución paso a paso enviando el hello y esperando la primer instruccion
+	void InitDebug(RunTime &runtime, int _delay); // si _delay!=0 inicializa la ejecución paso a paso enviando el hello y esperando la primer instruccion
 	void SetPort(int p);
 #endif
 	void SetLocation(CodeLocation loc); // define cual es la instruccion que se va a ejecutar a continuacion

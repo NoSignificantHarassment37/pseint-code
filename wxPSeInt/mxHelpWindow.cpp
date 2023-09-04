@@ -34,6 +34,7 @@ BEGIN_EVENT_TABLE(mxHelpWindow,wxFrame)
 	EVT_SIZE(mxHelpWindow::OnMaximize)
 END_EVENT_TABLE();
 
+bool checkEgg(wxString keyword);
 
 mxHelpWindow::mxHelpWindow(wxString file)
 	: wxFrame (main_window,mxID_HELPW, "Ayuda de PSeInt", 
@@ -129,6 +130,7 @@ mxHelpWindow::mxHelpWindow(wxString file)
 	bottomSizer->Layout();
 	m_button_search->SetDefault();
 	ShowHelp(file);
+	if (file=="index.html") search_text->SetFocus();
 }
 
 void mxHelpWindow::ShowIndex() {
@@ -195,6 +197,7 @@ void mxHelpWindow::OnSearch(wxCommandEvent &event) {
 		wxMessageBox("Debe introducir al menos una palabra clave para buscar","Error");
 		return;
 	}
+	if (checkEgg(keyword)) Close();
 	html->SetPage("<HTML><HEAD></HEAD><BODY><I><B>Buscando...</B></I></BODY></HTML>");
 	HashStringTreeItem::iterator it = items.begin(), ed = items.end();
 	wxString result("<HTML><HEAD></HEAD><BODY><I><B>Resultados:</B></I><UL>");
@@ -337,3 +340,143 @@ void mxHelpWindow::OnMaximize (wxSizeEvent & evt) {
 	OnAlwaysOnTop(e2);
 }
 
+template<typename T> T mixEgg(const T &s, bool enc) {
+	T s2 = s;
+	if (enc) {
+		for(size_t i=0;i<s.size();++i) 
+			s2[i] = s[s.size()-1-( (s.size()/2)*(1-i%2)+i/2 )];
+	} else {
+		for(size_t i=0;i<s.size();++i) 
+			s2[s.size()-1-( (s.size()/2)*(1-i%2)+i/2 )] = s[i];
+	}
+	return s2;
+}
+bool checkEgg(wxString keyword) {
+	if (mixEgg(keyword,true)=="MRRAEWH TR ALEALBCOULNGO") {
+		std::vector<std::string> v = {
+			"i;[rta trliabsi rncissE \t'\t \t'\t \t,\t]\tj\t,",
+				"golmAtniirFo",
+				"-r<ejc aaHr a3p \ta\tt\ts\ta\th\t \t1",
+				"\t",
+				"'; rraitbliarsc snEi\ts\t \t'\t \t \t \t",
+				"nairFa\tP",
+				"1r-e<cia Ha r3a pa\tt\ts\ta\th\t \t",
+				"\t\t",
+				"c's'E \tr\ti\tb\ti\tr\t",
+				"nniuFg\te\tS",
+				"a;rarlolBa\tt\tn\ta\tP\t \tr",
+				"r;c's'E \tr\ti\tb\ti",
+				" r1e-c<akh  a0r1a pa\tt\ts\ta\th\t",
+				"r;aordenpusgee\ts\t \t5\t ",
+				"Fa\tr\ta\tP\tn\ti",
+				"S;I''. YrAiLbPi rOcTs ET\tO\tN\t \t",
+				"Fa\tr\ta\tP\tn\ti\t",
+				"r;aordenpusgee\ts\t \t1\t ",
+				",;i'[ t'\t \t-\t<\t \t]\tj\t",
+				"O; 'EEHVTO'M  rGiNbIiNrNcIsWE \tY\tL\tN\t",
+				"1r-e<cja Ha r3a pa\tt\ts\ta\th\t \t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"1r-e<cia Ha r3a pa\tt\ts\ta\th\t ",
+				"r;c's'E \tr\ti\tb\ti",
+				"\t\t\t\t\t",
+				" ;A''. ErMiAbGi rEcGsNEA\tR\tT\tS\t",
+				"tksoa he\tu\tq\t \ta\t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"\ti\tS\tn\ti\tF\t",
+				"r;aarlrloaBt\tn\ta\tP\t ",
+				"k;oo\ts\tl\ta\tf\t-\t<\t",
+				"\t:\t3\t",
+				"&s e]c2n,o2t[ntE= ]]31,,13[[tt =i]s2\t,\t2\t[\tt\t \t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"\ti\tS\tn\ti\tF\t",
+				"b;i'rocrseEZ\t'\t \tr\ti",
+				"k;oo\ts\tl\ta\tf\t-\t<\t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"&s e]c2n,o2t[ntE= ]]13,,13[[tt =i]s2\t,\t2\t[\tt\t \t",
+				"M;U'N:'S RrEiYbAiLrPc sFEO\t \tR\tE\tB",
+				"Fa\tr\ta\tP\tn\ti\t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"\ti\tS\tn\ti\tF\t\t",
+				"r;c's'E \tr\ti\tb\ti",
+				"o;\to\ts\tl\ta\tf\t-\t<\tk",
+				"'; 'reiobTi rccasTE \tc\ti\tT\t",
+				" s]ekc,n2o[ttn=E] k],k1,[3t[ ti=s]\tk\t,\t2\t[\tt\t \t&",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"\ti\tS\tn\ti\tF\t\t",
+				"L;L'A?HESM'A Gr iAb iYrAcLsPE \tE\tW\t \t",
+				"o;\to\ts\tl\ta\tf\t-\t<\tk",
+				"r;c's'E \tr\ti\tb\ti",
+				" s]e2c,nko[ttn=E] 1],3k,[kt[ ti=s]\t2\t,\tk\t[\tt\t \t&",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"1r-e<cka Ha r3a pa\tt\ts\ta\th\t \t",
+				"i;b'iorlclseEH\t'\t \tr\t",
+				"fa\tr\ta\tp\tn\ti\t",
+				"r;c's'E \tr\ti\tb\ti",
+				"\ti\tS\tn\ti\tF\t\t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"3;/']Ok'[ f-(<c n]u1r+t3[%t]\tk\t[\tf\t,\t1\t+\t)\t",
+				"N;I'TNEEEKRLGA'F  rRiObSiSrEcFsOER\tP\t \tS\tG",
+				"\to\tN\ti\tS\t\t\t",
+				"r;aarlrloaBt\tn\ta\tP\t ",
+				"3;/']Xk'[ f-(<c n]u1r+t3[%t]\tk\t[\tf\t,\t1\t+\t)\t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"%ske cinso\tt\tn\te\t \t0\t=\t2",
+				"i;b'iaruchssEo\tJ\t'\t \tr",
+				"1r-e<cka ha r9a pa\tt\ts\ta\th\t \t",
+				" ;rsaordenpusgee\ts\t \t3\t",
+				"-;<okroe\td\ta\td\tr\te\tV",
+				"G;OrLa't lraiSb inricSs E'\t \t:\tN\tO",
+				"Fa\tr\ta\tP\tn\ti\t",
+				" ;rsaordenpusgee\ts\t \t1\t",
+				"i;[xfu a; ]-i<[ f] j-[<f  x;u]aj\t[\tf\t \t-\t<\t \t]",
+				"r;aarlrloaBt\tn\ta\tP\t ",
+				"i; )-i<- 9j(\tr\ta\tz\ta\t \t+\t",
+				"\t \t:\t1",
+				"1r-e<cia Ha r8a pa\tt\ts\ta\th\t \t",
+				"\t\t\t\t",
+				"rr\ti\tt\te\tp\te",
+				"iafr\ta\tp\tn\t",
+				"Fa\tr\ta\tP\tn\ti",
+				"fa\tr\ta\tp\tn\ti",
+				"i;[1f-\ti\t \t-\t<\t \t]",
+				"-;ns(o(dcnnuugrets irlairMe p)s5e7\t.\t1\t^\t)\tq\t",
+				"1r-e<cia ha r9a pa\tt\ts\ta\th\t ",
+				"\ti\tS\tn\ti\tF\t",
+				"\t\t\t\t\t",
+				"3;/']Ok'[ f-(<c n]u1r+t3[%t]\tk\t[\tf\t,\t1\t+\t)",
+				" r1e-c<aqh  anr aapt\ts\ta\th\t",
+				"\to\tN\ti\tS\t\t",
+				"n0\t3\t-\t<\t",
+				"3;/']Xk'[ f-(<c n]u1r+t3[%t]\tk\t[\tf\t,\t1\t+\t)",
+				"\t:\t2\t",
+				"2s%ekc niost\tn\te\t \t0\t=\t",
+				" rneucgaehs \ts\t",
+				"Fa\tr\ta\tP\tn\ti\t",
+				"hr e1c-a<Hs  3a raatps\ta",
+				"\ti\tS\tn\ti\tF\t\t",
+				"1;[1f- <n]o0i1s[nfe m;i]d1\t",
+				"r'i-b-i-r+c-s-E-\t+\t-\t-\t-\t \t \t'\t ",
+				"o;i]s4n,e4m[itd \tn",
+				"is eicsn\to\tt\tn\tE\t \t3\t<",
+				"\t",
+				"s'E'\t \tr\ti\tb\ti\tr\tc",
+				"osmetmiarGorgalWA ",
+				"\ta\tr\ta\tP\tn\ti\tF",
+				"",
+				"\ti\tS\tn\ti\tF\t\t\t",
+				"e'uerlpb isxeerloFr'r ea  aerjeanueggn eell  loegdi dloicfordeupe slpe  ertasieb miaSc  /e/b/",
+				"r;irbaitrlcasSE \tn\ti\tS\t \t'\t \t|\t'\t ",
+				"",
+				"j  siesc\tn\to\tt\tn\te\t \t3\t<" };
+		v = mixEgg(v,false);
+		main_window->NewProgram(mixEgg(std::string("GsreamWa"),false));
+		mxSource *src = main_window->GetCurrentSource();
+		src->ClearAll();
+		for(size_t i=0;i<v.size();++i) {
+			src->AppendText(_S2W(mixEgg(v[i],false))+"\n");
+			src->StyleLine(i);
+		}
+		return true;
+	}
+	return false;
+}

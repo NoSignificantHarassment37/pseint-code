@@ -247,7 +247,6 @@ void mxConsole::OnChar (wxKeyEvent & event) {
 }
 
 void mxConsole::SetFont() {
-	parent->SetTitle(m_font_name);
 	font = wxFont(wxFontInfo(m_font_size).Family(wxFONTFAMILY_MODERN).FaceName(m_font_name));
 	wxClientDC dc(this); dc.SetFont(font);
 	// calcular el ancho promedio de esta forma, porque si le pregunto el ancho generico de 

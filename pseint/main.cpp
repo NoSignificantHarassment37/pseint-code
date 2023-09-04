@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
 	if (with_io_references) // asumo que esto equivale a que el cliente es psterm
 		err_handler.DisableCompileTimeWarnings();
 	SynCheck(rt);
-	Inter.InitDebug(delay);
+	Inter.InitDebug(rt,delay);
 	
 	if (for_pseint_terminal) { cout<<"\033[zt"<<rt.funcs.GetMainName()<<"\n"; }
 
