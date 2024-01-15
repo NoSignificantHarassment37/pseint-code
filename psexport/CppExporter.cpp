@@ -8,18 +8,7 @@
 using namespace std;
 
 CppExporter::CppExporter() {
-	has_matrix_func=false;
-	include_cmath=false;
-	include_cstdlib=false;
-	use_sin_tipo=false;
-	use_string=false;
-	use_func_esperar=false;
-	use_func_minusculas=false;
-	use_func_mayusculas=false;
-	use_func_convertiratexto=false;
 	output_base_zero_arrays=true;
-	use_arreglo_max=false;
-	read_strings=true;
 }
 
 void CppExporter::borrar_pantalla(t_output &prog, std::string tabs) {
@@ -60,7 +49,9 @@ void CppExporter::escribir(t_output &prog, t_arglist args, bool saltar, std::str
 	string linea="cout";
 	while (it!=args.end()) {
 		linea+=" << ";
-		linea+=expresion(*it);
+		tipo_var t;
+		linea+=expresion(*it,t);
+		if (t==vt_logica) prints_bool=true;
 		++it;
 	}
 	insertar(prog,tabs+linea+(saltar?" << endl;":";"));
@@ -335,7 +326,7 @@ void CppExporter::header(t_output &out) {
 			out.push_back("// SIN_TIPO. El usuario debe reemplazar sus ocurrencias por el tipo adecuado");
 			out.push_back("// (usualmente int,float,string o bool).");
 		}
-		out.push_back("#define SIN_TIPO string");
+		out.push_back("using SIN_TIPO = string;");
 		if (!for_test) out.push_back("");
 	}
 	if (read_strings) {
@@ -402,6 +393,11 @@ void CppExporter::translate_single_proc(t_output &out, Funcion *f, t_proceso &pr
 	string ret; // sentencia "return ..." de la funcion
 	if (!f) {
 		out.push_back("int main() {");
+		if (prints_bool) {
+			out.push_back("\tcout << boolalpha; // configurar cout para mostrar true/false en lugar de 0/1");
+			if (!for_test) out.push_back("");
+		}
+		
 		ret="return 0";
 	} else {
 		string dec;

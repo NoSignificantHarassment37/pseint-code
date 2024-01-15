@@ -7,17 +7,18 @@ class CppExporter : public ExporterBase {
 	
 protected:
 	
-	bool include_cmath;
-	bool include_cstdlib;
-	bool use_sin_tipo;
-	bool use_string;
-	bool use_func_esperar;
-	bool use_func_minusculas;
-	bool use_func_mayusculas;
-	bool use_func_convertiratexto;
-	bool use_arreglo_max;
-	bool has_matrix_func;
-	bool read_strings;
+	bool include_cmath = false;
+	bool include_cstdlib = false;
+	bool use_sin_tipo = false;
+	bool use_string = false;
+	bool use_func_esperar = false;
+	bool use_func_minusculas = false;
+	bool use_func_mayusculas = false;
+	bool use_func_convertiratexto = false;
+	bool use_arreglo_max = false;
+	bool has_matrix_func = false;
+	bool read_strings = true;
+	bool prints_bool = false;
 	t_output prototipos; // forward declarations de las funciones
 	
 	virtual std::string convertirAString(const std::string &s);

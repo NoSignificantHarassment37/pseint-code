@@ -68,6 +68,7 @@ mxExportPreview::mxExportPreview():wxFrame(main_window,wxID_ANY,_Z("Exportar - V
 	code_ctrl->StyleSetForeground (wxSTC_STYLE_LINENUMBER, CL_ALT_FORE);
 	code_ctrl->StyleSetBackground (wxSTC_STYLE_LINENUMBER, CL_REG_BACK);
 	code_ctrl->SetSelBackground(true,CL_ALT_BACK);
+	code_ctrl->SetTabWidth(4);
 	
 	main_sizer->Add(code_ctrl,wxSizerFlags().Proportion(1).Expand());
 	
