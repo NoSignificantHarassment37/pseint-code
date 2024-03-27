@@ -3,6 +3,8 @@
 #include <string>
 #include "Code.h"
 
+/// MAX ERROR CODED USED: 332
+
 class ErrorHandler {
 public:
 	void SyntaxError(int num, const std::string &desc);

@@ -20,13 +20,13 @@ void EraseLastChar(std::string &s) {
 
 void RightTrim(std::string &str) {
 	size_t len=str.size(), last=str.size();
-	while (last>0 && str[last-1]==' ') --last;
+	while (last>0 && (str[last-1]==' ' || str[last-1]=='\t')) --last;
 	if (last!=len) str.erase(last);
 }
 
 void LeftTrim(std::string &str) {
 	size_t ini=0, len=str.size();
-	while (ini<len && str[ini]==' ') ++ini;
+	while (ini<len && (str[ini]==' ' || str[ini]=='\t')) ++ini;
 	if (ini) str.erase(0,ini);
 }
 

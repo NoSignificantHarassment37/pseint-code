@@ -65,12 +65,12 @@ std::pair<std::string,bool> Normalizar(std::string &cadena) {
 			break;
 		}
 		if (i>0 && c=='/' && cadena[i-1]=='/') { // "remover" comentarios
-			if (preserve_comments) {
+//			if (preserve_comments) {
 				// is_comment = true estaba por defecto
-				rest = cadena.substr(i+1); 
-				while (rest.size() && (rest[0]==' '||rest[0]=='\t')) rest.erase(0,1);
-			}
-			cadena=cadena.substr(0,i-1); break; 
+				rest = cadena.substr(i+1);
+				Trim(rest);
+//			}
+			cadena = cadena.substr(0,i-1); break; 
 		}
 		if (c=='\"' || c=='\'') { // saltear cadenas literales normalizando las comillas a '
 			c='\'';
@@ -1434,6 +1434,15 @@ bool ParseInspection(RunTime &rt, std::string &cadena) {
 	return rt.err.IsOk();
 }
 
+static void parseEasterEggInComment(RunTime &rt, std::string &str, CodeLocation loc) {
+	auto p_egg = str.find("PSeInt apesta");
+	if (p_egg==std::string::npos) return;
+	str.insert(p_egg+6," no");
+	Inter.SetLocation(loc);
+	rt.err.CompileTimeWarning(332,"Hieres mis sentimientos :(");
+	Inter.SetLocation({});
+}
+
 bool SynCheck(RunTime &rt) {
 	Programa &programa = rt.prog;
 	ErrorHandler &err_handler = rt.err;
@@ -1450,7 +1459,8 @@ bool SynCheck(RunTime &rt) {
 		if (ret.first.empty()) continue;
 		// si despues de la 1ra instruccion habia otra, o habia un comentario
 		if (ret.second) { // comentario...
-			if (preserve_comments && ret.first.size()) {
+			parseEasterEggInComment(rt,ret.first,programa[i].loc);
+			if (preserve_comments and (not ret.first.empty())) {
 				if (not programa[i].instruccion.empty())
 					programa.Insert(++i,"//");
 				programa[i].setType(IT_COMMENT);

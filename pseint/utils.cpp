@@ -8,6 +8,7 @@
 #include "FuncsManager.hpp"
 #include "RunTime.hpp"
 #include "strFuncs.hpp"
+#include <cmath>
 
 void show_user_info(std::string msg) {
 	if (fix_win_charset) fixwincharset(msg);
@@ -454,3 +455,8 @@ bool TooManyDigits(const std::string &s) {
 	}
 	return d>16;
 }
+
+bool IsInteger(double d) {
+	return d == std::floor(d);
+}
+

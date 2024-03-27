@@ -59,6 +59,8 @@ bool ReplaceIfFound(std::string &str, std::string str1, std::string str2,bool sa
 
 bool TooManyDigits(const std::string &s);
 
+bool IsInteger(double d);
+
 
 // **************************************************************************
 

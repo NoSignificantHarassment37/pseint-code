@@ -187,9 +187,16 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 					if (lang[LS_ALLOW_DINAMYC_DIMENSIONS]) { _sub(line,string("Se evalúan las expresiones para cada dimensión del arreglo ")+nombre); }
 					for(size_t i=0;i<dims_str.size();i++) {
 						DataValue index = Evaluar(rt,dims_str[i]);
-						if (!index.CanBeReal()) err_handler.ExecutionError(122,"No coinciden los tipos.");
 						dims[i+1] = index.GetAsInt();
-						if (dims[i+1]<=0) err_handler.ExecutionError(274,"Las dimensiones deben ser mayores a 0.");
+						if (not index.CanBeReal()) {
+							err_handler.ExecutionError(122,"No coinciden los tipos.");
+						} else if (not IsInteger(index.GetAsReal())) {
+							err_handler.ExecutionError(331,"Los índices deben ser enteros.");
+						} else if (dims[i+1]<0) {
+							err_handler.ExecutionError(274,"Las dimensiones no pueden ser negativas.");
+						} else if (dims[i+1]==0 and (not lang[LS_ALLOW_DINAMYC_DIMENSIONS])) {
+							err_handler.ExecutionError(274,"Las dimensiones no pueden ser 0.");
+						}
 					}
 					if (inst_impl.redimension) {
 						const int *old_dims = memoria->LeerDims(nombre);

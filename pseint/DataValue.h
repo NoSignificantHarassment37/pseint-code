@@ -204,7 +204,7 @@ struct DataValue {
 	static DataValue MakeReal(const std::string &s) { return DataValue(vt_numerica,StrToDbl(s)); }
 	static DataValue MakeLogic(const std::string &s) { return DataValue(vt_logica,s==VERDADERO); }
 	
-	static DataValue DVError() { return DataValue(vt_error); }
+	static DataValue MakeError() { return DataValue::MakeEmpty(vt_error); }
 };
 
 #ifdef __APPLE__

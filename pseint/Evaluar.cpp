@@ -233,7 +233,7 @@ DataValue EvaluarFuncion(RunTime &rt, const Funcion *func, const string &argumen
 	ErrorHandler &err_handler = rt.err;
 	if (for_expresion && func->GetTipo(0)==vt_error) {
 		err_handler.AnytimeError(278,MkErrorMsg("El subproceso ($) no devuelve ningún valor.",func->id));
-		return DataValue::DVError();
+		return DataValue::MakeError();
 	}
 	// controlar cantidad de argumentos
 	int b=0,ca=argumentos[1]==')'?0:1, l=argumentos.length()-1;
@@ -328,7 +328,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 		/// @todo: por ahora este es el unico caso donde se usa desc... 
 		///        quitar de aca y que el cliente lo agregue a la lista de errores como nuevo item nota
 		err_handler.AnytimeError(284,MkErrorMsg("Se esperaba solo una expresión$.",desc?desc:"",true)); 
-		return DataValue::DVError(); 
+		return DataValue::MakeError(); 
 	}
 	if (pos_op==-1/* || pos_op==p1*/) { // si no hay operador, es constante o variable
 		if (p2<p1) ev_return(DataValue(forced_tipo)); // operandos vacios... como el primero en (-3)
@@ -338,7 +338,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 		} else if ( (c>='0'&&c<='9') || c=='.' || c=='-' || c=='+') { // si empieza con un numero o un punto, es nro
 			std::string val = expresion.substr(p1,p2-p1+1);	
 			if (TooManyDigits(val))
-					err_handler.CompileTimeWarning(329,"Posible pérdida de precisión (demasiados dígitos)");
+				err_handler.CompileTimeWarning(329,"Posible pérdida de precisión (demasiados dígitos)");
 			ev_return( DataValue::MakeReal(val) );
 		} else if (expresion.substr(p1,p2-p1+1)==VERDADERO || expresion.substr(p1,p2-p1+1)==FALSO) { // veradero o falso, logica
 			ev_return( DataValue::MakeLogic(expresion.substr(p1,p2-p1+1)) );
@@ -349,13 +349,13 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				string nombre = expresion.substr(p1,p2-p1+1);
 				if (!Inter.IsRunning() && (PalabraReservada(nombre) || nombre==rt.funcs.GetMainName())) {
 					err_handler.AnytimeError(285,MkErrorMsg("Identificador no válido ($).",nombre));
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				const Funcion *func = rt.funcs.GetFunction(nombre,false);
 				if (func) {
 					if (func->GetArgsCount()!=0) {
 						err_handler.AnytimeError(286,MkErrorMsg("Faltan parámetros para la función ($).",nombre));
-						ev_return(DataValue::DVError());
+						ev_return(DataValue::MakeError());
 					} else {
 						DataValue res = EvaluarFuncion(rt, func,"()",forced_tipo);
 						ev_return(res);
@@ -363,16 +363,16 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				}
 				if (memoria->LeerDims(nombre)) { // usar leertipo trae problemas cuando la variable es un alias a un elemento de un arreglo
 					err_handler.AnytimeError(220,MkErrorMsg("Faltan subindices para el arreglo ($).",nombre));
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				DataValue res;
 				if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
 					err_handler.AnytimeError(210,MkErrorMsg("Variable no definida ($).",nombre));
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				if ((lang[LS_FORCE_INIT_VARS] || Inter.EvaluatingForDebug()) && Inter.IsRunning() && !memoria->EstaInicializada(nombre)) {
 					err_handler.AnytimeError(215,MkErrorMsg("Variable no inicializada ($).",nombre));
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				res = memoria->Leer(nombre);
 				ev_return(res);
@@ -385,22 +385,22 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				} else {
 					if (PalabraReservada(nombre)) {
 						err_handler.AnytimeError(287,MkErrorMsg("Identificador no válido ($).",nombre));
-						ev_return(DataValue::DVError());
+						ev_return(DataValue::MakeError());
 					}
 					if (lang[LS_FORCE_DEFINE_VARS] && Inter.IsRunning() && !memoria->EstaDefinida(nombre)) {
 						err_handler.AnytimeError(209,MkErrorMsg("Variable no definida ($).",nombre));
-						ev_return(DataValue::DVError());
+						ev_return(DataValue::MakeError());
 					}
 					string aux=expresion.substr(p1,p2-p1+1);
 					if (CheckDims(rt,aux)) {
 						if (lang[LS_FORCE_INIT_VARS] && Inter.IsRunning() && !memoria->EstaInicializada(aux)) {
 							err_handler.AnytimeError(288,MkErrorMsg("Posición no inicializada ($).",aux));
-							ev_return(DataValue::DVError());
+							ev_return(DataValue::MakeError());
 						}
 						DataValue res = memoria->Leer(aux);
 						ev_return(res);
 					} else {
-						ev_return(DataValue::DVError());
+						ev_return(DataValue::MakeError());
 					}
 				}
 			}
@@ -417,7 +417,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			// los evaluar que siguen están para que ese error se manifieste
 			if (op!='~') Evaluar(rt,expresion,p1a,p1b, vt_desconocido,desc);
 			Evaluar(rt,expresion,p2a,p2b, vt_desconocido,desc);
-			ev_return(DataValue::DVError());
+			ev_return(DataValue::MakeError());
 		}
 		// analizar segun operador
 		switch (op) {
@@ -428,7 +428,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			     (td2!=vt_logica && !AplicarTipo(rt,expresion,p2a,p2b,vt_logica)) ) 
 			{
 				err_handler.AnytimeError(289,"No coinciden los tipos (|/O, &/Y). Los operandos deben ser logicos.");
-				ev_return(DataValue::DVError());
+				ev_return(DataValue::MakeError());
 			}
 			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_logica,desc);
 			if (Inter.IsRunning()) {
@@ -436,7 +436,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				if (op=='&' && !s1.GetAsBool()) ev_return(DataValue::MakeLogic(false));
 			}
 			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica,desc);
-			if (!s1.CanBeLogic() || !s2.CanBeLogic()) { ev_return(DataValue::DVError()); }
+			if (!s1.CanBeLogic() || !s2.CanBeLogic()) { ev_return(DataValue::MakeError()); }
 			if (op=='|') ev_return(DataValue::MakeLogic(s1.GetAsBool() || s2.GetAsBool()));
 			else         ev_return(DataValue::MakeLogic(s1.GetAsBool() && s2.GetAsBool()));
 		}
@@ -455,7 +455,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					err_handler.AnytimeError(290,"Falta operando para la negación (~/NO).");
 				if (td2!=vt_logica && !AplicarTipo(rt,expresion,p2a,p2,vt_logica)) { 
 					err_handler.AnytimeError(291,"No coinciden los tipos (~ o NO). El operando deben ser lógico.");
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_logica,desc);
 				ev_return(DataValue::MakeLogic(!s2.GetAsBool()));
@@ -475,7 +475,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				}
 				if (!td1.is_ok() || !td2.is_ok()) { 
 					err_handler.AnytimeError(292,"No coinciden los tipos (<, >, <= o >=). Los operandos no deben ser logicos.");
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 			}
 		case '=': {
@@ -484,22 +484,22 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			if (!td1.is_known()) { // no se conoce t1...
 				if (td2.is_known()) { // ...pero si t2
 					t=td2;
-					if (!AplicarTipo(rt,expresion,p1a,p1b,td2)) { ev_return( DataValue::DVError() ); }
+					if (!AplicarTipo(rt,expresion,p1a,p1b,td2)) { ev_return( DataValue::MakeError() ); }
 				}
 			} else { // se conoce t1
 				if (!td2.is_known()) { // t2 no
 					t=td1; /*int p2b=p2;*/ // ¿por que se redefinia p2b???
-					if (!AplicarTipo(rt,expresion,p2a,p2b,td1)) { ev_return(DataValue::DVError()); }
+					if (!AplicarTipo(rt,expresion,p2a,p2b,td1)) { ev_return(DataValue::MakeError()); }
 				} else if (td1!=td2) {// t2 no coincide
 					err_handler.AnytimeError(207,"No coinciden los tipos (<, >, <=, >=, <> o =). No se puede comparar variables o expresiones de distinto tipo.");
-					ev_return(DataValue::DVError()); 
+					ev_return(DataValue::MakeError()); 
 				}
 			}
 			// evaluar operandos y aplicar operador
 			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,t,desc);
 			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,t,desc);
 			if (!s1.type.is_ok() || !s2.type.is_ok()) {
-				ev_return(DataValue::DVError());
+				ev_return(DataValue::MakeError());
 			} else {
 				t.set(s1.type); t.set(s2.type); // esto deberia ser redundante si DeterminarTipo funciona siempre
 				if (t.cb_num) { // comparaciones de numeros
@@ -556,11 +556,11 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			if (lang[LS_ALLOW_CONCATENATION]) {
 				if (td1.can_be(vt_logica) && !AplicarTipo(rt,expresion,p1a,p1b,vt_caracter_o_numerica)) {
 					err_handler.AnytimeError(293,"No coinciden los tipos (+). Los operandos deben ser numericos o caracter.");
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				} else td1.set(vt_caracter_o_numerica);
 				if (td2.can_be(vt_logica) && !AplicarTipo(rt,expresion,p2a,p2b,vt_caracter_o_numerica)) {
 					err_handler.AnytimeError(294,"No coinciden los tipos (+). Los operandos deben ser numericos o caracter.");
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				} else td2.set(vt_caracter_o_numerica);
 				if (td1!=td2) {
 					tipo_var ot1=td1, ot2=td2;
@@ -568,7 +568,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					td2.set(td1);
 					if (!td1.is_ok() || !td2.is_ok() || (ot1!=td1 && !AplicarTipo(rt,expresion,p1a,p1b,td1)) || (ot2!=td2 && !AplicarTipo(rt,expresion,p2a,p2b,td2)) || td1!=td2) {
 						err_handler.AnytimeError(295,"No coinciden los tipos (+). Los operandos deben ser de igual tipo.");
-						ev_return(DataValue::DVError());
+						ev_return(DataValue::MakeError());
 					}
 				}
 				tipo_var tipo;
@@ -581,7 +581,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				// anteriores, se torna util... hay algun caso en que todavía sirva???
 				if (!s1.type.set(s2.type) || !s2.type.set(s1.type)) {
 					err_handler.AnytimeError(295,"No coinciden los tipos (+). Los operandos deben ser de igual tipo.");
-					ev_return(DataValue::DVError());
+					ev_return(DataValue::MakeError());
 				}
 				if (tipo==vt_caracter) { ev_return( DataValue::MakeString(s1.GetAsString()+s2.GetAsString()) ); }
 				else { ev_return( DataValue::MakeReal(s1.GetAsReal()+s2.GetAsReal()) ); }
@@ -593,12 +593,12 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 				(td2!=vt_numerica && !AplicarTipo(rt,expresion,p2a,p2b,vt_numerica))) 
 			{
 				err_handler.AnytimeError(213,"No coinciden los tipos (+, -, *, /, ^, % o MOD). Los operandos deben ser numericos.");
-				ev_return(DataValue::DVError());
+				ev_return(DataValue::MakeError());
 			}
 			// evaluar operandos
 			DataValue s1 = Evaluar(rt,expresion,p1a,p1b,vt_numerica,desc);
 			DataValue s2 = Evaluar(rt,expresion,p2a,p2b,vt_numerica,desc);
-			if (!s1.CanBeReal() || !s2.CanBeReal()) { ev_return(DataValue::DVError()); }
+			if (!s1.CanBeReal() || !s2.CanBeReal()) { ev_return(DataValue::MakeError()); }
 			// operar
 			double res=0, o1=s1.GetAsReal(), o2=s2.GetAsReal();
 			if (op=='+') {
@@ -619,7 +619,10 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 			} else if (op=='*') {
 				res=o1*o2;
 			} else if (op=='%') {
-				if (floor(o2)==0) {
+				if ((not IsInteger(o1)) or (not IsInteger(o2))) {
+					err_handler.AnytimeError(298,"Los operandos para el operador MOD deben ser enteros");
+					ev_return(DataValue::MakeError());
+				} else if (o2==0) {
 					/// @todo: ver.... lo mismo que antes
 					DataValue retval = DataValue::MakeReal(0);
 					if (Inter.IsRunning()) {
@@ -628,10 +631,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					}
 					ev_return(retval);
 				} else {
-					if (o1!=floor(o1)||o2!=floor(o2)) {
-						err_handler.AnytimeError(298,"Los operandos para el operador MOD deben ser enteros");
-					} else 
-						res=(long long)(o1)%(long long)(o2);
+					res=(long long)(o1)%(long long)(o2);
 				}
 			} else if (op=='^') {
 				res=pow(o1,o2);
@@ -640,7 +640,7 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 		}
 		}
 	}
-	ev_return(DataValue::DVError());
+	ev_return(DataValue::MakeError());
 }
 
 // wrapper para llamar al Evaluar que sigue desde SynCheck, para que verifique que no falten operandos al principio o al final, y aplique los tipos solo si la evaluación es correcta
@@ -660,7 +660,7 @@ DataValue Evaluar(RunTime &rt, string expresion, const tipo_var &forced_tipo) {
 	DataValue d;
 	d.type = forced_tipo;
 	int p1=0, p2=expresion.size()-1;
-	if (forced_tipo!=vt_desconocido && !AplicarTipo(rt,expresion,p1,p2,forced_tipo)) return DataValue::DVError(); // TODO: APLICAR EL TIPO QUE VIENE
+	if (forced_tipo!=vt_desconocido && !AplicarTipo(rt,expresion,p1,p2,forced_tipo)) return DataValue::MakeError(); // TODO: APLICAR EL TIPO QUE VIENE
 //	tipo_var rt = DeterminarTipo(expresion,p1,p2);
 	return Evaluar(rt,expresion,p1,p2,forced_tipo);
 }
