@@ -3,12 +3,12 @@ OBJS_DIR=../${TEMP}/wxpseint
 CXXFLAGS+=-DFOR_WXPSEINT ${WX_CXXFLAGS}
 LDFLAGS+=${WX_LDFLAGS}
 
-EXTRA_BINS=
 ifdef WINDOWS
 ICON=${OBJS_DIR}/icon.o
 EXTRA_BINS+=../bin/log.exe
 else
 ICON=
+EXTRA_BINS=
 endif
 
 ifeq ("${ARCH}","lnx")
@@ -44,5 +44,4 @@ clean:
 
 ${OBJS_DIR}:
 	${MKDIR} ${OBJS_DIR}
-
 

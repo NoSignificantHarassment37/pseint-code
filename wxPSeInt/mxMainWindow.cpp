@@ -2150,6 +2150,7 @@ void mxMainWindow::RTreeAdd (wxString text, RTAddType type, mxSource *source) {
 		result_tree_text_level=2;
 		results_tree_text<<RTreeAdd_auxHtml(text)<<"<BR>";
 		results_tree_ctrl->AppendItem(results_last,text,1);
+		break;
 	case RTAddType::OutOfTree:
 		if (result_tree_text_level==2) results_tree_text<<"</LI></UL></LI></UL><BR>";
 		else if (result_tree_text_level==1) results_tree_text<<"</LI></UL><BR>";
