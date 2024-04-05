@@ -3,7 +3,6 @@
 #include "GLstuff.h"
 #include "Entity.h"
 #include "Global.h"
-#include "Draw.h"
 #include "Text.h"
 
 static int bk_x0,bk_x1,bk_y0,bk_y1;

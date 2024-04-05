@@ -4,7 +4,6 @@
 #include "GLstuff.h"
 #include "Entity.h"
 #include "Global.h"
-#include "Draw.h"
 
 // cantidad de tramos en los que aproximo el circulo para dibujarlo como poligonal
 // que sean pares porque el para lo usa con toda la "resolucion" porque puede llegar

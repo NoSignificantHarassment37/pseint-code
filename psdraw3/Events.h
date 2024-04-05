@@ -36,7 +36,8 @@ void mouse_cb(int button, int state, int x, int y); // down o up de cualquier bo
 void mouse_dcb(int x, int y); // doble-click del izquierdo
 void keyboard_cb(unsigned char key/*, int x, int y*/);
 void keyboard_esp_cb(int key/*, int x, int y*/);
-	
+
+void display_cb();
 
 void fix_mouse_coords(int &x, int &y);
 

@@ -9,10 +9,6 @@
 #include "Load.h"
 #include "../pseint/LangSettings.h"
 #include "../wxPSeInt/osdep.h"
-#include "ShapesBar.h"
-#include "ToolBar.h"
-#include "Trash.h"
-#include "ProcessSelector.h"
 
 LangSettings g_lang(LS_DO_NOT_INIT);
 
@@ -56,10 +52,7 @@ bool mxApplication::OnInit() {
 	GlobalInitPost();
 
 	wxImage::AddHandler(new wxPNGHandler);
-	Trash::Initialize();
-	ToolBar::Initialize();
-	ShapesBar::Initialize();
-	ProcessSelector::Initialize();
+	GlobalInitGUI();
 	
 	if (port!=-1 && id!=-1) {
 		if (!::Connect(port,id)) g_state.edit_on = false;

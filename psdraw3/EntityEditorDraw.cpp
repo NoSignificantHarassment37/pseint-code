@@ -1,9 +1,8 @@
 #include <cstring>
+#include "GLstuff.h"
 #include <wx/cursor.h>
 #include "MainWindow.h"
-#include "GLstuff.h"
 #include "ProcessSelector.h"
-#include "Draw.h"
 #include "Global.h"
 #include "Entity.h"
 #include "Events.h"
@@ -14,6 +13,8 @@
 #include "ToolBar.h"
 #include "Trash.h"
 #include "../pseint/strFuncs.hpp"
+#include "EntityEditor.h"
+#include "StatusBar.h"
 
 class RaiiColorChanger {
 	float *p[5], v[5]; int n;
@@ -24,19 +25,8 @@ public:
 };
 
 
-CURSORES mouse_cursor;
-
 #define mouse_link_delta 250
 static int mouse_link_x=0,mouse_link_y=0; 
-
-static std::string status_text; // texto para la barra de estado
-static const float *status_color; // color del texto para la barra de estado
-
-void SetStatus(const float *color, const std::string &text) {
-	status_color=color;
-	status_text=text;
-}
-
 
 // dibuja una marca al lado de la entidad que indica que tiene un error de sintaxis
 void draw_error_mark(Entity *e, double delta) {
@@ -133,16 +123,8 @@ void MoveToChild(Entity *mouse, Entity *aux, int i){
 	Entity::CalculateAll();
 }
 
-void display_cb() {
-	
-	glClearColor(g_colors.back[0],g_colors.back[1],g_colors.back[2],1.f);
-	mouse_cursor = Z_CURSOR_CROSSHAIR;
-	status_color = nullptr;
-	if (g_code.entity_to_del) delete g_code.entity_to_del;
-	glClear(GL_COLOR_BUFFER_BIT);
-	
-	if (g_process_selector->IsActive()) { g_process_selector->Draw(); return; }
-	
+void EntityEditor::Draw() {
+	g_status_bar->Clear();
 	// dibujar el diagrama
 	double mx = g_state.cur_x/g_view.zoom, my = g_state.cur_y/g_view.zoom;
 	Entity *aux = g_code.start->GetTopEntity();
@@ -175,8 +157,8 @@ void display_cb() {
 			g_constants.line_width_bordes*=2;
 			aux->Draw(aux->type==ET_OPCION);
 			g_constants.line_width_bordes/=2;
-			if (aux->error.size()) SetStatus(g_colors.error,aux->error);
-			else if ((not g_state.mouse) and aux->IsLabelCropped()) SetStatus(g_config.dark_theme?g_colors.ghost:g_colors.label_high[0],aux->label);
+			if (aux->error.size()) g_status_bar->Set(g_colors.error,aux->error);
+			else if ((not g_state.mouse) and aux->IsLabelCropped()) g_status_bar->Set(g_config.dark_theme?g_colors.ghost:g_colors.label_high[0],aux->label);
 		} else if (g_state.debugging and g_state.debug_current==aux) {
 			RaiiColorChanger rcc;
 			g_constants.line_width_bordes*=2;
@@ -191,7 +173,7 @@ void display_cb() {
 			aux->Draw();
 		}
 		if (not aux->error.empty()) draw_error_mark/*_simple*/(aux,4);
-		if ((not g_state.mouse) and g_state.edit==aux and aux->CheckMouse(mx,my,false)) mouse_cursor=Z_CURSOR_TEXT;
+		if ((not g_state.mouse) and g_state.edit==aux and aux->CheckMouse(mx,my,false)) g_mouse_cursor = Z_CURSOR_TEXT;
 		aux = Entity::NextEntity(aux);
 	} while (aux);
 	if (g_state.mouse and (not g_state.mouse->GetPrev()) and (not g_state.mouse->GetParent())) 
@@ -223,26 +205,26 @@ void display_cb() {
 	g_shapes_bar->Draw(); 
 	g_toolbar->Draw(); 
 	g_trash->Draw();
-	if (g_state.edit and (not g_state.mouse) and (not status_color)) {
+	if (g_state.edit and (not g_state.mouse) and g_status_bar->IsEmpty()) {
 		switch (g_state.edit->type) {
-		case ET_LEER:       SetStatus(g_colors.status,"? Lista de variables a leer, separadas por coma."); break;
-		case ET_PROCESO:    SetStatus(g_colors.status,LeftCompare(g_state.edit->lpre,g_lang.keywords[KW_ALGORITMO].get(false))?"? Nombre del algoritmo.":"? Prototipo de la función."); break;
-		case ET_COMENTARIO: SetStatus(g_colors.status,"? Texto libre, será ignorado por el interprete."); break;
-		case ET_ESCRIBIR:   SetStatus(g_colors.status,"? Lista de expresiones a mostrar, separadas por comas."); break;
-		case ET_SI:         SetStatus(g_colors.status,"? Expresión lógica."); break;
-		case ET_SEGUN:      SetStatus(g_colors.status,"? Expresión de control para la estructura."); break;
-		case ET_OPCION:     SetStatus(g_colors.status,"? Posible valor para la expresión de control."); break;
+		case ET_LEER:       g_status_bar->Set("? Lista de variables a leer, separadas por coma."); break;
+		case ET_PROCESO:    g_status_bar->Set(LeftCompare(g_state.edit->lpre,g_lang.keywords[KW_ALGORITMO].get(false))?"? Nombre del algoritmo.":"? Prototipo de la función."); break;
+		case ET_COMENTARIO: g_status_bar->Set("? Texto libre, será ignorado por el interprete."); break;
+		case ET_ESCRIBIR:   g_status_bar->Set("? Lista de expresiones a mostrar, separadas por comas."); break;
+		case ET_SI:         g_status_bar->Set("? Expresión lógica."); break;
+		case ET_SEGUN:      g_status_bar->Set("? Expresión de control para la estructura."); break;
+		case ET_OPCION:     g_status_bar->Set("? Posible valor para la expresión de control."); break;
 		case ET_PARA: 
-			if (g_state.edit->variante)	SetStatus(g_colors.status,"? Identificador temporal para el elemento del vector/matriz.");
-			else                        SetStatus(g_colors.status,"? Identificador de la variable de control (contador)."); 
+			if (g_state.edit->variante)	g_status_bar->Set("? Identificador temporal para el elemento del vector/matriz.");
+			else                        g_status_bar->Set("? Identificador de la variable de control (contador)."); 
 			break;
-		case ET_MIENTRAS: SetStatus(g_colors.status,"? Expresión de control (lógica)."); break;
-		case ET_REPETIR: SetStatus(g_colors.status,"? Expresión de control (lógica)."); break;
-		case ET_ASIGNAR: SetStatus(g_colors.status,"? Asignación o instruccion secuencial."); break;
+		case ET_MIENTRAS: g_status_bar->Set("? Expresión de control (lógica)."); break;
+		case ET_REPETIR:  g_status_bar->Set("? Expresión de control (lógica)."); break;
+		case ET_ASIGNAR:  g_status_bar->Set("? Asignación o instruccion secuencial."); break;
 		case ET_AUX_PARA: 
-			if (g_state.edit->GetParent()->variante)	
-				SetStatus(g_colors.status,"? Identificador del vector/matriz a recorrer.");
-			else SetStatus(g_colors.status,
+			if (g_state.edit->GetParent()->variante)
+				g_status_bar->Set("? Identificador del vector/matriz a recorrer.");
+			else g_status_bar->Set(
 						   g_state.edit->GetParent()->GetChild(1)==g_state.edit
 								? "? Valor inicial para el contador."
 								: ( g_state.edit->GetParent()->GetChild(2)==g_state.edit
@@ -259,20 +241,9 @@ void display_cb() {
 		glScalef(g_view.d_zoom,g_view.d_zoom,1);
 		g_state.mouse->Draw();
 		glPopMatrix();
+		g_mouse_cursor = Z_CURSOR_NONE;
 	}
 	// barra de estado
-	if (status_color) {
-		glColor3fv(g_colors.back);
-		int w=status_text.size()*get_char_width(),bh=10,bw=10,h=15;
-		bw-=3; w+=6; h+=6; bh-=6;
-		glBegin(GL_QUADS);
-			glVertex2i(bw,bh);
-			glVertex2i(bw,bh+h);
-			glVertex2i(bw+w,bh+h);
-			glVertex2i(bw+w,bh);
-		glEnd();
-		DrawTextRaster(status_color,10,10,status_text.c_str());
-	}
-	if (g_state.mouse) mouse_cursor=Z_CURSOR_NONE;
+	g_status_bar->Draw();
 }
 

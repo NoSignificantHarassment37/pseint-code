@@ -2,7 +2,6 @@
 #include "Trash.h"
 #include "Global.h"
 #include "Text.h"
-#include "Draw.h"
 
 Trash *g_trash = nullptr;
 
@@ -21,7 +20,7 @@ void Trash::Draw ( ) {
 	
 	if (m_extended) {
 		DrawTextRaster(g_colors.status,10+trash_size_max,10,_Z("Eliminar"));
-		mouse_cursor = Z_CURSOR_DESTROY;
+		g_mouse_cursor = Z_CURSOR_DESTROY;
 	}
 	
 	glLineWidth(g_constants.menu_line_width);

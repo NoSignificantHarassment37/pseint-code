@@ -1,6 +1,14 @@
 // comunicacion con wxPseInt
 #include <cmath>
 #include "Global.h"
+#ifndef _FOR_EXPORT
+#	include "Trash.h"
+#	include "ShapesBar.h"
+#	include "ToolBar.h"
+#	include "StatusBar.h"
+#	include "ProcessSelector.h"
+#	include "EntityEditor.h"
+#endif
 
 GConfig g_config;
 GConstants g_constants;
@@ -8,6 +16,10 @@ GColors g_colors;
 GState g_state;
 GView g_view;
 GCode g_code;
+GMouseCursor g_mouse_cursor;
+#ifndef _FOR_EXPORT
+Scene *g_scene = nullptr;
+#endif
 
 //LangSettings lang; // no definir aca, ver comentario en el global.cpp de pseint
 
@@ -164,3 +176,14 @@ void SetColors(wxColour toolbar_color, wxColour selection_color) {
 	}
 }
 
+void GlobalInitGUI() {
+#ifndef _FOR_EXPORT
+	Trash::Initialize();
+	ToolBar::Initialize();
+	StatusBar::Initialize();
+	ShapesBar::Initialize();
+	ProcessSelector::Initialize();
+	EntityEditor::Initialize();
+	g_entity_editor->MakeCurrent();
+#endif
+}

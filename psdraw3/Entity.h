@@ -53,7 +53,8 @@ struct Entity : public EntityLinking<Entity> {
 	std::string error; // mensaje de error si es que la estructura tiene un error de sintaxis
 	Entity(ETYPE _type, std::string _label, bool _variante=false);
 	~Entity();
-	void SetEdit(bool ensure_caret_visibility = true);
+	void SetEdit(bool ensure_caret_visibility = true, int mouse_x=-1);
+	void MoveTextCursor(int mouse_x);
 	void UnsetEdit();
 	void SetMouse();
 	void UnSetMouse();

@@ -1,6 +1,11 @@
 #ifndef TEXTURES_H
 #define TEXTURES_H
 
+#ifdef _FOR_EXPORT
+class Texture { };
+#else
+
+
 #include "GLstuff.h"
 #include <set>
 #include <string>
@@ -24,5 +29,6 @@ public:
 
 extern Texture g_texture_font;
 
+#endif
 #endif
 

@@ -18,6 +18,7 @@
 #include "Version.h"
 #include "mxConfig.h"
 #include "../wxPSeInt/string_conversions.h"
+#include "../psdraw3/EntityEditor.h"
 
 void ProcessMenu(int) {}
 

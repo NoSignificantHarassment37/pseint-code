@@ -1,11 +1,11 @@
 #include <cstdlib>
 #include <iostream>
+#include <wx/timer.h>
 #include "GLstuff.h"
 #include "Events.h"
 #include "Entity.h"
 #include "Global.h"
 #include "Comm.h"
-#include "Draw.h"
 #include "Load.h"
 #include "Textures.h"
 #include "MainWindow.h"
@@ -13,29 +13,9 @@
 #include "ShapesBar.h"
 #include "Trash.h"
 #include "ProcessSelector.h"
-#include <wx/timer.h>
+#include "EntityEditor.h"
 
-#define mouse_setted_delta 1000
-static int mouse_setted_x,mouse_setted_y; // posicion del click que va a setear el mouse en una entidad cuando se mueva, con correccion de y y zoom aplicados
 Entity *to_set_mouse = nullptr; // lo que se va a setear en mouse cuando el cursor se mueva un poco si sigue apretado el botón
-
-static Entity *DuplicateEntity(Entity *orig, bool and_next_one_too = false) {
-	Entity *nueva=new Entity(orig->type,orig->label);
-	nueva->variante=orig->variante;
-	nueva->m_x=orig->m_x; nueva->m_y=orig->m_y;
-	nueva->x=orig->x; nueva->y=orig->y;
-	nueva->fx=orig->fx; nueva->fy=orig->fy;
-	nueva->d_x=orig->d_x; nueva->d_y=orig->d_y;
-	nueva->d_fx=orig->d_fx; nueva->d_fy=orig->d_fy;
-	for(int i=0;i<orig->GetChildCount();i++) {
-		if (orig->GetChild(i)) nueva->LinkChild(i,DuplicateEntity(orig->GetChild(i),true));
-		else nueva->LinkChild(i,nullptr);
-	}
-	if (and_next_one_too && orig->GetNext()) {
-		nueva->LinkNext(DuplicateEntity(orig->GetNext(),true));
-	}
-	return nueva;
-}
 
 void Salir(bool force) {
 	if ((not force) and g_state.modified) {
@@ -71,13 +51,16 @@ void Raise() {
 
 void idle_func() {
 	ReadComm();
-	const int _delta_t=25000;
+	
+	// control FPS
+	const int DELTA_T=25000;
 	static long long last = wxGetLocalTimeMillis().GetValue();
 	long long now = wxGetLocalTimeMillis().GetValue();
-	if (now-last<_delta_t) {
-		wxMicroSleep(_delta_t-(now-last));
+	if (now-last<DELTA_T) {
+		wxMicroSleep(DELTA_T-(now-last));
 		last=now;
 	}
+	
 	g_view.d_zoom = 1/((2*1/g_view.d_zoom+1/g_view.zoom)/3);
 	Entity::AllIterator it = Entity::AllBegin();
 	while (it!=Entity::AllEnd()) {
@@ -85,74 +68,19 @@ void idle_func() {
 		++it;
 	}
 	
-	if (g_process_selector->IsActive()) {
-		g_process_selector->ProcessIddle();
-	} else {
-		if (g_state.mouse) {
-			// la corrección de m_x es para que cuando la estructura se colapse, el punto
-			// de agarre no quede fuera de la misma (ej, un segun con muchas opciones)
-			g_state.mouse->m_x -= std::max(g_state.mouse->m_x-g_state.mouse->d_bwr,0);
-			g_trash->Show();
-			g_shapes_bar->Hide();
-		} else {
-			g_trash->Hide();
-			if (g_state.edit_on) g_shapes_bar->Show();
-			else                 g_shapes_bar->Hide();
-		}
-		g_shapes_bar->ProcessIdle();
-	}
+	Scene::current->ProcessIddle();
 	g_trash->ProcessIdle();
 	
 	g_canvas->Refresh();
 }
 
 void passive_motion_cb(int x, int y) {
-	if (g_process_selector->IsActive()) {	
-		g_process_selector->ProcessMotion(x,y); return; 
-	} else {
-		if ((not g_view.win_h) or (not g_state.edit_on)) return;
-		if (g_state.mouse) {
-			g_shapes_bar->Hide();
-			return;
-		}
-		if (g_state.edit_on) {
-			g_shapes_bar->ProcessMotion(x,y);
-		}
-	}
-	g_state.cur_x = x; g_state.cur_y = g_view.win_h-y; g_canvas->Refresh();
+	Scene::current->ProcessPassiveMotion(x,y);
 }
+
 void motion_cb(int x, int y) {
 	g_trash->ProcessMotion(x,y);
-	if (g_process_selector->IsActive()) {
-		g_process_selector->ProcessMotion(x,y); return; 
-	} else {
-		fix_mouse_coords(x,y);
-		if (to_set_mouse && (x-mouse_setted_x)*(x-mouse_setted_x)+(y-mouse_setted_y)*(y-mouse_setted_y)>mouse_setted_delta) { 
-			if (to_set_mouse->type==ET_PROCESO) return; // no permitir mover "proceso" ni "finproceso"
-			to_set_mouse->SetMouse(); Entity::CalculateAll();
-		}
-		if (g_state.selecting_zoom or g_state.selecting_entities) {
-			g_state.cur_x = x; g_state.cur_y = y;
-			return;
-		}
-		if (g_state.panning) { 
-			g_view.d_dx += x-g_state.m_x0; g_state.m_x0 = x;
-			g_view.d_dy += y-g_state.m_y0; g_state.m_y0 = y;
-		} 
-		if (g_state.mouse) { 
-			g_state.cur_y = y; g_state.cur_x = g_state.mouse->d_x;
-			g_state.mouse->d_x =x-g_state.mouse->m_x;
-			g_state.mouse->d_y =y-g_state.mouse->m_y;
-			g_state.mouse->d_fx =x-g_state.mouse->m_x;
-			g_state.mouse->d_fy =y-g_state.mouse->m_y;
-		}
-		if (g_trash->IsSelected() and g_state.mouse) {
-			if (g_state.mouse->type!=ET_OPCION and (g_state.mouse->GetParent() or g_state.mouse->GetPrev())) {
-				g_state.mouse->UnLink();
-				Entity::CalculateAll();
-			}
-		}
-	}
+	Scene::current->ProcessMotion(x,y); 
 }
 
 void ZoomExtend(int x0, int y0, int x1, int y1, double max) {
@@ -181,7 +109,7 @@ void ProcessMenu(int op) {
 	} else if (op==MO_FUNCTIONS) {
 		if (g_state.edit) g_state.edit->UnsetEdit();
 		if (g_state.mouse) g_state.mouse->UnSetMouse();
-		g_process_selector->Show();
+		g_process_selector->MakeCurrent();
 	} else if (op==MO_SAVE||op==MO_RUN||op==MO_EXPORT||op==MO_DEBUG) {
 		SendUpdate(op);
 //	} else if (op==MO_SAVE_CLOSE) {
@@ -221,142 +149,15 @@ void fix_mouse_coords(int &x, int &y) {
 }
 
 void mouse_dcb(int x, int y) {
-	fix_mouse_coords(x,y);
-	Entity::AllIterator it = Entity::AllBegin();
-	while (it!=Entity::AllEnd()) {
-		if (it->CheckMouse(x,y)) {
-			if (it->type==ET_PROCESO and it!=g_code.start) break; // para no editar el "FinProceso"
-			it->SetEdit();
-			return;
-		}
-		++it;
-	}
-}
-
-void FinishMultipleSelection(int x0, int y0, int x1, int y1) {
-	if (x0>x1) { int aux = x0; x0 = x1; x1 = aux; }
-	if (y0<y1) { int aux = y0; y0 = y1; y1 = aux; }
-	g_state.selecting_entities = false;
-	// encontrar la primera que entra en la selección
-	Entity *aux = g_code.start;
-	do {
-		if (aux->IsInside(x0,y0,x1,y1))
-			break;
-		aux = Entity::NextEntity(aux);
-	} while (aux);
-	if (!aux) return;
-	// crear la entidad de seleccion y poner la primera como primer hija
-	Entity *selection = new Entity(ET_SELECTION,""), 
-		   *aux_prev = aux->GetPrev(), *aux_parent = aux->GetParent();
-	
-	selection->d_fx = (x0+x1)/2; selection->d_fy = y0;
-	selection->d_h = (y0-y1); selection->d_w = x1-x0;
-	
-	int aux_chid = aux->GetChildId(); aux->UnLink(); 
-	if (aux_prev) aux_prev->LinkNext(selection);
-	else aux_parent->LinkChild(aux_chid,selection);
-	selection->LinkChild(0,aux);
-	// ver cuantas "next" también entran en la selección
-	while (selection->GetNext() && selection->GetNext()->IsInside(x0,y0,x1,y1)) {
-		Entity *sel_next = selection->GetNext();
-		sel_next->UnLink();
-		aux->LinkNext(sel_next);
-		aux = sel_next;
-	}
+	Scene::current->ProcessDoubleClick(x,y);
 }
 
 void mouse_cb(int button, int state, int x, int y) {
-	if (g_process_selector->IsActive()) { g_process_selector->ProcessClick(button,state,x,y); return; }
-	to_set_mouse = nullptr;
-	if ((not g_state.panning) and (not g_state.selecting_zoom) and (not g_state.selecting_entities))
-		if (g_shapes_bar->ProcessMouse(button,state,x,y)) return;
-	fix_mouse_coords(x,y);
-	if (button==ZMB_WHEEL_DOWN||button==ZMB_WHEEL_UP) {
-		double k = g_canvas->GetModifiers()==MODIFIER_SHIFT ? 1.01 : 1.10;
-		double f=button==ZMB_WHEEL_UP?1.0/k:k;
-		g_view.zoom *= f;
-		double dx = x/f-x, dy = y/f-y;
-		g_view.d_dx += dx; g_view.d_dy += dy;
-	} else if (state==ZMB_DOWN) {
-		if (button==ZMB_MIDDLE) { // click en el menu
-			g_state.cur_x = g_state.m_x0 = x; g_state.cur_y = g_state.m_y0 = y; 
-			g_state.selecting_zoom = true;
-			return;
-		}
-		// click en una entidad? izquierdo=mover, derecho=editar label
-		if (g_state.mouse) g_state.mouse->UnSetMouse();
-		Entity::AllIterator it = Entity::AllBegin();
-		while (it!=Entity::AllEnd()) {
-			if (it->CheckMouse(x,y)) {
-				if (it->type==ET_PROCESO && it!=g_code.start) break; // para no editar el "FinProceso"
-				if (button==ZMB_RIGHT) {
-					it->SetEdit(); return;
-				} else {
-					if (it->type!=ET_PROCESO and g_canvas->GetModifiers()==MODIFIER_SHIFT) { // no duplicar "Proceso..." y "FinProceso"
-						g_state.mouse = DuplicateEntity(it.GetPtr());
-						it.SetPtr(g_state.mouse); it->SetEdit();
-					} 
-					if (it.GetPtr()!=g_state.edit) {
-						if (g_state.edit) g_state.edit->UnsetEdit();
-					}
-					to_set_mouse = it.GetPtr(); mouse_setted_x=x; mouse_setted_y=y; // aux->SetMouse(); retrasado
-					if (it->type==ET_AUX_PARA) to_set_mouse=it->GetParent(); // para que no haga drag del hijo del para, sino de todo el para completo
-					return;
-				}
-				break;
-			}
-			++it;
-		}
-		if (button==ZMB_LEFT and g_canvas->GetModifiers()==MODIFIER_SHIFT) {
-			g_state.cur_x = g_state.m_x0 = x; g_state.cur_y = g_state.m_y0 = y;
-			g_state.selecting_entities=true;
-		} else {
-			g_state.m_x0 = x; g_state.m_y0=y; g_state.panning = true;
-		}
-	} else {
-		if (button==ZMB_LEFT) {
-			if (g_state.mouse) {
-				if (g_trash->IsSelected() and g_state.mouse->type==ET_OPCION) {
-					Entity *p = g_state.mouse->GetParent();
-					g_state.mouse->UnLink(); 
-					p->Calculate();
-				} 
-			}
-			if (g_state.mouse) g_state.mouse->UnSetMouse();
-			if (g_state.selecting_entities) {
-				FinishMultipleSelection(g_state.m_x0,g_state.m_y0,g_state.cur_x,g_state.cur_y);
-			}
-//			// doble click (por alguna extraña razon en mi wx un doble click genera un evento de down y dos de up)
-//			Entity *aux=g_code.start;
-//			do {
-//				if (aux->CheckMouse(x,y)) {
-//					static int last_click_time=0;
-//					static Entity *last_click_mouse=nullptr;
-//					int click_time=glutGet(GLUT_ELAPSED_TIME);
-//					if (click_time-last_click_time<500 && (last_click_mouse==aux ||  (aux->type==ET_PARA && aux->parent==last_click_mouse)) ) aux->SetEdit();
-//					last_click_mouse=aux; last_click_time=click_time;
-//				}
-//				aux=aux->all_next;
-//			} while (aux!=g_code.start);
-		} else if (button==ZMB_MIDDLE) {
-			ZoomExtend(g_state.m_x0-g_view.d_dx,g_state.m_y0-g_view.d_dy,x-g_view.d_dx,y-g_view.d_dy);
-			g_state.selecting_zoom = false;
-			return;
-		}
-		g_state.panning = false;
-		Entity::CalculateAll();
-	}
+	Scene::current->ProcessClick(button,state,x,y);
 }
 
 void keyboard_cb(unsigned char key/*, int x, int y*/) {
-	if (key=='\t') g_shapes_bar->ToggleFixed();
-	if (not g_state.edit) {
-		if (key==27) Salir();
-		return;
-	} else {
-//		if (g_canvas->GetModifiers()&MODIFIER_CTRL) return;
-		g_state.edit->EditLabel(key);
-	}
+	Scene::current->ProcessKey(key);
 }
 
 void ToggleEditable() {
@@ -371,16 +172,7 @@ void ToggleEditable() {
 }
 
 void keyboard_esp_cb(int key/*, int x, int y*/) {
-	if (key==WXK_F2) ProcessMenu(MO_SAVE);
-	else if (key==WXK_F3) ProcessMenu(MO_FUNCTIONS);
-	else if (key==WXK_F4) ProcessMenu(MO_CLOSE);
-	else if (key==WXK_F5) ProcessMenu(MO_DEBUG);
-	else if (key==WXK_F9) ProcessMenu(MO_RUN);
-	else if (key==WXK_F1) ProcessMenu(MO_HELP);
-	else if (key==WXK_F7) { if (not g_state.debugging) ToggleEditable(); }
-	else if (key==WXK_F11) ProcessMenu(MO_TOGGLE_FULLSCREEN);
-	else if (key==WXK_F12) ProcessMenu(MO_ZOOM_EXTEND);
-	else if (g_state.edit) g_state.edit->EditSpecialLabel(key);
+	Scene::current->ProcessSpecialKey(key);
 }
 
 void FocusEntity(LineInfo *li) {
@@ -417,3 +209,14 @@ void SetModified( ) {
 	if (not g_state.loading) NotifyModification();
 }
 
+void display_cb() {
+	// required somewhere once per main loop iteration
+	if (g_code.entity_to_del) delete g_code.entity_to_del;
+	
+	g_mouse_cursor = Z_CURSOR_CROSSHAIR; // default
+	
+	glClearColor(g_colors.back[0],g_colors.back[1],g_colors.back[2],1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	
+	Scene::current->Draw();
+}

@@ -8,6 +8,8 @@
 #include "Entity.h"
 #include "../pseint/LangSettings.h"
 
+/// @TODO: mucho de esto ahora debería ser atributo de EntityEditor
+
 struct GConfig {
 	bool alternative_io = false; ///< utilizar simbolos alternativos para las instrucciones Leer y Escribir
 	bool nassi_shneiderman = false; ///< usar diagramas de Nassi-Shneiderman en lugar de "clásico"
@@ -58,7 +60,6 @@ struct GState {
 	Entity *edit = nullptr; // entidad seleccionado para editar su texto
 	Entity *mouse = nullptr; // entidad seleccionado por el mouse
 	int m_x0 = 0, m_y0  = 0; // click del mouse, para referencia en el motion, se setea en el mouse
-	int blink = 0; // cuando se esta editando texto, indica si se muestra o no el cursor, para que parpadee
 	int cur_x = 0, cur_y = 0; // ubicacion del raton (en coord del dibujo)
 	
 	Entity *debug_current = nullptr;  // la entidad que se esta ejecutando actualmente en el paso a paso
@@ -104,9 +105,14 @@ struct GCode {
 	std::map<std::string,LineInfo> code2draw;
 	// auxiliares varios
 	Entity *start = nullptr; // entidad donde comienza el algoritmo
-	Entity *entity_to_del = nullptr; // para un delayed delete (cuando suelta uno que sale del shapebar y no queda en ningun lado)
 	Entity *all_any = nullptr;
+	
+	/// @TODO: use smart_ptrs
+	Entity *entity_to_del = nullptr; // para un delayed delete (cuando suelta uno que sale del shapebar y no queda en ningun lado)
 };
+
+enum GMouseCursor {	Z_CURSOR_INHERIT, Z_CURSOR_CROSSHAIR, Z_CURSOR_HAND, Z_CURSOR_TEXT, Z_CURSOR_DESTROY, Z_CURSOR_NONE, Z_CURSOR_MOVE, Z_CURSOR_COUNT };
+extern GMouseCursor g_mouse_cursor;
 
 extern GConfig g_config;
 extern GConstants g_constants;
@@ -115,11 +121,12 @@ extern GState g_state;
 extern GView g_view;
 extern GCode g_code;
 
-
 void SetColors(); // colores independientes
 void SetColors(wxColour toolbar_color, wxColour selection_color); // colores que dependen de wx
-void GlobalInitPre(); // inicializaciones globales que no pueden ser estáticas	
-void GlobalInitPost(); // inicializaciones globales que no pueden ser estáticas	
+
+void GlobalInitPre(); // llamar antes de parsear la conf que se recibe por linea de comandos
+void GlobalInitPost(); // llamar luego de parsear la conf que se recibe por linea de comandos
+void GlobalInitGUI(); // llamar luego de los otros 2, para crear las instancias de las partes de la gui (g_status_bar, g_trash, g_process_selector, g_entity_editor, ...)
 
 #endif
 

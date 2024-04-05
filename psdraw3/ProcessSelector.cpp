@@ -5,27 +5,14 @@
 #include "Text.h"
 #include "Load.h"
 #include "Events.h"
-#include "Draw.h"
-
-#define no_selection -1
+#include "EntityEditor.h"
 
 ProcessSelector *g_process_selector = nullptr;
 
-ProcessSelector::ProcessSelector() 
-	: m_state(0), m_selection(no_selection), 
-	  m_anim_base(0), m_anim_delta(0)
-{
-	
-}
-
-void ProcessSelector::Show ( ) {
-	m_anim_base = m_anim_delta = 0;
-	m_state = 1; m_selection = no_selection;
-}
-
-void ProcessSelector::Hide ( ) {
-	m_state = 0;
-	g_trash->Hide();
+void ProcessSelector::MakeCurrent ( ) {
+	m_anim_base = m_anim_delta = 0; // reset animation
+	ClearSelection();
+	Scene::MakeCurrent();
 }
 
 void ProcessSelector::Draw ( ) {
@@ -71,7 +58,7 @@ void ProcessSelector::Draw ( ) {
 			glColor3fv(color);
 			glPushMatrix();
 			int px=20, py=base+10;
-			if (m_state==3 and m_selection==i) glTranslated(g_state.cur_x+(px-g_state.m_x0),g_state.cur_y+(py-g_state.m_y0),0);
+			if (m_mouse_down and m_selection==i) glTranslated(g_state.cur_x+(px-g_state.m_x0),g_state.cur_y+(py-g_state.m_y0),0);
 			else glTranslated(px,py,0);
 			double sf = g_config.big_icons ? 1.5 : 1; glScaled(.08*sf,.12*sf,.1*sf);
 			
@@ -108,42 +95,47 @@ void ProcessSelector::Draw ( ) {
 		glEnd();
 	}
 	glEnd();
-	mouse_cursor = Z_CURSOR_INHERIT;
+	g_mouse_cursor = Z_CURSOR_INHERIT;
 	g_trash->Draw();
 }
 
 void ProcessSelector::ProcessMotion (int x, int y) {
-	if (m_state) {
-		g_state.cur_x = x; g_state.cur_y = g_view.win_h-y;
-		if (m_state<3 && m_anim_delta) {
-			m_selection=(y-m_anim_base)/m_anim_delta;
-			if (y<m_anim_base or m_selection<0 or m_selection>int(g_code.procesos.size()-(g_state.edit_on?0:1))) m_selection=no_selection;
-			
-		}
-		return;
+	g_state.cur_x = x; g_state.cur_y = g_view.win_h-y;
+	int aux_selection = (y-m_anim_base)/m_anim_delta;
+	if (m_mouse_down) {
+		if (aux_selection!=m_selection) m_dragged = true; // para que si arrastramos, al soltar no pase a editarlo
+	} else if (m_anim_delta) {
+		m_selection=aux_selection;
+		if (y<m_anim_base or m_selection<0 or m_selection>int(g_code.procesos.size()-(g_state.edit_on?0:1)))
+			m_selection=NO_SELECTION;
 	}
 }
 
+void ProcessSelector::ProcessPassiveMotion(int x, int y) {
+	ProcessMotion(x,y);
+}
+
 void ProcessSelector::ProcessClick (int button, int state, int x, int y) {
-	if (m_selection==int(g_code.procesos.size())) {
+	if (state==ZMB_UP and m_selection==int(g_code.procesos.size())) {
 		CreateEmptyProc(g_lang[LS_PREFER_FUNCION]?"Funcion":(g_lang[LS_PREFER_ALGORITMO]?"SubAlgoritmo":"SubProceso"));
+		button = ZMB_RIGHT; // para que al mostrar el nuevo proceso comience editando el nombre
 	}
-	if (m_selection!=no_selection) {
+	if (m_selection!=NO_SELECTION) {
 		if (state==ZMB_DOWN) {
-			m_state=3;
+			m_mouse_down = true; m_dragged = false;
 			if (g_state.edit_on) g_trash->Show();
 			g_state.cur_x = g_state.m_x0 = x; g_state.cur_y = g_state.m_y0 = g_view.win_h-y;
 		} else if (g_trash->IsSelected()) {
 			if (g_state.edit_on and (g_code.procesos[m_selection]->lpre!="Proceso " and g_code.procesos[m_selection]->lpre!="Algoritmo "))
 				g_code.procesos.erase(g_code.procesos.begin()+m_selection); // no lo quita de la memoria, solo del arreglo, con eso alcanza, algun día corregiré el memory leak
-			m_state=2;
-			g_trash->Hide();
-		} else {
+			ClearSelection();
+		} else if (not m_dragged) {
 			SetProc(g_code.procesos[m_selection]);
-			m_state=0;
-			g_trash->Hide();
+			ClearSelection();
+			g_entity_editor->MakeCurrent();
 			if (button==ZMB_RIGHT) g_code.start->SetEdit();
-		}
+		} else
+			ClearSelection();
 	}
 }
 
@@ -159,5 +151,15 @@ void ProcessSelector::ProcessIddle ( ) {
 		interpolate_good(m_anim_base,40);
 		interpolate_good(m_anim_delta,30);
 	}
+}
+
+void ProcessSelector::ProcessKey(unsigned char key) {
+	if (key==27) g_entity_editor->MakeCurrent();
+}
+
+void ProcessSelector::ClearSelection ( ) {
+	m_mouse_down = false;
+	m_selection = NO_SELECTION;
+	g_trash->Hide();
 }
 

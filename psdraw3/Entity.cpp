@@ -6,7 +6,6 @@
 #include "GLstuff.h"
 #include "Entity.h"
 #include "Global.h"
-#include "Draw.h"
 #include "Events.h"
 #include "Text.h"
 #ifndef _FOR_EXPORT
@@ -70,14 +69,21 @@ Entity::~Entity() {
 	if (this==g_state.mouse) UnSetMouse();
 }
 
-void Entity::SetEdit(bool ensure_caret_visibility) {
+void Entity::SetEdit(bool ensure_caret_visibility, int mouse_x) {
 	if (g_state.edit==this) return;
 	if (g_state.edit) g_state.edit->UnsetEdit();
 	g_state.edit = this; EditLabel(0);
 	if (g_config.enable_partial_text)
 		this->SetLabel(label,true);
-	SetEditPos(label.size(),ensure_caret_visibility);
+	edit_pos = label.size();
+	if (mouse_x!=-1) MoveTextCursor(mouse_x);
+	if (ensure_caret_visibility) EnsureCaretVisible();
 	error.clear();
+}
+void Entity::MoveTextCursor(int mouse_x) {
+	int bt=d_fx+t_dx+t_prew-t_w/2+(g_state.edit_on&&type==ET_OPCION?flecha_w/2:0);
+	edit_pos=(mouse_x-bt+char_w/2)/char_w;
+	if (edit_pos<0) edit_pos=0; else if (edit_pos>int(label.size())) edit_pos=label.size();
 }
 
 void Entity::SetMouse() {
@@ -343,7 +349,6 @@ void Entity::EditLabel(unsigned char key) {
 	}
 }
 
-
 int Entity::IsLabelCropped ( ) {
 	if ((not g_config.enable_partial_text) or this==g_state.edit) return 0;
 	int max_len = g_constants.max_label_len[type];
@@ -455,8 +460,10 @@ void Entity::DrawText() {
 	glPopMatrix();
 	// dibuja el cursor de edición si estamos editando justo este texto
 	if (g_state.edit==this and g_state.mouse!=this and w>0) {
-		g_state.blink++; if (g_state.blink==20) g_state.blink=0;
-		if (g_state.blink<10) {
+		constexpr int BLINK_TIME=30;
+		static int blink = 0; // cuando se esta editando texto, indica si se muestra o no el cursor, para que parpadee
+		if (++blink==BLINK_TIME) blink=0;
+		if (blink<BLINK_TIME/2) {
 			glBegin(GL_LINES);
 			int lz=label.size(); if (!lz) lz=1; // ojo estas dos lineas deben coincidir con las dos de EnsureCaretVisible
 			lz= d_fx+t_dx-t_w/2+t_prew+(t_w-t_prew)*edit_pos*d_w/lz/w+(type==ET_OPCION?flecha_w/2:0);
@@ -498,7 +505,7 @@ void Entity::MoveX(int dx) { // mueve al item y todos sus hijos en x
 	if (GetNext()) GetNext()->MoveX(dx);
 }
 
-void Entity:: ResizeW(int aw, bool up) {
+void Entity::ResizeW(int aw, bool up) {
 	if (!nolink || this==nolink) {
 		int old=bwl+bwr;
 		bwl+=(aw-old)/2;
@@ -582,9 +589,7 @@ bool Entity::CheckMouse(int x, int y, bool click) {
 		m_x=x-d_fx;
 		m_y=y-d_fy;
 		if (click and this==g_state.edit) {
-			int bt=d_fx+t_dx+t_prew-t_w/2+(g_state.edit_on&&type==ET_OPCION?flecha_w/2:0);
-			edit_pos=(x-bt+char_w/2)/char_w;
-			if (edit_pos<0) edit_pos=0; else if (edit_pos>int(label.size())) edit_pos=label.size();
+			MoveTextCursor(x);
 		}
 		return true;
 	}
@@ -739,10 +744,7 @@ void Entity::SetPosition (int x0, int y0) {
 
 
 void Entity::UnsetEdit ( ) {
-	if (g_config.enable_partial_text) {
-		Entity *prev=this;
-		prev->EditLabel(27);
-	}
+	if (g_config.enable_partial_text) EditLabel(27);
 }
 
 Entity * Entity::GetTopEntity ( ) {

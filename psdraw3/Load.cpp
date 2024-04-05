@@ -313,7 +313,7 @@ bool Load(std::string filename) {
 	SetProc(g_code.procesos[imain]);
 	g_state.loading = g_state.modified = false;
 #ifndef _FOR_EXPORT
-	if (g_code.procesos.size()>1?2:0) g_process_selector->Show();
+	if (g_code.procesos.size()>1?2:0) g_process_selector->MakeCurrent();
 #endif
 	return true;
 }

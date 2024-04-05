@@ -4,7 +4,6 @@
 #include <wx/dcclient.h>
 #include "GLstuff.h"
 #include "Events.h"
-#include "Draw.h"
 #include "Global.h"
 #include "Textures.h"
 #include "Canvas.h"
@@ -56,7 +55,7 @@ void Canvas::OnPaint(wxPaintEvent& event) {
 	wxGLCanvas::SetCurrent(*m_context);
 	
 	static wxCursor *cursores = nullptr;
-	static CURSORES old_cursor=Z_CURSOR_COUNT;
+	static GMouseCursor old_cursor = Z_CURSOR_COUNT;
 	if (!cursores) {
 		glDisable(GL_DEPTH);
 		int win_w,win_h;
@@ -67,19 +66,19 @@ void Canvas::OnPaint(wxPaintEvent& event) {
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 		
 		/*glEnable(GL_POINT_SMOOTH); */glEnable(GL_LINE_SMOOTH); /*glEnable(GL_POLYGON_SMOOTH);*/
-		cursores=new wxCursor[Z_CURSOR_COUNT];
-		cursores[Z_CURSOR_INHERIT]=wxCursor(wxCURSOR_ARROW);
-		cursores[Z_CURSOR_CROSSHAIR]=wxCursor(wxCURSOR_CROSS);
-		cursores[Z_CURSOR_HAND]=wxCursor(wxCURSOR_HAND);
-		cursores[Z_CURSOR_TEXT]=wxCursor(wxCURSOR_IBEAM);
-		cursores[Z_CURSOR_DESTROY]=wxCursor(wxCURSOR_NO_ENTRY);
-		cursores[Z_CURSOR_NONE]=wxCursor(wxCURSOR_SIZING);
-		cursores[Z_CURSOR_MOVE]=wxCursor(wxCURSOR_SIZING);
+		cursores = new wxCursor[Z_CURSOR_COUNT];
+		cursores[Z_CURSOR_INHERIT]  = wxCursor(wxCURSOR_ARROW);
+		cursores[Z_CURSOR_CROSSHAIR]= wxCursor(wxCURSOR_CROSS);
+		cursores[Z_CURSOR_HAND]     = wxCursor(wxCURSOR_HAND);
+		cursores[Z_CURSOR_TEXT]     = wxCursor(wxCURSOR_IBEAM);
+		cursores[Z_CURSOR_DESTROY]  = wxCursor(wxCURSOR_NO_ENTRY);
+		cursores[Z_CURSOR_NONE]     = wxCursor(wxCURSOR_SIZING);
+		cursores[Z_CURSOR_MOVE]     = wxCursor(wxCURSOR_SIZING);
 	}
 	glLineStipple(g_view.zoom,0x0707);
 	
 	display_cb();
-	if (old_cursor!=mouse_cursor) wxSetCursor(cursores[mouse_cursor]);
+	if (old_cursor!=g_mouse_cursor) wxSetCursor(cursores[old_cursor = g_mouse_cursor]);
 	
 	glFlush();
 	SwapBuffers();

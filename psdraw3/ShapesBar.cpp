@@ -4,13 +4,9 @@
 #include "Entity.h"
 #include "Global.h"
 #include "Events.h"
-#include "Draw.h"
 #include "Text.h"
 
-//#define shapebar_size_min 25
-//#define shapebar_size_max 150
-#define no_selection 0
-#define cant_shapes_in_bar 9
+#include "StatusBar.h"
 
 ShapesBar *g_shapes_bar = nullptr;
 
@@ -22,26 +18,26 @@ ShapesBar::ShapesBar()
 								  ? g_constants.imgs_path+"shapes_alt.png"
 								  : g_constants.imgs_path+"shapes.png" ) ),
 	  m_visible(true), m_extended(false), m_fixed(false), m_width(0),
-	  m_has_mouse(false), m_current_selection(no_selection)
+	  m_has_mouse(false), m_current_selection(NO_SELECTION)
 {
 	shapebar_size_min = g_config.big_icons ? 34 : 25;
 	shapebar_size_max = g_config.big_icons ? 200 : 150;
 }
 
 void ShapesBar::ProcessMotion (int x, int y) {
-	if (!m_visible) { m_current_selection = no_selection; return; }
+	if (!m_visible) { m_current_selection = NO_SELECTION; return; }
 	m_extended = x > g_view.win_w-m_width;
 	if (m_extended) {
-		m_current_selection = y/(g_view.win_h/cant_shapes_in_bar)+1;
-		if (m_current_selection > cant_shapes_in_bar) m_current_selection = no_selection;
+		m_current_selection = y/(g_view.win_h/CANT_SHAPES_IN_BAR)+1;
+		if (m_current_selection > CANT_SHAPES_IN_BAR) m_current_selection = NO_SELECTION;
 	} else {
-		m_current_selection=no_selection; return;
+		m_current_selection=NO_SELECTION; return;
 	}
 }
 
 bool ShapesBar::ProcessMouse (int button, int state, int x, int y) {
 	ProcessMotion(x,y); // ensures updated m_current_selection
-	if (m_current_selection==no_selection) return false;
+	if (m_current_selection==NO_SELECTION) return false;
 	if (button!=ZMB_LEFT||state!=ZMB_DOWN) return true;
 	m_extended = false;
 	
@@ -99,10 +95,10 @@ void ShapesBar::Draw() {
 	glVertex2i(g_view.win_w-m_width,g_view.win_h);
 	glEnd();
 	if (m_extended||m_fixed) {
-		mouse_cursor = Z_CURSOR_INHERIT;
-		double sh = double(g_view.win_h)/cant_shapes_in_bar;
+		g_mouse_cursor = Z_CURSOR_INHERIT;
+		double sh = double(g_view.win_h)/CANT_SHAPES_IN_BAR;
 		// resaltado(fondo) de la entidad seleccionada
-		if(m_current_selection!=no_selection) {
+		if(m_current_selection!=NO_SELECTION) {
 			glColor3fv(g_colors.menu_sel_back);
 			glBegin(GL_QUADS);
 			glVertex2d(g_view.win_w,        g_view.win_h-sh*(m_current_selection-1)); 
@@ -118,9 +114,9 @@ void ShapesBar::Draw() {
 		if (m_visible) glColor3f(1,1,1); 
 		else glColor4f(1,1,1,.5); // dimm when fixed but not enabled
 		glBegin(GL_QUADS);
-		double dy=sh, th0=0, th1=1.0/double(cant_shapes_in_bar), dth=1.0/double(cant_shapes_in_bar);
-		double x0=g_view.win_w-m_width, x1=g_view.win_w, y0=0, y1=double(g_view.win_h)/double(cant_shapes_in_bar); 
-		double ratio = double(m_width)/double(g_view.win_h)/double(cant_shapes_in_bar);
+		double dy=sh, th0=0, th1=1.0/double(CANT_SHAPES_IN_BAR), dth=1.0/double(CANT_SHAPES_IN_BAR);
+		double x0=g_view.win_w-m_width, x1=g_view.win_w, y0=0, y1=double(g_view.win_h)/double(CANT_SHAPES_IN_BAR); 
+		double ratio = double(m_width)/double(g_view.win_h)/double(CANT_SHAPES_IN_BAR);
 		if (ratio>(m_texture_extended.r/8)) {
 			double dx=(x1-x0)*(1-(m_texture_extended.r/8)/ratio)/2;
 			x0+=dx; x1-=dx;
@@ -128,7 +124,7 @@ void ShapesBar::Draw() {
 			double dy=(y1-y0)*(1-ratio/(m_texture_extended.r/8))/2;
 			y0+=dy; y1-=dy;
 		}
-		for(int i=0;i<cant_shapes_in_bar;i++) {
+		for(int i=0;i<CANT_SHAPES_IN_BAR;i++) {
 			glTexCoord2f(0*m_texture_extended.max_s,th0*m_texture_extended.max_t); glVertex2d(x0,y0);
 			glTexCoord2f(1*m_texture_extended.max_s,th0*m_texture_extended.max_t); glVertex2d(x1,y0);
 			glTexCoord2f(1*m_texture_extended.max_s,th1*m_texture_extended.max_t); glVertex2d(x1,y1);
@@ -141,7 +137,7 @@ void ShapesBar::Draw() {
 		glBegin(GL_LINES);
 		glColor3fv(g_colors.menu_front);
 		y0 = g_view.win_h-dy;
-		for(int i=0;i<cant_shapes_in_bar-1;i++,y0-=dy) {
+		for(int i=0;i<CANT_SHAPES_IN_BAR-1;i++,y0-=dy) {
 			glVertex2d(g_view.win_w-m_width,y0);
 			glVertex2d(g_view.win_w,y0);
 		}
@@ -162,30 +158,34 @@ void ShapesBar::Draw() {
 	// shapebar
 	if (m_visible) {
 		switch(m_current_selection) {
-		case 1: 
-			SetStatus(g_colors.status,"Comentario (texto libre que el interprete ignora)"); break;
-		case 2: 
-			if (g_canvas->GetModifiers()&MODIFIER_SHIFT) 
-				SetStatus(g_colors.status,"Invocación de un subproceso");
+		case 1:
+			if (g_canvas->GetModifiers()&MODIFIER_SHIFT)
+				g_status_bar->Set("Comentario en instrucción (texto libre que el interprete ignora)");
 			else
-				SetStatus(g_colors.status,"Asignación/Dimensión/Definición"); 
+				g_status_bar->Set("Comentario independiente (texto libre que el interprete ignora)");
 			break;
-		case 3: SetStatus(g_colors.status,"Escribir (instrucción para generar salidas)"); break;
-		case 4: SetStatus(g_colors.status,"Leer (instrucción para obtener entradas)"); break;
-		case 5: SetStatus(g_colors.status,"Si-Entonces (estructura condicional simple)"); break;
-		case 6: SetStatus(g_colors.status,"Según (estructura de selección múltiple)"); break;
-		case 7: SetStatus(g_colors.status,"Mientras (estructura repetitiva)"); break;
+		case 2: 
+			if (g_canvas->GetModifiers()&MODIFIER_SHIFT)
+				g_status_bar->Set("Invocación de un subproceso");
+			else
+				g_status_bar->Set("Asignación/Dimensión/Definición"); 
+			break;
+		case 3: g_status_bar->Set("Escribir (instrucción para generar salidas)"); break;
+		case 4: g_status_bar->Set("Leer (instrucción para obtener entradas)"); break;
+		case 5: g_status_bar->Set("Si-Entonces (estructura condicional simple)"); break;
+		case 6: g_status_bar->Set("Según (estructura de selección múltiple)"); break;
+		case 7: g_status_bar->Set("Mientras (estructura repetitiva)"); break;
 		case 8: 
 			if ((g_canvas->GetModifiers()&MODIFIER_SHIFT)!=g_lang[LS_PREFER_REPEAT_WHILE])
-				SetStatus(g_colors.status,"Repetir-Mientras que (estructura repetitiva)"); 
+				g_status_bar->Set("Repetir-Mientras que (estructura repetitiva)"); 
 			else
-				SetStatus(g_colors.status,"Repetir-Hasta que (estructura repetitiva)");
+				g_status_bar->Set("Repetir-Hasta que (estructura repetitiva)");
 			break;
 		case 9: 
 			if (g_canvas->GetModifiers()&MODIFIER_SHIFT)
-				SetStatus(g_colors.status,"Para Cada (estructura repetitiva)"); 
+				g_status_bar->Set("Para Cada (estructura repetitiva)"); 
 			else
-				SetStatus(g_colors.status,"Para (estructura repetitiva)"); 
+				g_status_bar->Set("Para (estructura repetitiva)"); 
 			break;
 		default:;
 		}
