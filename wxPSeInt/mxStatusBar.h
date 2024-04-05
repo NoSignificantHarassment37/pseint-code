@@ -22,8 +22,9 @@ private:
 	DECLARE_EVENT_TABLE();
 public:
 	void SetStatus(int what);
-	void SetStatus(wxString what);
+//	void SetStatus(wxString what);
 	mxStatusBar(wxWindow *parent);
+	int GetHeight() const;
 };
 
 extern mxStatusBar *status_bar;

@@ -7,6 +7,7 @@
 #include <wx/settings.h>
 #include "ConfigManager.h"
 #include "string_conversions.h"
+#include <wx/dcmemory.h>
 
 BEGIN_EVENT_TABLE(mxStatusBar,wxPanel)
 	EVT_PAINT(mxStatusBar::OnPaint)
@@ -22,11 +23,13 @@ struct st_aux {
 
 static st_aux texts[STATUS_COUNT];
 mxStatusBar *status_bar = NULL;
+
+static constexpr int MARGIN_X = 5;
+static constexpr int MARGIN_Y = 3;
 	
 mxStatusBar::mxStatusBar(wxWindow *parent):wxPanel(parent,wxID_ANY,wxDefaultPosition,wxDefaultSize) {
 	wxColour negro(0,0,0),rojo(128,0,0),verde(0,75,0),azul(0,0,128);
-	font = wxFont(11,wxFONTFAMILY_DEFAULT,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_NORMAL);
-//	if (config->big_icons) font.SetPointSize(font.GetPointSize()*1.4);
+	font = wxFont(config->wx_font_size,wxFONTFAMILY_DEFAULT,wxFONTSTYLE_NORMAL,wxFONTWEIGHT_NORMAL);
 	bg_color=wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 	wxTextFile fil("version"); 
 	if (fil.Exists()) {
@@ -74,7 +77,7 @@ void mxStatusBar::OnPaint (wxPaintEvent & event) {
 	dc.Clear();
 	dc.SetFont(font);
 //	wxString text;
-	dc.DrawText(texts[status].text,5,3);
+	dc.DrawText(texts[status].text,MARGIN_X,MARGIN_Y);
 }
 
 void mxStatusBar::OnClick (wxMouseEvent & event) {
@@ -104,5 +107,12 @@ void mxStatusBar::SetStatus (int what) {
 	}
 	status=what;
 	Refresh();
+}
+
+int mxStatusBar::GetHeight() const {
+	wxMemoryDC dc;
+	dc.SetFont(font);
+	wxSize sz = dc.GetTextExtent("FooBar42!");
+	return sz.GetHeight()+2*MARGIN_Y;
 }
 

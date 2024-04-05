@@ -135,6 +135,7 @@ mxHelpWindow::mxHelpWindow(wxString file)
 
 void mxHelpWindow::ShowIndex() {
 	ShowHelp("index.html");
+	tree->UnselectAll();
 }
 
 void mxHelpWindow::ShowHelp(wxString file) {
@@ -169,7 +170,7 @@ void mxHelpWindow::OnAlwaysOnTop(wxCommandEvent &event) {
 }
 
 void mxHelpWindow::OnHome(wxCommandEvent &event) {
-	html->LoadPage(DIR_PLUS_FILE(config->help_dir,"index.html"));
+	ShowIndex();
 	RepaintButtons();
 }
 

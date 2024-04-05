@@ -117,7 +117,7 @@ void mxSocketClient::ProcessCommandRun() {
 void mxSocketClient::ProcessCommandFlow() {
 	if (buffer=="help") {
 		if (!helpw) helpw = new mxHelpWindow();
-		helpw->ShowHelp(_T("flow.html"));
+		helpw->ShowHelp(_T("flow-quick.html"));
 		return;
 	}
 	mxSource *src=main_window->FindSourceById(src_id);

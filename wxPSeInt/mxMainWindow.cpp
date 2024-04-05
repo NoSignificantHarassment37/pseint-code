@@ -507,7 +507,7 @@ void mxMainWindow::CreateNotebook() {
 
 void mxMainWindow::CreateStatusBar() {
 	status_bar=new mxStatusBar(this);
-	aui_manager.AddPane(status_bar, wxAuiPaneInfo().Name("status_bar").Resizable(false).Bottom().Layer(5).CaptionVisible(false).Show().MinSize(50,config->big_icons?31:23).PaneBorder(false)	);
+	aui_manager.AddPane(status_bar, wxAuiPaneInfo().Name("status_bar").Resizable(false).Bottom().Layer(5).CaptionVisible(false).MinSize(10,status_bar->GetHeight()).PaneBorder(false)	);
 }
 
 mxSource *mxMainWindow::NewProgram(const wxString &title) {
