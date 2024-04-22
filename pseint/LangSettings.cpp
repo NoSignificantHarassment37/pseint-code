@@ -266,7 +266,7 @@ bool LangSettings::SetFromSingleString (const std::string & str) {
 // IMPORTANTE, todos los char* de abajo con las keywords tienen que terminar con un espacio por si se concatenan entre si
 
 static const char *mxSourceWords1 =
-	"leer proceso definir como dimension dimensionar redimension redimensionar si entonces sino segun hacer hasta que para con paso "
+	"leer proceso definir como dimension dimensionar si entonces sino segun hacer hasta que para con paso "
 	"repetir mientras de otro modo escribir finpara "
 	"fin finproceso finsi finmientras finsegun "
 	"verdadero falso algoritmo finalgoritmo "
@@ -275,7 +275,7 @@ static const char *mxSourceWords1 =
 	"caracter carácter caracteres texto cadena cadenas "
 	"logico lógico logica lógica logicos lógicos logicas lógicas "
 	"borrar limpiar pantalla borrarpantalla limpiarpantalla esperar tecla esperartecla segundos milisegundos segundo milisegundo sinsaltar sin saltar sinbajar bajar "
-	"según finsegún dimensión dimensión redimensión";
+	"según finsegún dimensión dimensión ";
 
 static const char *mxSourceWords1_op =
 	"y no o mod ";
@@ -285,6 +285,9 @@ static const char *mxSourceWords1_extra =
 
 static const char *mxSourceWords1_conds =
 	"es par impar igual divisible multiplo distinto distinta de por cero positivo negativo negativa positiva entero mayor menor ";
+
+static const char *mxSourceWords1_redim =
+	"redimension redimensionar redimensión ";
 
 static const char *mxSourceWords1_funcs =
 	"subproceso finsubproceso función funcion finfunción finfuncion por referencia valor copia subalgoritmo finsubalgoritmo ";
@@ -302,6 +305,7 @@ std::string LangSettings::GetKeywords ( ) const {
 	if (settings[LS_WORD_OPERATORS]) ks += mxSourceWords1_op;
 	if (settings[LS_LAZY_SYNTAX]) ks += mxSourceWords1_extra;
 	if (settings[LS_COLOQUIAL_CONDITIONS]) ks += mxSourceWords1_conds;
+	if (settings[LS_ALLOW_RESIZE_ARRAYS]) ks += mxSourceWords1_redim;
 	return ks;
 }
 

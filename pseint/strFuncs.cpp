@@ -95,7 +95,6 @@ std::vector<std::string> splitArgsList(const std::string &args) {
 				out.push_back(args.substr(i0,i-i0));
 				i0=i+1;
 			}
-			
 		}
 	}
 	out.push_back(args.substr(i0));

@@ -262,8 +262,8 @@
   
 57
   Alguno de los identificadores de variable en esta línea no es correcta debido a que está compuesta por dos expresiones, identificadores o palabras claves separadas por un espacio. Si desea dimensionar más de un arreglo debe separarlos por comas.
-  * Verifique que los identificadores y sus dimensiones estén correctamente formulados.
-  * Verifique que no falte alguna coma o sobre algún espacio.
+  * Verifique que los identificadores y sus dimensiones estén correctamente formulados (en particular que los paréntesis estén correctamente colocados).
+  * Si hay más de un arreglo, vefifique que todos estén separados entre sí por una coma.
 
 58
   Para dimensionar uno o varios arreglo debe utilizar la palabra DIMENSION seguida el o los nombres de los arreglos con sus correspondientes dimensiones entre corchetes y separadas por comas si fuesen más de una. Opcionalmente puede dimensionar mas de un arreglo en una misma linea separándolos por comas. 
@@ -755,7 +755,7 @@
   Cuando se realiza pasaje por referencia, la variable que se usa como argumento en la función/subproces será en realidad la misma variable que se indique en la llamada a la función (dos identificadores para una misma variable). Entonces la función/subproceso podrá modificar esa variable. Para que esto tenga sentido, al momento de invocar a la función se debe usar como argumento siempre una variable, y no una constante o cualquier otra expresión (ya que no tendría sentido que la función intente modificar el valor de una "constante" por ejemplo).
   * Verifique que todos los argumentos que en la función se definen "por referencia", sean variables en la invocación/llamada.
   * Si necesita pasar a la función una constante o expresión más general, deberá modificar la función para que el argumento en cuestión se reciba por copia.
-
+ 
 279
   El subproceso/función indicado entre paréntesis en el error recibe según su declaración una cantidad de argumentos/parámetros diferente a la proporcionada en esta llamada. Al invocar un subproceso debe incluir en la llamada todos los argumentos necesarios separados por comas.
   * Verifique que la lista de argumentos esté correctamente escrita (cada argumento separado por coma).
@@ -813,5 +813,3 @@
   * Verifique que no esté intentando leer o escribir en una variale que funciona como contador de un Para.
   * Si su intención era efectivamente modificar el contador para alterar el funcionamiento del Para, debería considerar reemplazarlo por una estructura diferente: Mientras o Repetir.
 
-329
-  Debido a la forma en que se almacenan los números en la memoria, y a que el tamaño de una variable numérica es fijo, estas solo pueden guardar una cierta cantidad de dígitos. Si se intenta guardar un número con mayor cantidad de dígitos (más de 16), este podría sufrir un redondeo, y consecuentemente los cálculos sobre ese valor resultar inexactos.

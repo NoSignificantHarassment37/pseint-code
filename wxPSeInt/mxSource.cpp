@@ -1296,11 +1296,12 @@ void mxSource::SetAutocompletion() {
 	comp_list.push_back(comp_list_item("Borrar Pantalla","Borrar Pantalla;",""));
 	comp_list.push_back(comp_list_item("Limpiar Pantalla","Limpiar Pantalla;",""));
 
-	
-	comp_list.push_back(comp_list_item("Dimension","Dimension ",""));
+//	comp_list.push_back(comp_list_item("Dimension","Dimension ",""));
 	comp_list.push_back(comp_list_item("Dimensionar","Dimensionar ",""));
-	comp_list.push_back(comp_list_item("Redimension","Redimension ",""));
-	comp_list.push_back(comp_list_item("Redimensionar","Redimensionar ",""));
+	if (cfg_lang[LS_ALLOW_RESIZE_ARRAYS]) {
+//		comp_list.push_back(comp_list_item("Redimension","Redimension ",""));
+		comp_list.push_back(comp_list_item("Redimensionar","Redimensionar ",""));
+	}
 	comp_list.push_back(comp_list_item("Definir","Definir ",""));
 	comp_list.push_back(comp_list_item("Como Real","Como Real;","Definir"));
 	comp_list.push_back(comp_list_item("Como Caracter","Como Caracter;","Definir"));
@@ -2176,10 +2177,12 @@ bool mxSource::IsDimOrDef(int line) {
 	if (fword=="DEFINIR ") return true;
 	if (fword=="DIMENSION ") return true;
 	if (fword=="DIMENSIÓN ") return true;
-	if (fword=="REDIMENSION ") return true;
-	if (fword=="REDIMENSIÓN ") return true;
 	if (fword=="DIMENSIONAR ") return true;
-	if (fword=="REDIMENSIONAR ") return true;
+	if (cfg_lang[LS_ALLOW_RESIZE_ARRAYS]) {
+		if (fword=="REDIMENSION ") return true;
+		if (fword=="REDIMENSIÓN ") return true;
+		if (fword=="REDIMENSIONAR ") return true;
+	}
 	return false;
 }
 

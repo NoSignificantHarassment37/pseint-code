@@ -3,7 +3,7 @@
 #include <string>
 #include "Code.h"
 
-/// MAX ERROR CODED USED: 332
+/// MAX ERROR CODED USED: 333
 
 class ErrorHandler {
 public:

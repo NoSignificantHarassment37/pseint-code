@@ -191,10 +191,10 @@ void Ejecutar(RunTime &rt, int LineStart, int LineEnd) {
 						if (not index.CanBeReal()) {
 							err_handler.ExecutionError(122,"No coinciden los tipos.");
 						} else if (not IsInteger(index.GetAsReal())) {
-							err_handler.ExecutionError(331,"Los índices deben ser enteros.");
+							err_handler.ExecutionError(331,"Las dimensiones solo pueden ser números enteros.");
 						} else if (dims[i+1]<0) {
 							err_handler.ExecutionError(274,"Las dimensiones no pueden ser negativas.");
-						} else if (dims[i+1]==0 and (not lang[LS_ALLOW_DINAMYC_DIMENSIONS])) {
+						} else if (dims[i+1]==0 and (not lang[LS_ALLOW_RESIZE_ARRAYS])) {
 							err_handler.ExecutionError(274,"Las dimensiones no pueden ser 0.");
 						}
 					}

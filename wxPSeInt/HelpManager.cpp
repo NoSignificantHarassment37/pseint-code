@@ -29,25 +29,24 @@ void HelpManager::LoadCommands() {
 }
 
 void HelpManager::LoadErrors() {
-	wxTextFile fil(DIR_PLUS_FILE(config->help_dir,"errores.hlp"));
-	if (!fil.Exists()) return;
-	fil.Open();
-	wxString command("0"), help_text;
-	for ( wxString str = fil.GetFirstLine(); !fil.Eof(); str = fil.GetNextLine() ) {
-		if (str[0]==' ') {
-			help_text<<str<<"<br>";
-		} else {
-			long e=0;
-			command.ToLong(&e);
-			errors[e] = help_text;
-			help_text.Clear();
-			command=str;
+	for(int k=0;k<2;++k) {
+		wxTextFile fil(DIR_PLUS_FILE(config->help_dir, k==0?"errores.hlp":"warnings.hlp"));
+		if (not fil.Open()) continue;
+		wxString command("0"), help_text;
+		for ( wxString str = fil.GetFirstLine(); !fil.Eof(); str = fil.GetNextLine() ) {
+			if (str[0]==' ') {
+				help_text << str << "<br>";
+			} else {
+				long e = 0; command.ToLong(&e);
+				errors[e] = help_text;
+				help_text.Clear();
+				command = str;
+			}
 		}
+		long e=0; command.ToLong(&e);
+		errors[e] = help_text;
+		fil.Close();
 	}
-	long e=0;
-	command.ToLong(&e);
-	errors[e] = help_text;
-	fil.Close();
 }
 
 wxString HelpManager::GetErrorText(const wxString &text, int num) {

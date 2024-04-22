@@ -904,82 +904,64 @@ void Instrucciones(RunTime &rt) {
 				if (cadena=="" || cadena==";") err_handler.SyntaxError(56,"Faltan parámetros.");
 				else {
 					auto &inst_impl = getImpl<IT_DIMENSION>(inst);
-					if (LastCharIs(cadena,';'))
-						cadena[cadena.size()-1]=',';
-					else
-						cadena += ',';
-					int parentesis=0, i0=0;
-					for (int i=0;i<(int)cadena.size();i++) {
-						if (cadena[i]=='(') parentesis++;
-						if (cadena[i]==')') parentesis--;
-						if (i>0 && i<(int)cadena.size()-1)
-							if (/*(!comillas) && */cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-								err_handler.SyntaxError(57,"Se esperaba fin de expresión.");
-						if (parentesis==0 && cadena[i]==',') { // comprobar validez
-							std::string str=cadena;
-							str.erase(i,str.size()-i);
-							str.erase(0,i0);
-							if (str.find("(",0)==std::string::npos){ 
-								if (!ignore_logic_errors) err_handler.SyntaxError(58,"Faltan subindices.");
-								if (CheckVariable(rt,str,59) and (not memoria->EstaDefinida(str)))
-									memoria->DefinirTipo(str,vt_desconocido); // para que aparezca en la lista de variables
-							} else {
-								std::string aname;
-								str.erase(str.find("(",0),str.size()-str.find("(",0));
-								CheckVariable(rt,str,60);
-								if (memoria->EsArgumento(str) && !ignore_logic_errors) err_handler.SyntaxError(223,"No debe redimensionar un argumento.");
-								else aname=str; // para que aparezca en la lista de variables
-								str=cadena;
-								str.erase(i,str.size()-i);
-								str.erase(0,str.find("(",i0)+1);
-								if (LastCharIs(str,')')) EraseLastChar(str);
+					if (LastCharIs(cadena,';')) EraseLastChar(cadena);
+					auto arrays = splitArgsList(cadena);
+					for(const auto &array_dec : arrays) {
+						auto pos_par = array_dec.find('(',0);
+						if (pos_par==std::string::npos) { 
+							if (!ignore_logic_errors) err_handler.SyntaxError(58,"Faltan subindices.");
+							if (CheckVariable(rt,array_dec,59) and (not memoria->EstaDefinida(array_dec)))
+								memoria->DefinirTipo(array_dec,vt_desconocido); // para que aparezca en la lista de variables
+						} else {
+							// check name
+							std::string aname = array_dec.substr(0,pos_par);
+							CheckVariable(rt,aname,60);
+							if (memoria->EsArgumento(aname) && !ignore_logic_errors) err_handler.SyntaxError(223,"No debe redimensionar un argumento.");
+							
+							// complete inst_impl
+							int close_par = matchParentesis(array_dec,pos_par);
+							if (close_par+1!=array_dec.size())
+								if (!ignore_logic_errors) err_handler.SyntaxError(57,MkErrorMsg("Se esperaba coma o fin de la instrucción luego de las dimensiones del arreglo $.",aname));
+							std::string str_dims = array_dec.substr(pos_par+1,close_par-pos_par-1);
+							inst_impl.nombres.push_back(aname);
+							inst_impl.tamanios.push_back(str_dims);
+							
+							// analize dimensions values
+							auto vstr_dims = splitArgsList(str_dims);
+							int *dims = new int[vstr_dims.size()+1], idim=0; dims[0] = vstr_dims.size();
+							DataValue res;
+							for (const std::string &str_dim : vstr_dims) {
+								dims[++idim] = -1;
 								
-								inst_impl.nombres.push_back(aname);
-								inst_impl.tamanios.push_back(str);
-								
-								// contar dimensiones y reservar espacio para el arreglo dims
-								str += ',';
-								int parentesis=0, len=str.size(), ndims=0; bool comillas=false;
-								for(int i=0;i<len;i++) { 
-									if (str[i]=='\'') comillas=!comillas;
-									else if (!comillas) {
-										if (str[i]==',') ndims++;
-										else if (str[i]=='(') parentesis++;
-										else if (str[i]==')') parentesis--;
-									}
-								}
-								int *dims=new int[ndims+1], idims=1; dims[0]=ndims;
-								
-								// comprobar los indices
-								DataValue res;
-								std::string str2;
-								while (str.find(",",0)!=std::string::npos){
-									str2=str;
-									str2.erase(str.find(",",0),str.size()-str.find(",",0));
-									if (str2=="") err_handler.SyntaxError(61,"Parametro nulo.");
-									if (this_instruction_is_ok()) res = EvaluarSC(rt,str2,vt_numerica);
-									if (res.IsOk()&&!res.CanBeReal()) {
-										err_handler.SyntaxError(62,"No coinciden los tipos.");
-										dims[idims]=-1;
+								if (str_dim=="") err_handler.SyntaxError(61,"Parametro nulo.");
+								/*if (this_instruction_is_ok()) */res = EvaluarSC(rt,str_dim,vt_numerica);
+								if (res.IsOk() and (not res.CanBeReal())) {
+									err_handler.SyntaxError(62,MkErrorMsg("No coinciden los tipos; en la expresion $",str_dim));
+								} else {
+									if (IsNumericConstant(str_dim)) {
+										if ((not lang[LS_ALLOW_RESIZE_ARRAYS]) and str_dim=="0")
+											err_handler.SyntaxError(274,MkErrorMsg("Las dimensiones no pueden ser 0, en: $",array_dec));
+										else if ((not lang[LS_ALLOW_RESIZE_ARRAYS]) and str_dim=="1")
+											err_handler.CompileTimeWarning(333,MkErrorMsg("El tamaño 1 para una dimensión probablemente sea un error, en: $",array_dec));
+										else if (res.GetAsInt()<=0)
+											err_handler.SyntaxError(274,MkErrorMsg("Las dimensiones no pueden ser negativas, en: $",array_dec));
+										else if (not IsInteger(res.GetAsReal()))
+											err_handler.SyntaxError(331,MkErrorMsg("Las dimensiones deben ser números enteros, en: $",array_dec));
+										else 
+											dims[idim]=res.GetAsInt();
 									} else {
-										if (!IsNumericConstant(str2)) {
-											dims[idims]=-1;
-											if (!lang[LS_ALLOW_DINAMYC_DIMENSIONS])
-												err_handler.SyntaxError(153,"Las dimensiones deben ser constantes.");
-										} else {
-											dims[idims]=res.GetAsInt();
-										}
+										if (not lang[LS_ALLOW_DINAMYC_DIMENSIONS])
+											err_handler.SyntaxError(153,MkErrorMsg("Las dimensiones deben ser constantes, en: $",array_dec));
 									}
-									str.erase(0,str2.size()+1);
-									idims++;
 								}
-								if (aname.size()) memoria->AgregarArreglo(aname,dims);
 							}
-							i0=i+1;
+							
+							// store in memory
+							if (aname.size()) memoria->AgregarArreglo(aname,dims);
 						}
 					}
 				}
-				cadena[cadena.size()-1]=';';
+				if (LastCharIs(cadena,';')) cadena[cadena.size()-1]=';';
 			}
 			if (inst.type==IT_LEER){  // ------------ LEER -----------//
 				auto &inst_impl = getImpl<IT_LEER>(inst);
@@ -988,22 +970,6 @@ void Instrucciones(RunTime &rt) {
 					if (LastCharIs(cadena,';')) EraseLastChar(cadena);
 					auto args_v = splitArgsList(cadena);
 					for(auto &var_name : args_v) {
-//				size_t parentesis=0, expr_start=0;
-//				for (size_t i=0;i<cadena.size();i++) {
-//					if (cadena[i]=='(') parentesis++;
-//					if (cadena[i]==')') parentesis--;
-//					if (cadena[i]=='\'') { 
-//						while ((++i)<cadena.size() && cadena[i]!='\'')
-//							; 
-//						continue; 
-//					}
-//					if (i>0 && i<cadena.size()-1) {
-//						if (lang[LS_LAZY_SYNTAX] && cadena[i]==' ') cadena[i]=',';
-//						if (cadena[i]==' ' && cadena[i-1]!='&' && cadena[i-1]!='|'  && cadena[i+1]!='&'  && cadena[i+1]!='|')
-//							err_handler.SyntaxError(64,"Se esperaba fin de expresión.");
-//					}
-//					if (parentesis==0 && cadena[i]==',') { // comprobar validez
-//						std::string var_name = arg_i.substr(expr_start,i-expr_start);
 						inst_impl.variables.push_back(var_name);
 						auto pos_par = var_name.find("(",0);
 						if (pos_par==std::string::npos) {
