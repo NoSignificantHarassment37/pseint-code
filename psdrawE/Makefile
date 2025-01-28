@@ -1,6 +1,6 @@
 include ../configs/config.${ARCH}
 OBJS_DIR=../${TEMP}/psdrawE
-CXXFLAGS+=${WX_CXXFLAGS} -D_FOR_EXPORT -I.
+CXXFLAGS+=${WX_CXXFLAGS} -D_FOR_EXPORT -I. -Wno-narrowing
 LDFLAGS+=${WX_LDFLAGS}
 
 ifdef WINDOWS

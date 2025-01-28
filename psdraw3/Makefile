@@ -1,6 +1,6 @@
 include ../configs/config.${ARCH}
 OBJS_DIR=../${TEMP}/psdraw3
-CXXFLAGS+=${WX_CXXFLAGS} ${GL_CXXFLAGS} -D_USE_DF
+CXXFLAGS+=${WX_CXXFLAGS} ${GL_CXXFLAGS} -D_USE_DF -Wno-narrowing
 LDFLAGS+=${WX_LDFLAGS} ${GL_LDFLAGS}
 
 ifdef WINDOWS

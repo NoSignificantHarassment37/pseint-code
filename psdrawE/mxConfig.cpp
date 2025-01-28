@@ -11,17 +11,18 @@
 #include <wx/bitmap.h>
 #include <wx/icon.h>
 
-enum { MID_NULL = wxID_HIGHEST, MID_ANCHO, MID_ALTO, MID_ZOOM, MID_CROP, MID_COMMENTS, MID_COLORS, MID_STYLE, MID_PROC };
+enum { MID_NULL = wxID_HIGHEST, MID_ANCHO, MID_ALTO, MID_ZOOM, MID_CROP, MID_COMPACT, MID_COMMENTS, MID_COLORS, MID_STYLE, MID_PROC };
 
 BEGIN_EVENT_TABLE(mxConfig,wxDialog)
 	EVT_TEXT(MID_ANCHO,mxConfig::OnAncho)
 	EVT_TEXT(MID_ALTO,mxConfig::OnAlto)
 	EVT_TEXT(MID_ZOOM,mxConfig::OnZoom)
-	EVT_CHECKBOX(MID_COLORS,mxConfig::OnColors)
+	EVT_COMBOBOX(MID_COLORS,  mxConfig::OnColors)
 	EVT_CHECKBOX(MID_COMMENTS,mxConfig::OnComments)
-	EVT_CHECKBOX(MID_CROP,mxConfig::OnCrop)
-	EVT_COMBOBOX(MID_PROC,mxConfig::OnProc)
-	EVT_COMBOBOX(MID_STYLE,mxConfig::OnStyle)
+	EVT_CHECKBOX(MID_CROP,    mxConfig::OnCrop)
+	EVT_CHECKBOX(MID_COMPACT, mxConfig::OnCompact)
+	EVT_COMBOBOX(MID_PROC,    mxConfig::OnProc)
+	EVT_COMBOBOX(MID_STYLE,   mxConfig::OnStyle)
 END_EVENT_TABLE()
 
 static wxSizerFlags szflag;
@@ -32,6 +33,10 @@ static void AddWithLabel(wxWindow *parent, wxSizer *sizer, wxString text, wxWind
 	aux_sizer->Add( control,szflag );
 	sizer->Add (aux_sizer, szflag);
 }
+
+// enums para ordenar los combos
+enum { CLR_BW, CLR_SOBER, CLR_DEFAULT, CLR_DARK, CLR_COUNT }; // estilos de colores
+enum { ST_DEFAULT, ST_AL_IO, ST_NS, ST_COUNT }; // tipos de diagrama
 
 mxConfig::mxConfig():wxDialog(NULL,wxID_ANY,_Z("Guardar diagrama de flujo"),wxDefaultPosition,wxDefaultSize) {
 	
@@ -45,35 +50,45 @@ mxConfig::mxConfig():wxDialog(NULL,wxID_ANY,_Z("Guardar diagrama de flujo"),wxDe
 	wxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 	szflag = wxSizerFlags().Border(wxALL,4).Center();
 	
-	wxArrayString astyles;
-	astyles.Add(_Z("Clásico"));
-	astyles.Add(_Z("Clásico (i/o alternativa)"));
-	astyles.Add(_Z("Nassi-Shneiderman"));
-	cm_style = new wxComboBox(this,MID_STYLE,_Z(""),wxDefaultPosition,wxDefaultSize,astyles,wxCB_READONLY|wxCB_SIMPLE);
-	cm_style->SetSelection(g_config.nassi_shneiderman?2:(g_config.alternative_io?1:0));
-	AddWithLabel(this,sizer,_Z("Estilo:"),cm_style);
-	
 	wxArrayString procs;
 	for(unsigned int i=0;i<g_code.procesos.size();i++) 
 		procs.Add((g_code.procesos[i]->lpre+g_code.procesos[i]->label).c_str());
 	cm_proc = new wxComboBox(this,MID_PROC,_Z(""),wxDefaultPosition,wxDefaultSize,procs,wxCB_READONLY|wxCB_SIMPLE);
-	AddWithLabel(this,sizer,_Z("(Sub)Proceso:"),cm_proc);
-	
+	AddWithLabel(this, sizer, _Z("(Sub)Proceso:"),cm_proc);
+
 	tx_zoom = new wxTextCtrl(this,MID_ZOOM,_Z("100"));
-	AddWithLabel(this,sizer,_Z("Zoom(%):"),tx_zoom);
+	AddWithLabel(this, sizer, _Z("Zoom(%):"),tx_zoom);
 	tx_ancho = new wxTextCtrl(this,MID_ANCHO,_Z(""));
-	AddWithLabel(this,sizer,_Z("Ancho(px):"),tx_ancho);
+	AddWithLabel(this, sizer, _Z("Ancho(px):"),tx_ancho);
 	tx_alto = new wxTextCtrl(this,MID_ALTO,_Z(""));
-	AddWithLabel(this,sizer,_Z("Alto(px):"),tx_alto);
+	AddWithLabel(this, sizer, _Z("Alto(px):"),tx_alto);
 	
 	ch_comments = new wxCheckBox(this,MID_COMMENTS,_Z("Incluir comentarios"));
 	ch_comments->SetValue(g_config.show_comments);
 	sizer->Add (ch_comments,szflag);
-	ch_colors = new wxCheckBox(this,MID_COLORS,_Z("Utilizar colores"));
-	ch_colors->SetValue(g_config.shape_colors);
-	sizer->Add (ch_colors,szflag);
-	ch_crop  = new wxCheckBox(this,MID_CROP,_Z("Cortar textos largos"));
+	ch_crop = new wxCheckBox(this,MID_CROP,_Z("Cortar textos largos"));
+	ch_crop->SetValue(false);
 	sizer->Add (ch_crop,szflag);
+	ch_compact = new wxCheckBox(this,MID_COMPACT,_Z("Reducir alturas"));
+	ch_compact->SetValue(false);
+	sizer->Add (ch_compact,szflag);
+	
+	wxArrayString acolors; acolors.Add("",CLR_COUNT);
+	acolors[CLR_BW]      = _Z("Blanco y Negro");
+	acolors[CLR_SOBER]   = _Z("Sobrio");
+	acolors[CLR_DEFAULT] = _Z("Normal");
+	acolors[CLR_DARK]    = _Z("Invertido");
+	cm_colors = new wxComboBox(this,MID_COLORS,_Z(""),wxDefaultPosition,wxDefaultSize,acolors,wxCB_READONLY|wxCB_SIMPLE);
+	cm_colors->SetSelection( g_config.shape_colors ? (g_config.dark_theme ? CLR_DARK : CLR_DEFAULT) : CLR_SOBER );
+	AddWithLabel(this, sizer, _Z("Colores:"), cm_colors);
+	
+	wxArrayString astyles; astyles.Add("",ST_COUNT);
+	astyles[ST_DEFAULT] = _Z("Clásico");
+	astyles[ST_AL_IO]   = _Z("Clásico (i/o alternativa)");
+	astyles[ST_NS]      = _Z("Nassi-Shneiderman");
+	cm_style = new wxComboBox(this,MID_STYLE,_Z(""),wxDefaultPosition,wxDefaultSize,astyles,wxCB_READONLY|wxCB_SIMPLE);
+	cm_style->SetSelection( g_config.nassi_shneiderman ? ST_NS : (g_config.alternative_io ? ST_AL_IO : ST_DEFAULT) );
+	AddWithLabel(this, sizer, _Z("Tipo:"), cm_style);
 	
 	wxButton *ok = new wxButton(this,wxID_OK,_Z("Guardar"));
 	wxButton *cancel = new wxButton(this,wxID_CANCEL,_Z("Cancelar"));
@@ -151,6 +166,20 @@ void mxConfig::OnZoom (wxCommandEvent & evt) {
 	ignore_events=false;
 }
 
+void mxConfig::OnCompact (wxCommandEvent & evt) {
+	evt.Skip();
+	if (ch_compact->GetValue()) {
+		flecha_h = 15;
+		margin = 4;
+	} else {
+		// debe coincidir con Entity.cpp
+		flecha_h = 25;
+		margin = 6;
+	}
+	Entity::CalculateAll(true);
+	SetZoom();
+}
+
 void mxConfig::OnComments (wxCommandEvent &evt) {
 	evt.Skip();
 	if (ignore_events) return;
@@ -164,7 +193,7 @@ void mxConfig::OnCrop (wxCommandEvent &evt) {
 	if (ignore_events) return;
 	g_config.enable_partial_text = ch_crop->GetValue();
 	Entity::CalculateAll(true);
-	SetZoom();	
+	SetZoom();
 }
 
 void mxConfig::SetProceso (int i) {
@@ -180,14 +209,37 @@ void mxConfig::OnProc (wxCommandEvent & evt) {
 
 void mxConfig::OnColors (wxCommandEvent & evt) {
 	evt.Skip();
-	g_config.shape_colors = ch_colors->GetValue();
+	int icolor = cm_colors->GetSelection();
+	switch (icolor) {
+	case CLR_BW:
+		g_config.syntax_highlight = false;
+		g_config.dark_theme = false;
+		g_config.shape_colors = false;
+		break;
+	case CLR_SOBER:
+		g_config.syntax_highlight = true;
+		g_config.dark_theme = false;
+		g_config.shape_colors = false;
+		break;
+	case CLR_DEFAULT:
+		g_config.syntax_highlight = true;
+		g_config.dark_theme = false;
+		g_config.shape_colors = true;
+		break;
+	case CLR_DARK:
+		g_config.syntax_highlight = true;
+		g_config.dark_theme = true;
+		g_config.shape_colors = true;
+		break;
+	}
+	SetColors();
 }
 
 void mxConfig::OnStyle (wxCommandEvent & evt) {
 	evt.Skip();
-	int i = cm_style->GetSelection();
-	g_config.nassi_shneiderman = i==2;
-	g_config.alternative_io = i==1;
+	int istyle = cm_style->GetSelection();
+	g_config.nassi_shneiderman = istyle==ST_NS;
+	g_config.alternative_io    = istyle==ST_AL_IO;
 	Entity::CalculateAll(true);
 	SetZoom();	
 }

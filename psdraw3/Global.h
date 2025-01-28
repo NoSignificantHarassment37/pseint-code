@@ -13,6 +13,7 @@
 struct GConfig {
 	bool alternative_io = false; ///< utilizar simbolos alternativos para las instrucciones Leer y Escribir
 	bool nassi_shneiderman = false; ///< usar diagramas de Nassi-Shneiderman en lugar de "clásico"
+	bool syntax_highlight = true; ///< colorear texto (el falso por ahora solo se usa al exportar a imagen bw y siempre con fondo claro)
 	bool shape_colors = true; ///< mostrar los bloques de diferentes colores
 	bool dark_theme = false; ///< usar una combinación de colores claros sobre fondo oscuro
 	bool enable_partial_text = true; ///< acortar labels largos

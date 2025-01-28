@@ -1,206 +1,153 @@
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
-#include "GLstuff.h"
+#include "Entity.h"
 #include "Entity.h"
 #include "Global.h"
+#include "Renderer.h"
 
-// cantidad de tramos en los que aproximo el circulo para dibujarlo como poligonal
-// que sean pares porque el para lo usa con toda la "resolucion" porque puede llegar
-// a ser un circulo bastante grande, pero lo demas (como proceso) usan punto por medio
-#ifdef _FOR_EXPORT
-// mayor para exportar prolijo
-#	define circle_steps 200 
-#else
-// menor para tiempo real
-#	define circle_steps 40
-#endif
+static const int vf_size=5; // tamaño de los letras V/F en las estructuras de control?
 
-#define PI 3.14159265358979323846
-
-static double cosx[circle_steps+1], sinx[circle_steps+1]; // para no calcular en el DrawShape del Para
-void make_trig() {
-	static bool make_cos=false;
-	if (!make_cos) {
-		sinx[0]=0; cosx[0]=1;
-		for (int i=1;i<circle_steps;i++) {
-			sinx[i]=sin((i*PI)/circle_steps);
-			cosx[i]=cos((i*PI)/circle_steps);
-		}
-		sinx[circle_steps]=0; cosx[circle_steps]=-1;
-		make_cos=true;
-	}
-}
-
-inline void DrawLineaHorizontalTo(int x0, int y0, int x1) { glVertex2i(x0,y0); glVertex2i(x1,y0); }
-inline void DrawLineaHorizontalW(int x, int y, int w) { glVertex2i(x,y); glVertex2i(x+w,y); }
-inline void DrawLineaVerticalTo(int x0, int y0, int y1) { glVertex2i(x0,y0); glVertex2i(x0,y1); }
-inline void DrawLineaVerticalH(int x, int y, int h) { glVertex2i(x,y); glVertex2i(x,y+h); }
-inline void DrawLinea(int x0, int y0, int x1, int y1) { glVertex2i(x0,y0); glVertex2i(x1,y1); }
+inline void DrawLineaHorizontalTo(int x0, int y0, int x1) { rndr.drawLine({x0,y0}, {x1,y0}); }
+inline void DrawLineaHorizontalW(int x, int y, int w) { rndr.drawLine({x,y}, {x+w,y}); }
+inline void DrawLineaVerticalTo(int x0, int y0, int y1) { rndr.drawLine({x0,y0}, {x0,y1}); }
+inline void DrawLineaVerticalH(int x, int y, int h) { rndr.drawLine({x,y}, {x,y+h}); }
+inline void DrawLinea(int x0, int y0, int x1, int y1) { rndr.drawLine({x0,y0}, {x1,y1}); }
 
 void Entity::DrawShapeSolid(const float *color,int x, int y, int w, int h) {
-	glColor3fv(color);
-	glBegin(GL_QUAD_STRIP);
+	rndr.setColor(color);
 	if (type==ET_PARA) {
-		make_trig(); w=w/2; h=h/2; y-=h;
-		for(int i=0;i<=circle_steps;i++) {
-			glVertex2d(x-sinx[i]*w,y+cosx[i]*h);
-			glVertex2d(x+sinx[i]*w,y+cosx[i]*h);
-		}
+		rndr.drawSolidElipse({x,y-h/2}, w/2, h/2);
 	} else if (type==ET_PROCESO) {
-		make_trig(); w=w/2-h; h=h/2; y-=h;
-		for(int i=0;i<=circle_steps;i+=2) {
-			glVertex2d(x-w-sinx[i]*h,y+cosx[i]*h);
-			glVertex2d(x+w+sinx[i]*h,y+cosx[i]*h);
-		}
+		float waux = w/2-h;
+		rndr.drawSolidRectangle({x,y}, waux, waux, h);
+		rndr.drawSolidCircle({x-waux,y-h/2}, h/2);
+		rndr.drawSolidCircle({x+waux,y-h/2}, h/2);
 	} else if (type==ET_REPETIR||type==ET_MIENTRAS||type==ET_SI) {
-		glVertex2i(x,y); glVertex2i(x+w/2,y-h/2);
-		glVertex2i(x-w/2,y-h/2); glVertex2i(x,y-h);
+		rndr.drawSolidQuad({x,y}, {x+w/2,y-h/2}, {x,y-h}, {x-w/2,y-h/2});
 	} else if (type==ET_ESCRIBIR||type==ET_LEER) {
 		if (g_config.alternative_io) {
 			if (type==ET_LEER) {
-				glVertex2i(x-w/2,y-margin); glVertex2i(x+w/2,y+margin);
-				glVertex2i(x-w/2,y-h); glVertex2i(x+w/2,y-h);
+				rndr.drawSolidQuad({x-w/2,y-margin}, {x+w/2,y+margin}, {x+w/2,y-h}, {x-w/2,y-h});
 			} else {
-				int r=3*h/4,ax0=x+w/2-h,ax1=x-w/2+h,ay=y-h/2, *v;
-				glVertex2i(ax1-margin,ay+h/2);
-				glVertex2i(ax1-r,ay);
-				glVertex2i(ax1-r,ay);
-				glVertex2i(ax1-margin,ay-h/2);
-				glVertex2i(ax1-margin,ay+h/2);
-				make_trig(); h/=2;
-				for(int i=0;i<=circle_steps/2;i+=2) {
-					glVertex2d(ax0+sinx[i]*r,ay-cosx[i]*h);
-					glVertex2d(ax0+sinx[i]*r,ay+cosx[i]*h);
-				}
+				float waux = w/2-h;
+				rndr.drawSolidRectangle({x,y}, waux+margin, waux, h);
+				float r=3*h/4;
+				rndr.drawSolidElipse({x+waux,y-h/2}, r, h/2);
+				rndr.drawSolidTriangle({x-waux-r,y-h/2}, {x-waux-margin,y}, {x-waux-margin,y-h});
 			}
 		} else {
-			glVertex2i(x+w/2+margin,y); glVertex2i(x-w/2+margin,y); 
-			glVertex2i(x+w/2-margin,y-h); glVertex2i(x-w/2-margin,y-h);
+			rndr.drawSolidQuad({x+w/2+margin,y}, {x-w/2+margin,y}, {x-w/2-margin,y-h}, {x+w/2-margin,y-h});
 		}
 	} else if (type==ET_SEGUN) {
-		glVertex2i(x,y); glVertex2i(x+w/2,y-h); glVertex2i(x-w/2,y-h); glVertex2i(x,y-h);
+		rndr.drawSolidTriangle({x,y}, {x+w/2,y-h}, {x-w/2,y-h});
 	} else {
-		glVertex2i(x-w/2,y); glVertex2i(x+w/2,y);
-		glVertex2i(x-w/2,y-h); glVertex2i(x+w/2,y-h);
+		rndr.drawSolidRectangle({x,y}, w/2, w/2, h);
 	}
-	glEnd();
+	rndr.flush();
 }
 
 
 void Entity::DrawShapeBorder(const float *color,int x, int y, int w, int h) {
-	glLineWidth(g_constants.line_width_bordes);
-	glColor3fv(color);
-	glBegin(GL_LINE_LOOP);
+	rndr.setWidth(g_constants.line_width_bordes);
+	rndr.setColor(color);
 	if (type==ET_PARA) {
-		make_trig(); w=w/2; h=h/2; y-=h;
-		for(int i=0;i<circle_steps;i++)
-			glVertex2d(x+sinx[i]*w,y+cosx[i]*h);
-		for(int i=circle_steps;i>=0;i--)
-			glVertex2d(x-sinx[i]*w,y+cosx[i]*h);
+		rndr.drawElipse({x,y-h/2}, w/2, h/2);
 	} else if (type==ET_PROCESO) {
-		make_trig(); w=w/2-h; h=h/2; y-=h;
-		for(int i=0;i<=circle_steps;i+=2)
-			glVertex2d(x+w+sinx[i]*h,y+cosx[i]*h);
-		for(int i=circle_steps;i>=0;i-=2)
-			glVertex2d(x-w-sinx[i]*h,y+cosx[i]*h);
+		float waux = w/2-h;
+		rndr.drawLine({x-waux,y}, {x+waux,y});
+		rndr.drawLine({x-waux,y-h}, {x+waux,y-h});
+		rndr.drawHalfElipse({x-waux,y-h/2}, +h/2, h/2);
+		rndr.drawHalfElipse({x+waux,y-h/2}, -h/2, h/2);
 	} else if (type==ET_REPETIR||type==ET_MIENTRAS||type==ET_SI) {
-		glVertex2i(x,y); glVertex2i(x+w/2,y-h/2);
-		glVertex2i(x,y-h); glVertex2i(x-w/2,y-h/2);
+		rndr.drawQuad({x,y}, {x+w/2,y-h/2}, {x,y-h}, {x-w/2,y-h/2});
 	} else if (type==ET_ESCRIBIR||type==ET_LEER) {
 		if (g_config.alternative_io) {
 			if (type==ET_LEER) {
-				glVertex2i(x-w/2,y-margin); glVertex2i(x+w/2,y+margin);
-				glVertex2i(x+w/2,y-h); glVertex2i(x-w/2,y-h);
+				rndr.drawQuad({x-w/2,y-margin}, {x+w/2,y+margin}, {x+w/2,y-h}, {x-w/2,y-h});
 			} else {
-				int r=3*h/4,ax0=x+w/2-h,ax1=x-w/2+h,ay=y-h/2, *v;
-				glVertex2i(ax1-margin,ay-h/2); 
-				glVertex2i(ax1-r,ay); 
-				glVertex2i(ax1-margin,ay+h/2); 
-				make_trig(); h/=2;
-				for(int i=0;i<=circle_steps;i+=2)
-					glVertex2d(ax0+sinx[i]*r,ay+cosx[i]*h);
+				float waux = w/2-h;
+				rndr.drawLine({x-waux-margin,y}, {x+waux,y});
+				rndr.drawLine({x-waux-margin,y-h}, {x+waux,y-h});
+				float r=3*h/4;
+				rndr.drawHalfElipse({x+waux,y-h/2}, -r, h/2);
+				rndr.drawLine({x-waux-r,y-h/2}, {x-waux-margin,y});
+				rndr.drawLine({x-waux-r,y-h/2}, {x-waux-margin,y-h});
 			}
 		} else {
-			glVertex2i(x-w/2+margin,y); glVertex2i(x+w/2+margin,y);
-			glVertex2i(x+w/2-margin,y-h); glVertex2i(x-w/2-margin,y-h);
+			rndr.drawQuad({x+w/2+margin,y}, {x-w/2+margin,y}, {x-w/2-margin,y-h}, {x+w/2-margin,y-h});
 		}
 	} else if (type==ET_SEGUN) {
-		glVertex2i(x,y); glVertex2i(x+w/2,y-h); glVertex2i(x-w/2,y-h);
+		rndr.drawTriangle({x,y}, {x+w/2,y-h}, {x-w/2,y-h});
+	} else if (type==ET_COMENTARIO) {
+		if (variante) {
+			rndr.drawLine({x-w/2,y-h},{x+w/2,y-h});
+			rndr.drawLine({x-w/2,y-h},{x-w/2,y-h+2*margin});
+			rndr.drawLine({x+w/2,y-h},{x+w/2,y-h+2*margin});
+		} else {
+			rndr.drawLine({x-w/2,y},{x-w/2+3*margin,y});
+			rndr.drawLine({x-w/2,y},{x-w/2,y-h});
+			rndr.drawLine({x-w/2,y-h},{x-w/2+3*margin,y-h});
+		}
 	} else {
-		glVertex2i(x-w/2,y); glVertex2i(x+w/2,y);
-		glVertex2i(x+w/2,y-h); glVertex2i(x-w/2,y-h);
+		rndr.drawRectangle({x,y}, w/2, w/2, h);
 		if (g_state.edit_on and type==ET_OPCION and g_state.mouse!=this) {
-			glVertex2i(x-w/2,y); glVertex2i(x-w/2+flecha_w,y); glVertex2i(x-w/2+flecha_w,y-h); glVertex2i(x-w/2,y-h);
+			rndr.drawLine({x-w/2+flecha_w,y}, {x-w/2+flecha_w,y-h});
 		} else if (type==ET_ASIGNAR and variante) {
-			glEnd();
-			glBegin(GL_LINES);
-			glVertex2i(x-w/2+margin,y); glVertex2i(x-w/2+margin,y-h);
-			glVertex2i(x+w/2-margin,y-h); glVertex2i(x+w/2-margin,y);
+			rndr.drawLine({x-w/2+margin,y}, {x-w/2+margin,y-h});
+			rndr.drawLine({x+w/2-margin,y-h}, {x+w/2-margin,y});
 		}
 	}
-	glEnd();
-	glLineWidth(g_constants.line_width_flechas);
+	rndr.flush();
+	rndr.setWidth(g_constants.line_width_flechas);
 }
 
 inline void DrawTrue(int x, int y) { // V
-	glVertex2i(x,y); glVertex2i(x-margin/2,y+2*vf_size);
-	glVertex2i(x,y); glVertex2i(x+margin/2,y+2*vf_size);
+	rndr.drawLine({x,y}, {x-margin/2,y+2*vf_size});
+	rndr.drawLine({x,y}, {x+margin/2,y+2*vf_size});
 }
 
 inline void DrawFalse(int x, int y) { // F
-	glVertex2i(x-vf_size/2,y); glVertex2i(x-vf_size/2,y+2*vf_size);
-	glVertex2i(x-vf_size/2,y+2*vf_size); glVertex2i(x+vf_size/2,y+2*vf_size);
-	glVertex2i(x-vf_size/2,y+vf_size); glVertex2i(x+vf_size/2,y+vf_size);
+	rndr.drawLine({x-vf_size/2,y}, {x-vf_size/2,y+2*vf_size});
+	rndr.drawLine({x-vf_size/2,y+2*vf_size}, {x+vf_size/2,y+2*vf_size});
+	rndr.drawLine({x-vf_size/2,y+vf_size}, {x+vf_size/2,y+vf_size});
 }
 
 inline void DrawFlechaDownHead(int x, int y2) {
-	glEnd(); glBegin(GL_TRIANGLES);
-	glVertex2i(x,y2);
-	glVertex2i(x-flecha_d,y2+flecha_d);
-	glVertex2i(x+flecha_d,y2+flecha_d);
-	glEnd(); glBegin(GL_LINES);
+	rndr.drawSolidTriangle({x,y2}, {x-flecha_d,y2+flecha_d}, {x+flecha_d,y2+flecha_d});
 }
 
 inline void DrawFlechaDown(int x, int y1, int y2) {
-	glVertex2i(x,y1); glVertex2i(x,y2);
+	rndr.drawLine({x,y1}, {x,y2});
 	DrawFlechaDownHead(x,y2);
 }
 
-
 inline void DrawFlechaUp(int x, int y1, int y2) {
-	glVertex2i(x,y1); glVertex2i(x,y2);
-	glEnd(); glBegin(GL_TRIANGLES);
-	glVertex2i(x,y2);
-	glVertex2i(x-flecha_d,y2-flecha_d);
-	glVertex2i(x+flecha_d,y2-flecha_d);
-	glEnd(); glBegin(GL_LINES);
+	rndr.drawLine({x,y1}, {x,y2});
+	rndr.drawSolidTriangle({x,y2}, {x-flecha_d,y2-flecha_d}, {x+flecha_d,y2-flecha_d});
 }
 
 inline void DrawFlechaR(int x1, int x2, int y) {
-	glVertex2i(x1,y); glVertex2i(x2,y);
-	glEnd(); glBegin(GL_TRIANGLES);
-	glVertex2i(x2-flecha_d,y-flecha_d);
-	glVertex2i(x2-flecha_d,y+flecha_d);
-	glVertex2i(x2,y);
-	glEnd(); glBegin(GL_LINES);
+	rndr.drawLine({x1,y}, {x2,y});
+	rndr.drawSolidTriangle({x2-flecha_d,y-flecha_d}, {x2-flecha_d,y+flecha_d}, {x2,y});
 }
 
 inline void DrawFlechaL(int x1, int x2, int y) {
-	glVertex2i(x1,y); glVertex2i(x2,y);
-	glEnd(); glBegin(GL_TRIANGLES);
-	glVertex2i(x2+flecha_d,y-flecha_d);
-	glVertex2i(x2+flecha_d,y+flecha_d);
-	glVertex2i(x2,y);
-	glEnd(); glBegin(GL_LINES);
+	rndr.drawLine({x1,y}, {x2,y});
+	rndr.drawSolidTriangle({x2+flecha_d,y-flecha_d}, {x2+flecha_d,y+flecha_d}, {x2,y});
 }
 
 void Entity::DrawClasico(bool force) {
 	if (!force && (type==ET_OPCION || type==ET_AUX_PARA)) return;
-	if (this==g_state.mouse and (GetPrev() or GetParent())) // si se esta moviendo con el mouse, dibujar un ghost donde lo agregariamos al soltar
-		DrawShapeBorder(g_colors.ghost,g_view.d_dx+x,g_view.d_dy+y,bwr+bwl,h);
-	glBegin(GL_LINES); 
-	glColor3fv(g_colors.arrow);
+	if (this==g_state.mouse and (GetPrev() or GetParent())) { // si se esta moviendo con el mouse, dibujar un ghost donde lo agregariamos al soltar
+		int gx = g_view.d_dx+x, gy = g_view.d_dy+y, gw = bwr+bwl;
+		if (type==ET_COMENTARIO) {
+			if (variante) gx -= w/2+7*margin;
+			else gw = -10*margin;
+		}
+		DrawShapeBorder(g_colors.ghost, gx, gy, gw, h);
+	}
+	rndr.setColor(g_colors.arrow);
 	if (!nolink) {
 		if (type==ET_OPCION) {
 			DrawLineaVerticalH((GetChild(0)?GetChild(0)->d_x:d_x),d_y-d_h,-flecha_h); 
@@ -278,19 +225,17 @@ void Entity::DrawClasico(bool force) {
 				}
 				if (variante || !fuera_de_proceso) {
 					// linea punteada desde el flujo o desde la siguiente entidad hacia el comentario
-#ifndef _FOR_EXPORT
-					glEnd(); glEnable(GL_LINE_STIPPLE); glBegin(GL_LINES);
-#endif
-					glColor3fv(g_colors.comment);
+					rndr.enableStipple(true);
+					rndr.setWidth(g_constants.line_width_bordes);
+					rndr.setColor(g_colors.comment);
 					if (variante) { // apunta al siguiente no comentario
 						if (next_nc) DrawLinea(next_nc->d_fx-5*margin,next_nc->d_fy,d_x-d_bwl/2,d_y-d_h);
 					} else {
 						DrawLineaHorizontalW(d_x+margin,d_y-d_h/2,4*margin); 
 					}
-					glColor3fv(g_colors.arrow);
-#ifndef _FOR_EXPORT
-					glEnd(); glDisable(GL_LINE_STIPPLE); glBegin(GL_LINES);
-#endif
+					rndr.setColor(g_colors.arrow);
+					rndr.enableStipple(false);
+					rndr.setWidth(g_constants.line_width_flechas);
 				}
 			}
 		}
@@ -305,69 +250,41 @@ void Entity::DrawClasico(bool force) {
 		DrawLineaVerticalH(g_view.d_dx+x,g_view.d_dy+y-bh,flecha_h);
 		if (type!=ET_OPCION) DrawFlechaDownHead(g_view.d_dx+x,g_view.d_dy+y); // no en inicio
 	}
-	glEnd();
 	if (type==ET_COMENTARIO or type==ET_SELECTION) {
-#ifndef _FOR_EXPORT
-		glEnable(GL_LINE_STIPPLE);
-#endif
+		rndr.enableStipple(true);
 		// borde de la forma
 		DrawShapeBorder(/*mouse==this?color_selection:*/g_colors.comment,d_fx,d_fy,d_w,d_h);
-#ifndef _FOR_EXPORT
-		glDisable(GL_LINE_STIPPLE);
-#endif
+		rndr.enableStipple(false);
 	} else {
 		// relleno de la forma
 		int icolor = g_config.shape_colors?type:ET_COUNT;
-//		float aux_color[3] = {
-//			g_colors.shape[icolor][0],
-//			g_colors.shape[icolor][1],
-//			g_colors.shape[icolor][2]
-//		};
 		DrawShapeSolid(g_colors.shape[icolor],d_fx,d_fy,d_w,d_h);
-//		aux_color[0]=pow(aux_color[0],5)*.75;
-//		aux_color[1]=pow(aux_color[1],5)*.75;
-//		aux_color[2]=pow(aux_color[2],5)*.75;
 		// borde de la forma
 		DrawShapeBorder(/*mouse==this?color_selection:*/(g_colors.border[icolor]),d_fx,d_fy,d_w,d_h);
 	}
 	if (type==ET_OPCION) { // + para agregar opciones
 		if (g_state.edit_on and g_state.mouse!=this) {
-			glBegin(GL_LINES);
-			glColor3fv(g_colors.label_high[3]);
+			rndr.setColor(g_colors.label_high[3]);
 			DrawLineaHorizontalTo(d_x-d_bwl+3*flecha_w/4,d_y-d_h/2,d_x-d_bwl+1*flecha_w/4);
 			DrawLineaVerticalTo(d_x-d_bwl+flecha_w/2,d_y-1*d_h/3,d_y-2*d_h/3);
-			glEnd();
 		}
 	} else 
 	if (!nolink) {
 		if (type==ET_SELECTION && !nolink) {
-			glColor3fv(g_colors.back);
+			rndr.setColor(g_colors.back);
 			int w = margin, x = d_fx+d_w/2, y = d_fy/*-d_h*/;
-			glBegin(GL_QUADS);
-				glVertex2d(x-w,y-w);
-				glVertex2d(x-w,y+w);
-				glVertex2d(x+w,y+w);
-				glVertex2d(x+w,y-w);
-			glEnd();
-			glLineWidth(g_constants.line_width_bordes);
-			glColor3fv(g_colors.menu_front);
-			glBegin(GL_LINE_LOOP);
-				glVertex2d(x-w,y-w);
-				glVertex2d(x-w,y+w);
-				glVertex2d(x+w,y+w);
-				glVertex2d(x+w,y-w);
-			glEnd();
+			rndr.drawSolidQuad({x-w,y-w}, {x-w,y+w}, {x+w,y+w}, {x+w,y-w});
+			rndr.setWidth(g_constants.line_width_bordes);
+			rndr.setColor(g_colors.menu_front);
+			rndr.drawQuad({x-w,y-w}, {x-w,y+w}, {x+w,y+w}, {x+w,y-w});
 			w /= 2;
-			glBegin(GL_LINES);
-			glColor3fv(g_colors.arrow);
+			rndr.setColor(g_colors.arrow);
 			DrawLinea(x-w,y-w,x+w,y+w);
 			DrawLinea(x+w,y-w,x-w,y+w);
-			glEnd();
-			glLineWidth(g_constants.line_width_flechas);
+			rndr.setWidth(g_constants.line_width_flechas);
 		} else
 		if (type==ET_ESCRIBIR or type==ET_LEER) { // flecha en la esquina
-			glBegin(GL_LINES);
-			glColor3fv(g_colors.io_arrow);
+			rndr.setColor(g_colors.io_arrow);
 			int axl = d_x+d_w/2-margin, axe = d_x+d_w/2+margin;
 			if (g_config.alternative_io and type==ET_ESCRIBIR) { axl-=h; axe-=h; }
 			DrawLinea(axl,d_y-margin,axe,d_y+margin);
@@ -378,8 +295,6 @@ void Entity::DrawClasico(bool force) {
 				DrawLinea(axe,d_y+margin,axe-margin,d_y+margin);
 				DrawLinea(axe,d_y+margin,axe,d_y+margin-margin);
 			}
-			
-			glEnd();
 		}
 	}
 	// texto;
@@ -390,13 +305,10 @@ void Entity::DrawClasico(bool force) {
 				GetChild(i)->Draw(true);
 			}
 		} else if (type==ET_PARA) {
-			glColor3fv(g_colors.border[g_config.shape_colors?ET_PARA:ET_COUNT]);
-			glBegin(GL_LINES);
+			rndr.setColor(g_colors.border[g_config.shape_colors?ET_PARA:ET_COUNT]);
 			DrawLinea(d_x-2*margin,d_y-d_bh+flecha_h-margin,d_x+2*margin,d_y-d_bh+flecha_h+margin);
 			DrawLinea(d_x-2*margin,d_y-margin,d_x+2*margin,d_y+margin);
-			glEnd();
-			glLineWidth(g_constants.line_width_bordes);
-			glBegin(GL_LINES);
+			rndr.setWidth(g_constants.line_width_bordes);
 			DrawLineaHorizontalW(d_fx-w/2,d_fy-d_h/2,w); // separadores de las cuatro partes del circulo
 			if (!variante) {
 				if (g_state.edit_on or GetChild(2)->label.size()) {
@@ -405,15 +317,13 @@ void Entity::DrawClasico(bool force) {
 				} else {
 					DrawLineaVerticalTo(d_x+(child_dx[1]+child_dx[2])/2,d_fy-d_h/2,d_fy-d_h+margin);
 				}
-				glEnd();
 				GetChild(1)->DrawText();
 				GetChild(2)->DrawText();
 				GetChild(3)->DrawText();
 			} else {
-				glEnd();
 				GetChild(2)->DrawText();
 			}
-			glLineWidth(g_constants.line_width_flechas);
+			rndr.setWidth(g_constants.line_width_flechas);
 		}
 	}
 }

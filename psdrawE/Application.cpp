@@ -3,6 +3,7 @@
 #include <wx/app.h>
 #include <wx/bitmap.h>
 #include <wx/dcmemory.h>
+#include <wx/dcsvg.h>
 #include <wx/image.h>
 #include <wx/msgdlg.h>
 #include <wx/numdlg.h>
@@ -14,17 +15,27 @@
 #include "../psdraw3/Entity.h"
 #include "../pseint/LangSettings.h"
 #include "../wxPSeInt/osdep.h"
-#include "GLtoWX.h"
 #include "Version.h"
 #include "mxConfig.h"
 #include "../wxPSeInt/string_conversions.h"
 #include "../psdraw3/EntityEditor.h"
+#include "mxRenderer.h"
 
 void ProcessMenu(int) {}
 
 class mxApplication : public wxApp {
 public:
-	virtual bool OnInit();
+	bool OnInit() override;
+	int OnRun() override {
+		// hack hasta que se publique wx 2.8 y tengamos SetExitErrorCode...
+		
+//		wxApp::OnRun(); // no hay ventana, pero entra en el main loop igual y ya no sale
+		
+		// se ejecuta cuando OnInit retorna true, deberiamos llamar al OnRun
+		// original, pero lo reescribo para poder definir codigo de salida del
+		// programa como 0 (sino por defecto es otra cosa segun s.o.)
+		return 0; 
+	}
 };
 
 IMPLEMENT_APP(mxApplication)
@@ -77,7 +88,7 @@ bool mxApplication::OnInit() {
 			; // procesado en lang.ProcessConfigLine
 		} else if (arg.Len()) {
 			if (fin.Len()) fout=arg;
-			else fin=arg;
+			else { fin=arg; fout=wxFileName(fin).GetName(); }
 		}
 	}
 	g_lang.Fix();
@@ -90,24 +101,6 @@ bool mxApplication::OnInit() {
 	g_state.edit_on=false;
 	if (nogui) mxConfig();
 	else if ((new mxConfig())->ShowModal()==wxID_CANCEL) return 0; // opciones del usuairo
-	
-	if (not g_config.shape_colors) {
-#warning REVISAR
-		// fondo
-		g_colors.shape[ET_COUNT][0] = .97f;
-		g_colors.shape[ET_COUNT][1] = .97f;
-		g_colors.shape[ET_COUNT][2] = .97f;
-		// flechas
-		g_colors.arrow[0] = .15f;
-		g_colors.arrow[1] = .15f;
-		g_colors.arrow[2] = .15f;
-		// texto
-		for(int j=0;j<6;j++) {
-			g_colors.label_high[j][0] = 0.0f;
-			g_colors.label_high[j][1] = 0.0f;
-			g_colors.label_high[j][2] = 0.0f;
-		}
-	}
 	
 	// calcular tamaño total
 	int h=0,wl=0,wr=0, margin=10;
@@ -122,48 +115,60 @@ bool mxApplication::OnInit() {
 		it->Tick();
 		++it;
 	}
+	
+	// guardar
+	if (not nogui) {
+		wxFileName fn(fout);
+		wxFileDialog fd(NULL,_Z("Guardar imagen"),fn.GetPath(),fn.GetName(),
+						_Z( "Formatos soportados | *.svg;*.SVG" _IF_PNG(";*.png;*.PNG") _IF_JPG(";*.jpg;*.jpeg;*.JPG;*.JPEG") ";*.bmp;*.BMP | " 
+						    _IF_PNG("Imagen PNG|*.png;*.PNG|")
+						    _IF_JPG("Imagen jpeg|*.jpg;*.jpeg;*.JPG;*.JPEG|")
+							"Imagen BMP|*.bmp;*.BMP|"
+						    "Dibujo SVG|*.svg;*.SVG"),
+						wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
+		if (fd.ShowModal()!=wxID_OK) { return false;  }
+		fout = fd.GetPath();
+	}
 
 	// generar el bitmap
 //	int margin=10;
 	int bw=((x1-x0)+2*margin)*g_view.zoom;
-	int bh=((y0-y1)+2*margin)*g_view.zoom;
-//	cerr<<bw<<","<<bh<<endl;
-	wxBitmap bmp(bw,bh);
-	dc=new wxMemoryDC(bmp);
-	dc->SetBackground(wxColour(255,255,255));
-	dc->Clear();
+	int bh=((y0-y1)/*+2*margin*/)*g_view.zoom;
+	bool svg = fout.Lower().EndsWith(".svg");
+	wxBitmap bmp;
+	if (svg) {
+		rndr.setDC(new wxSVGFileDC(fout,bw,bh,72,"Diagrama de Flujo"),true);
+	} else {
+		bmp = wxBitmap(bw,bh);
+		rndr.setDC(new wxMemoryDC(bmp),false);
+		rndr.clear(g_colors.back);
+	}
 	
 	// dibujar
 	Entity *aux=real_start;
 	g_constants.line_width_flechas=2*g_view.d_zoom<1?1:int(g_view.d_zoom*2);
 	g_constants.line_width_bordes=1*g_view.d_zoom<1?1:int(g_view.d_zoom*1);
-	glLineWidth(g_constants.line_width_flechas);
-	glPushMatrix();
-	glScaled(g_view.d_zoom,-g_view.d_zoom,1);
-	glTranslated(wl+margin,-margin,0);
+	rndr.setWidth(g_constants.line_width_flechas);
+	rndr.setTransformation( {wl*g_view.d_zoom+margin*g_view.d_zoom, margin*g_view.d_zoom}, g_view.d_zoom);
 	do {
 		aux->Draw();
 		aux=Entity::NextEntity(aux);
 	} while (aux);
-	
-	// guardar
-	if (not nogui) {
-		wxFileName fn(fout);
-		wxFileDialog fd(NULL,_Z("Guardar imagen"),fn.GetPath(),fn.GetName()+".png",
-			_Z( _IF_PNG("Imagen PNG|*.png;*.PNG|") _IF_JPG("Imagen jpeg|*.jpg;*.jpeg;*.JPG;*.JPEG|") "Imagen BMP|*.bmp;*.BMP"),
-			wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
-		if (fd.ShowModal()!=wxID_OK) { return false;  }
-		fout=fd.GetPath();
-	}
+	rndr.finish();
 	
 	wxBitmapType type;
-	if (fout.Lower().EndsWith(".bmp")) type=wxBITMAP_TYPE_BMP;
-	_IF_PNG(if (fout.Lower().EndsWith(".png")) type=wxBITMAP_TYPE_PNG;)
-	_IF_JPG(else if (fout.Lower().EndsWith(".jpg")||fout.Lower().EndsWith(".jpeg")) type=wxBITMAP_TYPE_JPEG;)
-	if (bmp.SaveFile(fout,type)) {
-		if (nogui) std::cerr << _Z("Guardado: ")<<fout<<std::endl;
-		else wxMessageBox(_Z("Diagrama guardado"),_Z("PSeInt"));
+	if (!svg) {
+		if (fout.Lower().EndsWith(".bmp")) type=wxBITMAP_TYPE_BMP;
+		_IF_PNG(if (fout.Lower().EndsWith(".png")) type=wxBITMAP_TYPE_PNG;)
+		_IF_JPG(else if (fout.Lower().EndsWith(".jpg")||fout.Lower().EndsWith(".jpeg")) type=wxBITMAP_TYPE_JPEG;)
+		if (!bmp.SaveFile(fout,type)) {
+			if (nogui) std::cerr << _Z("Error escribiendo: ")<<fout<<std::endl;
+			else wxMessageBox(_Z("No se pudo escribir el archivo"),_Z("PSeInt"));
+		}
 	}
+	if (nogui) std::cerr << _Z("Guardado: ")<<fout<<std::endl;
+	else wxMessageBox(_Z("Diagrama guardado"),_Z("PSeInt"));
 	
-	return false;
+	// SetExitErrorCode(0); no disponible todavía en wx 3.2.6, ver mxApplication::OnRun arriba
+	return true;
 }

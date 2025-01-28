@@ -99,15 +99,10 @@ struct Entity : public EntityLinking<Entity> {
 	void OnLinkingEvent(LnkEvtType t, int i);
 };
 
-static const int flecha_h=25; // separacion entre bloques consecutivos
-static const int flecha_w=20; // separacion entre bloques hermanos
-static const int flecha_d=5; // tamaño de la punta de la flecha
-static const int selection_tolerance_y=15; // tolerancia en y para la seleccion de puntos
-static const int selection_tolerance_x=30; // tolerancia en x para la seleccion de puntos
-static const int margin=6; // margen entre cuadro y texto en un bloque (y para los botones de confirm, por eso no es static, ¿ni const?)
-static const int vf_size=5;
-static const int shadow_delta_x=4; // diferencia entre la posicion de un objeto y su sombra
-static const int shadow_delta_y=5; // diferencia entre la posicion de un objeto y su sombra
+extern int flecha_h; // separacion entre bloques consecutivos
+extern int flecha_w; // separacion entre bloques hermanos
+extern int flecha_d; // tamaño de la punta de la flecha
+extern int margin; // margen entre cuadro y texto en un bloque
 
 struct AllEntities {
 	auto begin() const { return Entity::AllBegin(); }

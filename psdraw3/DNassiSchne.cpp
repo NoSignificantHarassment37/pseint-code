@@ -1,31 +1,11 @@
 #include <iostream>
 #include <cstdlib>
-#include "GLstuff.h"
 #include "Entity.h"
 #include "Global.h"
 #include "Text.h"
+#include "Renderer.h"
 
 static int bk_x0,bk_x1,bk_y0,bk_y1;
-
-static void DrawRectangle(const float *color, int x, int y, int wl, int wr, int h) {
-	glColor3fv(color);
-	glBegin(GL_LINE_LOOP);
-	glVertex2i(x-wl,y);
-	glVertex2i(x-wl,y-h);
-	glVertex2i(x+wr,y-h);
-	glVertex2i(x+wr,y);
-	glEnd();
-}
-
-static void DrawSolidRectangle(const float *color, int x, int y, int wl, int wr, int h) {
-	glColor3fv(color);
-	glBegin(GL_QUADS);
-	glVertex2i(x-wl,y);
-	glVertex2i(x-wl,y-h);
-	glVertex2i(x+wr,y-h);
-	glVertex2i(x+wr,y);
-	glEnd();
-}
 
 //static void DrawBackground() {
 //	int bk_xm=(bk_x0+bk_x1)/2, bk_w=(bk_x1-bk_x0)/2;
@@ -34,18 +14,6 @@ static void DrawSolidRectangle(const float *color, int x, int y, int wl, int wr,
 //	bk_y0=bk_y1=g_code.start->d_y;
 //}
 
-static void DrawTextNS(const float *color, int x, int y, std::string label) {
-	glColor3fv(color);
-	glPushMatrix();
-	glTranslated(x,y,0);
-	glScaled(.105,.15,.1);
-	begin_texto();
-	for (unsigned int i=0;i<label.size();i++)
-		dibujar_caracter(label[i]);
-	end_texto();
-	glPopMatrix();
-}
-
 void Entity::DrawNassiShne(bool force) {
 	if (bwl>2000) std::cerr << bwl << std::endl;
 	int icolor=g_config.shape_colors?type:ET_COUNT;
@@ -53,11 +21,12 @@ void Entity::DrawNassiShne(bool force) {
 //	if (this==g_code.start) DrawBackground();
 //	if (mouse==this) DrawSolidRectangle(color_shape[ET_COUNT],d_fx,d_fy,d_bwl,d_bwr,d_bh);
 	if (this==g_state.mouse)
-		DrawSolidRectangle(g_colors.ghost,g_view.d_dx+fx,g_view.d_dy+fy-margin,bwl-margin,bwr-margin,bh-2*margin);
+		rndr.setColor(g_colors.ghost)
+		    .drawSolidRectangle({g_view.d_dx+fx, g_view.d_dy+fy-margin}, bwl-margin, bwr-margin,bh-2*margin);
 	if (type!=ET_AUX_PARA&&type!=ET_OPCION) {
 		if ((not nolink) or g_state.mouse==this) {
-			DrawSolidRectangle(g_colors.shape[icolor],d_fx,d_fy,d_bwl,d_bwr,d_bh);
-			DrawRectangle(g_colors.border[icolor],d_fx,d_fy,d_bwl,d_bwr,d_bh);
+			rndr.setColor(g_colors.shape[icolor]).drawSolidRectangle({d_fx,d_fy}, d_bwl, d_bwr,d_bh);
+			rndr.setColor(g_colors.border[icolor]).drawRectangle({d_fx,d_fy}, d_bwl, d_bwr,d_bh);
 		}
 	}
 	// guardar bb para el gran retangulo blanco de fondo
@@ -67,75 +36,62 @@ void Entity::DrawNassiShne(bool force) {
 	if (d_fx+d_bwr>bk_x1) bk_x1=d_fx+d_bwr;
 	if (!nolink) {
 		if (type==ET_OPCION) {
-			glColor3fv(g_colors.border[icolor]);
-			glBegin(GL_LINES);
+			rndr.setColor(g_colors.border[icolor]);
 //			if (edit_on) { glVertex2i(d_x-d_bwl+flecha_w,d_y); glVertex2i(d_x-d_bwl+flecha_w,d_y-h); }
 			int px=GetParent()->child_dx[GetChildId()]-bwl;
 			int px0=-GetParent()->bwl, px1=GetParent()->child_dx[GetParent()->GetChildCount()-1]-GetParent()->GetChild(GetParent()->GetChildCount()-1)->bwl;
-			int ax=px1-px; if (ax<0) ax=-ax;
+			int py0=GetParent()->d_y, ph = GetParent()->h;
+			int ax=px-px0; //if (ax<0) ax=-ax;
 			if (px1==px0) px1++;
-			int ah=ax*5*h/(px1-px0)/2;
-			glVertex2i(d_x-d_bwl,d_y-h); glVertex2i(d_x-d_bwl,d_y-h/2+ah);
-			if (!GetChild(0)) { glVertex2i(d_x-d_bwl,d_y-h); glVertex2i(d_x+d_bwr,d_y-h); }
-			glEnd();
+			int y=py0 - (ax*4*h/2)/(px1-px0); // el coef 4*h/2 debe coincidir con el de segun
+			rndr.drawLine({d_x-d_bwl,d_y-h}, {d_x-d_bwl,y});
+			if (!GetChild(0)) { rndr.drawLine({d_x-d_bwl,d_y-h}, {d_x+d_bwr,d_y-h}); }
 		} else if (type==ET_SEGUN) {
-			glColor3fv(g_colors.border[icolor]);
-			glBegin(GL_LINE_STRIP);
-			glVertex2i(d_x-d_bwl,d_y);
-			int px=d_x;
-			px+=child_dx[GetChildCount()-1]-GetChild(GetChildCount()-1)->d_bwl;
-			glVertex2i(px,d_y-5*h/2);
-			glVertex2i(d_x+d_bwr,d_y);
-			glEnd();
-			glBegin(GL_LINES);
-			for(int i=0;i<GetChildCount()-1;i++) { 
-				glVertex2i(d_x+child_dx[i]+GetChild(i)->bwr,GetChild(i)->d_y-GetChild(i)->d_h);
-				glVertex2i(d_x+child_dx[i]+GetChild(i)->bwr,d_y-d_bh);
+			rndr.setColor(g_colors.border[icolor]);
+			int px = d_x + child_dx[GetChildCount()-1]-GetChild(GetChildCount()-1)->d_bwl;
+			int py = d_y-4*h/2; // el coef 4*h/2 debe coincidir con el de opcion
+			rndr.drawLine({d_x-d_bwl,d_y}, {px,py});
+			rndr.drawLine({px,py}, {d_x+d_bwr,d_y});
+			for(int i=0;i<GetChildCount()-1;i++) {
+				if (GetChild(i)==g_state.mouse) continue;
+				rndr.drawLine({d_x+child_dx[i]+GetChild(i)->bwr,GetChild(i)->d_y-GetChild(i)->d_h},
+				              {d_x+child_dx[i]+GetChild(i)->bwr,d_y-d_bh});
 			}
-			glEnd();
 			
 		} else 
 		if (type==ET_SI) {
-			DrawTextNS(g_colors.arrow,d_x-d_bwl+10,d_y-2*h,"Si");
-			DrawTextNS(g_colors.arrow,d_x+d_bwr-35,d_y-2*h,"No");
-			glColor3fv(g_colors.border[icolor]);
-			glBegin(GL_LINE_STRIP);
-			glVertex2i(d_x-d_bwl,d_y);
+			rndr.setColor(g_colors.arrow);
+			rndr.drawText({d_x-d_bwl+10,d_y-2*h}, "Si");
+			rndr.drawText({d_x+d_bwr-35,d_y-2*h}, "No");
+			rndr.setColor(g_colors.border[icolor]);
 			int px=d_x;
 			if (GetChild(1)) px+=child_dx[1]+GetChild(1)->d_bwr;
 			else if (GetChild(0)) px+=child_dx[0]-GetChild(0)->d_bwl;
-			glVertex2i(px,d_y-2*h-margin);
-			glVertex2i(d_x+d_bwr,d_y);
-			glEnd();
-			glBegin(GL_LINES);
-			glVertex2i(d_x-d_bwl,d_y-2*h-margin);
-			glVertex2i(d_x+d_bwr,d_y-2*h-margin);
-			glEnd();
+			rndr.drawLine({d_x-d_bwl,d_y}, {px,d_y-2*h-margin});
+			rndr.drawLine({px,d_y-2*h-margin}, {d_x+d_bwr,d_y});
+			rndr.drawLine({d_x-d_bwl,d_y-2*h-margin}, {d_x+d_bwr,d_y-2*h-margin});
 		}
 	}
 
 	if (type==ET_OPCION) { // + para agregar opciones
 		if (g_state.edit_on and g_state.mouse!=this) {
-			glBegin(GL_LINES);
-			glColor3fv(g_colors.label_high[4]);
-			glVertex2i(d_x-d_bwl+3*flecha_w/4,d_y-d_h/2); glVertex2i(d_x-d_bwl+1*flecha_w/4,d_y-d_h/2);
-			glVertex2i(d_x-d_bwl+flecha_w/2,d_y-1*d_h/3); glVertex2i(d_x-d_bwl+flecha_w/2,d_y-2*d_h/3);
-			glEnd();
+			rndr.setColor(g_colors.label_high[4]);
+			rndr.drawLine({d_x-d_bwl+3*flecha_w/4,d_y-d_h/2}, {d_x-d_bwl+1*flecha_w/4,d_y-d_h/2});
+			rndr.drawLine({d_x-d_bwl+flecha_w/2,d_y-1*d_h/3}, {d_x-d_bwl+flecha_w/2,d_y-2*d_h/3});
 		}
 	}
 	
 	if (type==ET_SELECTION) { // + para agregar opciones
 		int w = margin, x = d_fx+d_w/2-margin-margin/2, y = d_fy-margin-margin/2;
-		glLineWidth(g_constants.line_width_bordes);
+		rndr.setWidth(g_constants.line_width_bordes);
 		w /= 2;
-		glBegin(GL_LINES);
-		glColor3fv(g_colors.arrow);
-		glVertex2i(x-w,y-w); glVertex2i(x+w,y+w);
-		glVertex2i(x+w,y-w); glVertex2i(x-w,y+w);
-		glEnd();
-		glLineWidth(g_constants.line_width_flechas);
+		rndr.setColor(g_colors.arrow);
+		rndr.drawLine({x-w,y-w}, {x+w,y+w});
+		rndr.drawLine({x+w,y-w}, {x-w,y+w});
+		rndr.setWidth(g_constants.line_width_flechas);
 	}
-//	// texto;
+	// texto;
+	rndr.flush();
 	DrawText();
 }
 

@@ -1,5 +1,5 @@
 #ifdef _FOR_EXPORT
-#	include "GLtoWX.h"
+//#	include "GLtoWX.h"
 #else
 #	ifdef __APPLE__
 #		include <OpenGL/gl.h>

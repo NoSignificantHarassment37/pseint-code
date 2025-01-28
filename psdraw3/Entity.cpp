@@ -3,21 +3,30 @@
 #include <cstdlib>
 #include <set>
 #include <wx/wx.h>
-#include "GLstuff.h"
 #include "Entity.h"
 #include "Global.h"
 #include "Events.h"
 #include "Text.h"
+#include "Renderer.h"
 #ifndef _FOR_EXPORT
 #	include "ShapesBar.h"
 #endif
 #include "../pseint/strFuncs.hpp"
+
+static const int selection_tolerance_y=15; // tolerancia en y para la seleccion de puntos
+static const int selection_tolerance_x=30; // tolerancia en x para la seleccion de puntos
 
 static int edit_pos; // posición del cursor cuando se edita un texto
 static const unsigned char SC_FLECHA = 27;
 static const unsigned char SC_DISTINTO = 29;
 static const unsigned char SC_MEN_IGUAL = 30;
 static const unsigned char SC_MAY_IGUAL = 31;
+
+/*const*/ int flecha_h = 25; // separacion entre bloques consecutivos
+                   /*const*/ int flecha_w = 20; // separacion entre bloques hermanos
+/*const*/ int flecha_d = 5; // tamaño de la punta de la flecha
+/*const*/ int margin = 6; // margen entre cuadro y texto en un bloque
+
 
 
 // tamaño de las letras
@@ -434,42 +443,26 @@ void Entity::Tick() {
 }
 
 void Entity::DrawText() {
-	glPushMatrix();
-	glTranslated(d_fx+t_dx-t_w/2+(g_state.edit_on&&type==ET_OPCION?flecha_w/2:0),d_fy-(d_h/2+margin)+t_dy,0);
-	if (this==g_state.edit) { glScaled(.105,.15,1); } // el escalado molesta visualmente al editar el texto
-	else glScaled((.105*d_w)/w,(.15*d_h)/h,1);
-	begin_texto();
-	glColor3fv(g_colors.label_high[3]);
-	for (unsigned int i=0;i<lpre.size();i++) {
-		dibujar_caracter(lpre[i]);
-	}
-//	glColor3fv(edit==this?color_selection:(type==ET_PROCESO?color_arrow:(type==ET_COMENTARIO?color_comment:color_label)));
+	rndr.setColor(g_colors.label_high[3]);
+	double scale = 1.f;
+	if (this!=g_state.edit) // el escalado molesta visualmente al editar el texto
+		scale = (float(d_w)/w + float(d_h)/h) / 2;
+	Renderer::Point p = {d_fx+t_dx-t_w/2*scale + (g_state.edit_on&&type==ET_OPCION?flecha_w/2:0),
+		                 d_fy-d_h/2-t_h*scale*.4+t_dy};
+	p = rndr.drawTextEx(p, scale, lpre.c_str(), lpre.size());
 	int llen = label.size(), crop_len = IsLabelCropped();
-	if (crop_len) llen=crop_len-3;
-	int last_color = 'a'; bool syntax = true;//type!=ET_COMENTARIO; 
-	if (syntax) glColor3fv(g_colors.label_high[last_color-'a']);
-	for (int i=0;i<llen;i++) {
-		if (syntax && colourized[i]!=last_color) 
-			glColor3fv(g_colors.label_high[(last_color=colourized[i])]);
-		dibujar_caracter(label[i]);
-	}
-	if (llen!=int(label.size()))
-		for (unsigned int i=0;i<3;i++)
-			dibujar_caracter('.');
-	end_texto();
-	glPopMatrix();
+	if (crop_len) llen = crop_len-3;
+	p = rndr.drawTextEx(p, scale, label.c_str(), llen, g_colors.label_high, colourized.c_str());
+	if (llen!=int(label.size())) p = rndr.drawTextEx(p, scale, "...", 3);
 	// dibuja el cursor de edición si estamos editando justo este texto
 	if (g_state.edit==this and g_state.mouse!=this and w>0) {
 		constexpr int BLINK_TIME=30;
 		static int blink = 0; // cuando se esta editando texto, indica si se muestra o no el cursor, para que parpadee
 		if (++blink==BLINK_TIME) blink=0;
 		if (blink<BLINK_TIME/2) {
-			glBegin(GL_LINES);
 			int lz=label.size(); if (!lz) lz=1; // ojo estas dos lineas deben coincidir con las dos de EnsureCaretVisible
 			lz= d_fx+t_dx-t_w/2+t_prew+(t_w-t_prew)*edit_pos*d_w/lz/w+(type==ET_OPCION?flecha_w/2:0);
-			glVertex2i(lz,d_fy-h/2-t_h/2-margin/2+t_dy);
-			glVertex2i(lz,d_fy-h/2+t_h/2+margin/2+t_dy);
-			glEnd();
+			rndr.drawLine({lz,d_fy-h/2-t_h/2-margin/2+t_dy}, {lz,d_fy-h/2+t_h/2+margin/2+t_dy});
 		}
 	}
 }
@@ -863,7 +856,7 @@ void Entity::SetEditPos (int pos, bool ensure_caret_visibility) {
 void Entity::OnLinkingEvent (LnkEvtType t, int i) {
 	switch(t) {
 	case EntityLinkingBase::EVT_UNLINK:
-		if (type==ET_SEGUN) RemoveChild(i);
+		if (type==ET_SEGUN) RemoveChild(i); // cuando se arrastra una opcion a la papelera
 		break;
 	case EntityLinkingBase::EVT_SETCHILDCOUNT:
 		child_bh.Resize(i,0); child_dx.Resize(i,0);

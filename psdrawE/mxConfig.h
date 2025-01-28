@@ -11,8 +11,9 @@ class mxConfig : public wxDialog {
 	wxTextCtrl *tx_alto;
 	wxTextCtrl *tx_zoom;
 	wxCheckBox *ch_comments;
-	wxCheckBox *ch_colors;
+	wxComboBox *cm_colors;
 	wxCheckBox *ch_crop;
+	wxCheckBox *ch_compact;
 	wxComboBox *cm_style;
 	wxComboBox *cm_proc;
 	bool ignore_events;
@@ -27,6 +28,7 @@ public:
 	void OnZoom(wxCommandEvent &evt);
 	void OnColors(wxCommandEvent &evt);
 	void OnComments(wxCommandEvent &evt);
+	void OnCompact(wxCommandEvent &evt);
 	void OnCrop(wxCommandEvent &evt);
 	void OnProc(wxCommandEvent &evt);
 	void OnStyle(wxCommandEvent &evt);
