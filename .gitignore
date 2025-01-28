@@ -3,7 +3,7 @@ test/export/cur
 test/export/temp
 test/draw/cur
 test/draw/psd
-test/draw/diff
+test/draw/dif
 test/draw/tmp
 temp
 wine32

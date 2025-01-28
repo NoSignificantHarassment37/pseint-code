@@ -7,6 +7,10 @@
 
 # Es importante correr este script con bash y no con otro shell no compatible
 
+function get_arch {
+  if uname -a | grep x86_64 >/dev/null; then echo l64; else echo l32; fi
+}
+
 if ! test -e ./pseint-packer.cfg; then
 	touch ./pseint-packer.cfg
 	echo '# usuario, ip, y ruta hacia el directorio donde se encuentran los fuentes' >> ./pseint-packer.cfg
@@ -15,7 +19,7 @@ if ! test -e ./pseint-packer.cfg; then
 	echo '' >> ./pseint-packer.cfg
 	echo '# tipo de arquitectura para la que se compila, que se usara para el nombre' >> ./pseint-packer.cfg
 	echo '# del paquete generado (l32 o l64)' >> ./pseint-packer.cfg
-	echo 'ARCH="l64"' >> ./pseint-packer.cfg
+	echo 'ARCH="'`get_arch`'"' >> ./pseint-packer.cfg
 	echo '' >> ./pseint-packer.cfg
 	echo '# directorio con los .so de a incluir en el paquete... debería haber allí dos' >> ./pseint-packer.cfg
 	echo '# subdirectorios, png y wx, cada uno con sus .so y un txt con la licencia' >> ./pseint-packer.cfg
@@ -42,7 +46,7 @@ fi
 scp $SSHSRC/pseint-src-$1.tgz . || exit 3
 tar $TAR_OPTS -xzvf pseint-src-$1.tgz
 
-if ! [ "LIBSDIR" = "" ]; then 	
+if ! [ "$LIBSDIR" = "" ]; then 	
 	mkdir -p pseint/bin/lib/
 	cp -rf "$LIBSDIR"/* pseint/bin/lib/
 fi

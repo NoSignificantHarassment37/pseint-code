@@ -3,6 +3,7 @@
 function clean {
 	rm -f bin/temp.psd
 	rm -f bin/log.exe
+	rm -f bin/updatem
 	rm -f bin/updatem.bin
 	rm -f bin/updatem.exe
 	rm -f bin/pseint
@@ -149,5 +150,5 @@ else
 	echo "  - src: source code packed in a tgz file"
 	echo "  - w32/w64: 32/64 bits windows installer (exe generated with wine32/wine64+mingw64+inno setup), and portable (zip) version"
 	echo "  - l32/l64: GNU/Linux versions, compiled natively on current system/architecture"
-	echo "  - ma64/mi64: tgz package for MacOS systems based on intel x86_64/arm64 hardware (cross compiled with osxcross)"
+	echo "  - mi64/ma64: tgz package for MacOS systems based on intel x86_64/arm64 hardware (cross compiled with osxcross)"
 fi

@@ -2,6 +2,11 @@
 
 Para generar el paquete de código fuente para una release sola hay que ejecutar `./pack.sh src`, y el resultado estará en el directorio `dist`.
 
+### Acciones previas
+
+Si es para una release, antes de generar el paquete de código fuente y los diferentes binarios para distribuir, se debe actualizar la documentación (en particular revisar el changelog en `bin/help/cambios.php`), la splash screen (cambiar la versión en `imgs/splash.svg` y regenerarlos pngs con `imgs/splash.sh`), y el achivo `bin/version` (que es donde los scripts toman el número de versión).
+
+
 ## Microsoft Windows
 
 El proceso se hace un GNU/Linux ejecutando el compilador para windows (mingw32 o mingw64) mediante wine (actualmente uso Fedora37 con el wine de sus repositorios)
@@ -33,11 +38,11 @@ y lo ejecuto con `regedit /C user.reg` (`regedit` es uno de los ejecutables de w
 
 ### Software para generar el instalador
 
-Actualmente utilizo Inno Setup 6.2.2. Ejecuto el instalador con wine (una vez con cada prefix) y le digo que lo instale en `C:\inno`. Con eso los scripts de zinjai podrán generar el instalador sin tener que modificar nada más. Alternativamente están comentadas (en `pach.sh`) los comandos para usar nsis en lugar de inno (anteriormente usaba nsis, pero en algún momento por los problemas con antiviru descubrí que con inno generaba menos  y falsos positivos).
+Actualmente utilizo Inno Setup 6.2.2. Ejecuto el instalador con wine (una vez con cada prefix) y le digo que lo instale en `C:\inno`. Con eso los scripts de zinjai podrán generar el instalador sin tener que modificar nada más. Alternativamente están comentadas (en `pack.sh`) los comandos para usar nsis en lugar de inno (anteriormente usaba nsis, pero en algún momento por los problemas con antiviru descubrí que con inno generaba menos  y falsos positivos).
 
 ### Acciones en cada Release
 
-El script `pack.sh` compila todo usando wine+mingw y genera también el exe con inno y un zip "portable". Se ejecuta con `./pach.sh w32` y `./pack.sh w64` (en cada caso definiendo previamente `WINEPREFIX` y `WINEARCH`) . Los archivos resultantes estarán en el directorio `dist`.
+El script `pack.sh` compila todo usando wine+mingw y genera también el exe con inno y un zip "portable". Se ejecuta con `./pack.sh w32` y `./pack.sh w64` (en cada caso definiendo previamente `WINEPREFIX` y `WINEARCH`) . Los archivos resultantes estarán en el directorio `dist`.
 
 ## GNU/Linux
 
@@ -87,7 +92,7 @@ Para agilizar el proceso de ida y vuelta de archivos entre le host y la máquina
 ### Acciones en cada release
 
 1. Antes de comenzar, en el host hay que generar el tgz con los fuentes. Para ello, correr `./pack.sh src` en el directorio de fuentes de pseint.
-2. Ejecutar `./pseint-packer.sh 20230314` (se le pasa el nro de versión como argumento, el que tenga en el nombre el archivo del paso 1)
+2. En la máquina virtual, ejecutar `./pseint-packer.sh 20230314` (se le pasa el nro de versión como argumento, el que tenga en el nombre el archivo del paso 1)
    * El archivo quedará en el directorio `pseint/dist` del host
 
 ## MacOS
