@@ -49,7 +49,7 @@ EntityLinkingBase::~EntityLinkingBase() {
 	if (this==m_all_any) m_all_any = nullptr; // ...si no hay otra esta era la ultima
 }
 
-void EntityLinkingBase::UnLink() {
+void EntityLinkingBase::UnLink(bool generate_event) {
 	SetModified();
 	EntityLinkingBase *old_parent = m_parent;
 	int old_id = m_child_id;
@@ -63,7 +63,7 @@ void EntityLinkingBase::UnLink() {
 	}
 	m_child_id = -1;
 	m_parent = m_next = m_prev = nullptr;
-	if (old_parent && old_id!=-1) 
+	if (generate_event and old_parent and old_id!=-1) 
 		old_parent->OnLinkingEvent(EVT_UNLINK,old_id);
 }
 
@@ -83,9 +83,9 @@ void EntityLinkingBase::LinkNext(EntityLinkingBase *e) {
 	}
 }
 
-void EntityLinkingBase::SetChildCount(int new_count) {
+void EntityLinkingBase::SetChildCount(int new_count, bool generate_event) {
 	m_childs.Resize(new_count,nullptr);
-	OnLinkingEvent(EVT_SETCHILDCOUNT,new_count);
+	if (generate_event) OnLinkingEvent(EVT_SETCHILDCOUNT,new_count);
 }
 
 #ifdef _VERIFY_LINKS
@@ -128,29 +128,29 @@ void EntityLinkingBase::VerifyAll( ) {
 }
 #endif
 
-void EntityLinkingBase::RemoveChild (int id, bool also_delete) {
+void EntityLinkingBase::RemoveChild (int id, bool also_delete, bool generate_event) {
 	_verify_links_;
 	SetModified();
 	if (m_childs[id]) {
 		EntityLinkingBase *the_child = m_childs[id];
-		the_child->UnLink();
+		the_child->UnLink(false); // no generar EVT_UNLINK, se genera abajo un EVT_REMOVECHILD
 		if (also_delete) delete m_childs[id];
 	}
 	m_childs.Remove(id);
 	for (int i=0;i<m_childs.Count();i++)
 		if (m_childs[i]) m_childs[i]->m_child_id = i;
-	OnLinkingEvent(EVT_REMOVECHILD,id);
+	if (generate_event) OnLinkingEvent(EVT_REMOVECHILD,id);
 	_verify_links_;
 }
 
-void EntityLinkingBase::InsertChild (int id, EntityLinkingBase * e) {
+void EntityLinkingBase::InsertChild (int id, EntityLinkingBase *e, bool generate_event) {
 	_verify_links_;
 	SetModified();
 	m_childs.Insert(id,nullptr);
 	for (int i=0;i<m_childs.Count();i++)
 		if (m_childs[i]) m_childs[i]->m_child_id = i;
 	if (e) LinkChild(id,e); // agrega al final
-	OnLinkingEvent(EVT_INSERTCHILD,id);
+	if (generate_event) OnLinkingEvent(EVT_INSERTCHILD,id);
 	_verify_links_;
 }
 

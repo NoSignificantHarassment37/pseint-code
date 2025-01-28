@@ -32,13 +32,13 @@ protected:
 public:
 	EntityLinkingBase();
 	virtual ~EntityLinkingBase();
-	void UnLink();
+	void UnLink(bool generate_event=true);
 	void LinkNext(EntityLinkingBase *e);
 	void LinkChild(int id, EntityLinkingBase *e);
-	void SetChildCount(int new_count);
+	void SetChildCount(int new_count, bool generate_event=true);
 	void VerifyLinks(bool recursive);
-	void RemoveChild(int id, bool also_delete = true);
-	void InsertChild(int id, EntityLinkingBase *e);
+	void RemoveChild(int id, bool also_delete = true, bool generate_event=true);
+	void InsertChild(int id, EntityLinkingBase *e, bool generate_event=true);
 	bool Contains(EntityLinkingBase *aux) const;
 	static void VerifyAll();
 	
