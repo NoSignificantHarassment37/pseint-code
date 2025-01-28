@@ -932,7 +932,7 @@ void Instrucciones(RunTime &rt) {
 							DataValue res;
 							for (const std::string &str_dim : vstr_dims) {
 								dims[++idim] = -1;
-								
+								if (ignore_logic_errors) continue;
 								if (str_dim=="") err_handler.SyntaxError(61,"Parametro nulo.");
 								/*if (this_instruction_is_ok()) */res = EvaluarSC(rt,str_dim,vt_numerica);
 								if (res.IsOk() and (not res.CanBeReal())) {

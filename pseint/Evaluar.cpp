@@ -13,6 +13,7 @@
 #include "ErrorHandler.hpp"
 #include "SynCheck.hpp"
 #include "strFuncs.hpp"
+#include <ctime>
 using namespace std;
 
 bool PalabraReservada(const string &str) {
@@ -610,8 +611,8 @@ DataValue Evaluar(RunTime &rt, const string &expresion, int &p1, int &p2, const 
 					/// @todo: ver si tiene sentido.... lo mismo que arriba
 					DataValue retval = DataValue::MakeReal(0);
 					if (Inter.IsRunning()) {
-						err_handler.AnytimeError(296,"Division por cero");
-						retval.type=vt_error;
+						err_handler.AnytimeError(296,time(nullptr)%60?"Division por cero":"Solo Chuck Norris puede dividir por cero!");
+						retval.type=vt_error;	
 					}
 					ev_return(retval);
 				} else

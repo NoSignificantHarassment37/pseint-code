@@ -142,7 +142,7 @@ void LangSettings::init() {
 			"repetitiva \"Para\" que permite recorrer los elementos de un arreglo de forma más "
 			"simple. Ej: \"Para Cada Elemento de V Hacer ... FinPara\"."
 		);
-	data[LS_PROTECT_FOR_COUNTER].Set("protect_for_counter",				false,
+	data[LS_PROTECT_FOR_COUNTER].Set("protect_for_counter",				true,
 			"Proteger contador del Para",
 			"Con esta opción habilitada no se puede modificar la variable que se utiliza como "
 			"contador dentro de un para, y adicionalmente la variable deja de estar inicializada "
