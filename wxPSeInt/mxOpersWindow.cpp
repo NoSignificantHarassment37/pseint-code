@@ -69,7 +69,8 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 	}
 	
 	AddCaterory(_Z("Otras Funciones"));
-	Add(_Z("azar({expr_num_entera_positiva})"),"azar",_Z("numero aleatorio"),_Z("Ej: Azar(N) retorna un numero aleatorio entre 0 y N-1"));
+	Add(_Z("Azar({expr_num_entera_positiva})"),"Azar",_Z("numero aleatorio"),_Z("Ej: Azar(N) retorna un numero aleatorio entre 0 y N-1"));
+	Add(_Z("Aleatorio({valor_minimo},{valor_maximo})"),"Aleatorio",_Z("numero aleatorio"),_Z("Ej: Aleatorio(A,B) retorna un numero aleatorio entre A y B"));
 	Add(_Z("HoraActual()"),"HoraActual",_Z("hora actual"),_Z("Retorna un único numero entero con la hora del sistema en formato HHMMSS"));
 	Add(_Z("FechaActual()"),"FechaActual",_Z("fecha actual"),_Z("Retorna un único numero entero con la fecha del sistema en formato AAAAMMDD"));
 	

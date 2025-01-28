@@ -1,8 +1,8 @@
+#include <wx/printdlg.h>
+#include <wx/msgdlg.h>
 #include "mxPrintOut.h"
 #include "mxSource.h"
-#include <wx/printdlg.h>
 #include "mxMainWindow.h"
-#include <wx/msgdlg.h>
 #include "string_conversions.h"
 #include "ConfigManager.h"
 
@@ -16,7 +16,7 @@
 * de wxWidgets. Se encarga de calcular la cantidad de paginas, donde comienza
 * cada una, y dialogar con el mxSource para renderizarlas en el dc.
 * el codigo de esta clase esta basado en el ejemplo de stc que viene con 
-* wxWidgets, aunque tiene varias modificaciones.s
+* wxWidgets, aunque tiene varias modificaciones.
 **/
 mxPrintOut::mxPrintOut (mxSource *src, wxString title) : wxPrintout(title) {
 //	if (!printData) printData=new wxPrintData;
