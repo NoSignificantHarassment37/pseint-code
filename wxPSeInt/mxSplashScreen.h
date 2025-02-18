@@ -16,9 +16,12 @@ public:
 	void OnPaint(wxPaintEvent& WXUNUSED(evt));
 	void OnMouse(wxMouseEvent &evt);
 	void OnTimer(wxTimerEvent &evt); 
-	void OnClose(wxCloseEvent &evt); 
+	void OnClose(wxCloseEvent &evt);
+	void DestroyNow();
 	DECLARE_EVENT_TABLE();
 };
+
+extern mxSplashScreen *splash_screen;
 
 #endif
 

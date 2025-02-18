@@ -53,6 +53,7 @@
 #include "mxFontsConfig.h"
 #include <wx/button.h>
 #include "mxBacktrace.h"
+#include "mxSplashScreen.h"
 
 mxMainWindow *main_window = NULL;
 
@@ -680,6 +681,7 @@ mxSource *mxMainWindow::OpenProgram(wxString path, bool is_example) {
 #endif
 	
 	if (!file_exists) {
+		if (splash_screen) splash_screen->DestroyNow(); // en linux al menos, wx revienta si la splash se autodetruye mientras el messagebox esta activo
 		wxMessageBox(wxString(_Z("No se pudo abrir el archivo "))<<path,_Z("Error"),wxOK|wxICON_ERROR);
 		return NULL;
 	}
@@ -713,7 +715,7 @@ void mxMainWindow::OnFileSaveAs(wxCommandEvent &evt) {
 		mxSource *source=CURRENT_SOURCE;
 		wxFileDialog dlg (this, _Z("Guardar"),
 						  source->sin_titulo?config->last_dir:wxFileName(source->filename).GetPath(),
-						  source->GetFileName(true), "Any file (*)|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+						  source->GetFileName(), "Any file (*)|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 		dlg.SetWildcard(_Z("Todos los archivos|*|Algoritmos en pseudocódigo|*.psc;*.PSC|Archivos de texto|*.txt;*.TXT"));
 		if (dlg.ShowModal() == wxID_OK) {
 			wxFileName file = dlg.GetPath();
@@ -2240,24 +2242,26 @@ void mxMainWindow::OnActivate(wxActivateEvent&event) {
 }
 
 void mxMainWindow::OnFileExportPreview (wxCommandEvent & evt) {
-	mxExportPreview *prev = new mxExportPreview();
-	
-	int screen_w=wxSystemSettings::GetMetric(wxSYS_SCREEN_X);
-	int win_w,win_h;
-#ifdef __WIN32__
-	GetClientSize(&win_w,&win_h);
-#else
-	GetSize(&win_w,&win_h);
-#endif
-	int x0,y0; GetPosition(&x0,&y0);
-//	mxSource *src=CURRENT_SOURCE;
-	Maximize(false);
-	_yield;
-	SetSize(screen_w/2,win_h);
-	Move(0,y0);
-	prev->SetSize(screen_w/2,win_h);
-	prev->Move(screen_w/2,y0);
-	
+	if (export_preview) {
+		export_preview->Raise();
+		export_preview->UpdatePrev();
+	} else {
+		export_preview = new mxExportPreview();
+		int screen_w = wxSystemSettings::GetMetric(wxSYS_SCREEN_X);
+		int win_w, win_h;
+	#ifdef __WIN32__
+		GetClientSize(&win_w,&win_h);
+	#else
+		GetSize(&win_w,&win_h);
+	#endif
+		int x0,y0; GetPosition(&x0,&y0);
+		Maximize(false);
+		_yield;
+		SetSize(screen_w/2,win_h);
+		Move(0,y0);
+		export_preview->SetSize(screen_w/2,win_h);
+		export_preview->Move(screen_w/2,y0);
+	}
 }
 
 void mxMainWindow::OnInconInstaller (wxCommandEvent & evt) {

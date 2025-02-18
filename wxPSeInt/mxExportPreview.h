@@ -7,7 +7,6 @@ class wxComboBox;
 class wxStyledTextCtrl;
 
 class mxExportPreview : public wxFrame {
-	
 	wxStyledTextCtrl *code_ctrl;
 	wxComboBox *combo_lang;
 	wxString temp_filename;
@@ -28,7 +27,7 @@ public:
 	DECLARE_EVENT_TABLE();
 };
 
-//extern mxExportPreview *export_preview;
+extern mxExportPreview *export_preview;
 
 #endif
 

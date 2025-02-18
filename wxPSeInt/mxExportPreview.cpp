@@ -13,7 +13,7 @@
 #include <wx/settings.h>
 #include <wx/filedlg.h>
 
-//mxExportPreview *export_preview = NULL;
+mxExportPreview *export_preview = nullptr;
 
 BEGIN_EVENT_TABLE(mxExportPreview,wxFrame)
 	EVT_BUTTON(mxID_EXPPREV_SAVE,mxExportPreview::OnButtonSave)
@@ -26,10 +26,12 @@ END_EVENT_TABLE()
 
 mxExportPreview::mxExportPreview():wxFrame(main_window,wxID_ANY,_Z("Exportar - Vista previa"),wxDefaultPosition,wxDefaultSize) {
 	
+	export_preview = this;
+	
 	pid=0; state=mxEP_NONE;
 	
-	static int tid=0; 
-	temp_filename = DIR_PLUS_FILE(config->temp_dir,wxString("temp_ep_")<<tid++);
+//	static int tid=0; 
+	temp_filename = DIR_PLUS_FILE(config->temp_dir,wxString("temp_ep_")/*<<tid++*/);
 	
 	wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
 	wxSizerFlags sz; sz.Center();
@@ -87,7 +89,7 @@ void mxExportPreview::OnComboLang (wxCommandEvent & event) {
 }
 
 void mxExportPreview::OnClose (wxCloseEvent & event) {
-	/*export_preview=NULL; */Destroy();
+	export_preview=nullptr; Destroy();
 }
 
 void mxExportPreview::UpdatePrev ( ) {
@@ -174,8 +176,15 @@ void mxExportPreview::OnButtonSave (wxCommandEvent & event) {
 	
 	wxString extension = utils->GetExportLangCode(lang_id);
 	while(extension.Last()>='0'&&extension.Last()<='9') extension.RemoveLast();
+	
+	wxString filename = "sin_titulo."+extension;
+	mxSource *src = main_window->GetCurrentSource();
+	if (src) filename = src->GetNameForExport()+extension;
 		
-	wxFileDialog dlg (main_window, _Z("Guardar Código Exportado"),config->last_dir,wxString(".")+extension, wxString("Archivo ")+extension+"|*."+extension, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	wxFileDialog dlg (main_window, _Z("Guardar Código Exportado"),
+					  config->last_dir, filename,
+					  wxString("Archivo ")+extension+"|*."+extension,
+					  wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (dlg.ShowModal() != wxID_OK) return;
 	config->last_dir=wxFileName(dlg.GetPath()).GetPath();
 	

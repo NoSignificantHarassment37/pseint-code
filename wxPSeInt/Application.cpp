@@ -94,7 +94,7 @@ bool mxApplication::OnInit() {
 	config = new ConfigManager(zpath);
 	if (logger) config->Log();
 
-	auto splash = new mxSplashScreen();
+	/*auto splash = */new mxSplashScreen();
 	
 	wxSocketBase::Initialize();
 	

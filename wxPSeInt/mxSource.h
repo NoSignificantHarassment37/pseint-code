@@ -22,7 +22,7 @@ enum {BT_NONE,BT_PARA,BT_SEGUN,BT_CASO,BT_REPETIR,BT_MIENTRAS,BT_SI,BT_SINO,BT_P
 
 class mxSource : public wxStyledTextCtrl {
 private:
-	wxString m_main_process_title; // por ahora, solo para sugerir el nombre al guardar por 1ra vez
+	wxString m_main_process_title = "sin_titulo"; // por ahora, solo para sugerir el nombre al guardar por 1ra vez
 	wxString temp_filename_prefix; // ruta y nombre de los temporales para este algoritmo (sin extension, ver GetTempFilename*)
 	
 	bool rt_running; // rt_syntax||highlight_blocks||show_vars
@@ -56,7 +56,7 @@ public:
 	bool sin_titulo;
 	wxString filename;
 	void SetFileName(wxString afilename);
-	wxString GetFileName(bool sugest=false) const;
+	wxString GetFileName() const;
 	void SetStyling(bool colour=true);
 	void SetWords();
 	static void SetAutocompletion();

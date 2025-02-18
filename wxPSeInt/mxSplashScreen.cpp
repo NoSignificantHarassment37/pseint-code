@@ -7,6 +7,8 @@
 #include "ConfigManager.h"
 #include "mxUtils.h"
 
+mxSplashScreen *splash_screen = nullptr;
+
 BEGIN_EVENT_TABLE(mxSplashScreen, wxFrame)
 	EVT_PAINT(mxSplashScreen::OnPaint)
 	EVT_TIMER(wxID_ANY,mxSplashScreen::OnTimer)
@@ -18,6 +20,8 @@ mxSplashScreen::mxSplashScreen() :
 	wxFrame(nullptr,wxID_ANY,_T("Cargando PSeInt..."),wxDefaultPosition,wxDefaultSize, wxNO_BORDER | wxSTAY_ON_TOP | wxFRAME_NO_TASKBAR),
 	m_timer(this->GetEventHandler(),wxID_ANY)
 {
+	splash_screen = this;
+	
 	m_bmp = wxBitmap(DIR_PLUS_FILE(config->images_path, (config->use_dark_theme 
 														 ? "splash_dark.png" 
 														 : "splash_light.png") ),wxBITMAP_TYPE_PNG);
@@ -41,14 +45,20 @@ void mxSplashScreen::OnPaint(wxPaintEvent& WXUNUSED(evt)) {
 }
 
 void mxSplashScreen::OnTimer(wxTimerEvent &evt) {
-	Close();
+	DestroyNow();
 }
 
 void mxSplashScreen::OnMouse(wxMouseEvent &evt) {
-	Hide();
+	DestroyNow();
 }
 
 void mxSplashScreen::OnClose(wxCloseEvent &evt) {
+	DestroyNow();
+}
+
+void mxSplashScreen::DestroyNow ( ) {
 	m_timer.Stop();
 	Destroy();
+	splash_screen = nullptr;
 }
+

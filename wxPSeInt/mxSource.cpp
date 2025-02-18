@@ -2002,7 +2002,7 @@ wxString mxSource::GetPathForExport() {
 }
 
 wxString mxSource::GetNameForExport() {
-	if (sin_titulo) return "sin_titulo";
+	if (sin_titulo) return m_main_process_title;
 	else return wxFileName(filename).GetName();
 }
 
@@ -2690,8 +2690,8 @@ void mxSource::OnZoomChange (wxStyledTextEvent & evt) {
 	SetMarginWidth (0, TextWidth (wxSTC_STYLE_LINENUMBER," XXX")); // este sí despues del estilo, para que use la fuente adecuada para calcular
 }
 
-wxString mxSource::GetFileName (bool sugest) const {
-	if (sin_titulo) return sugest ? m_main_process_title+".psc" : wxString();
+wxString mxSource::GetFileName() const {
+	if (sin_titulo) return m_main_process_title+".psc";
 	return wxFileName(filename).GetFullName();
 }
 
