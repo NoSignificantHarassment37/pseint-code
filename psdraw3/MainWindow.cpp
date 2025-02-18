@@ -48,8 +48,6 @@ MainWindow::MainWindow(wxString title):wxFrame(nullptr,wxID_ANY,title,wxDefaultP
 		toolbar->AddTool(MID_SUB  ,"",wxBitmap(g_constants.imgs_path+"tb_sub.png",wxBITMAP_TYPE_PNG));
 		toolbar->AddSeparator();
 	}
-	toolbar->AddTool(MID_RUN  ,"",wxBitmap(g_constants.imgs_path+"tb_run.png",wxBITMAP_TYPE_PNG));
-	toolbar->AddTool(MID_DEBUG,"",wxBitmap(g_constants.imgs_path+"tb_debug.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddTool(MID_EXPORT ,"",wxBitmap(g_constants.imgs_path+"tb_save.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddSeparator();
 	toolbar->AddTool(MID_ZOOM ,"",wxBitmap(g_constants.imgs_path+"tb_zoom.png",wxBITMAP_TYPE_PNG));
@@ -59,6 +57,9 @@ MainWindow::MainWindow(wxString title):wxFrame(nullptr,wxID_ANY,title,wxDefaultP
 	toolbar->AddTool(MID_COMMENTS ,"",wxBitmap(g_constants.imgs_path+"tb_comments.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddTool(MID_CROPLABEL ,"",wxBitmap(g_constants.imgs_path+"tb_crop.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddTool(MID_COLORS,"",wxBitmap(g_constants.imgs_path+"tb_colors.png",wxBITMAP_TYPE_PNG));
+	toolbar->AddSeparator();
+	toolbar->AddTool(MID_RUN  ,"",wxBitmap(g_constants.imgs_path+"tb_run.png",wxBITMAP_TYPE_PNG));
+	toolbar->AddTool(MID_DEBUG,"",wxBitmap(g_constants.imgs_path+"tb_debug.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddSeparator();
 	toolbar->AddTool(MID_HELP ,"",wxBitmap(g_constants.imgs_path+"tb_help.png",wxBITMAP_TYPE_PNG));
 	toolbar->AddTool(MID_CLOSE,"",wxBitmap(g_constants.imgs_path+"tb_close.png",wxBITMAP_TYPE_PNG));

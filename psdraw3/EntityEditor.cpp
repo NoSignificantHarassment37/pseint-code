@@ -214,13 +214,12 @@ void EntityEditor::ProcessDoubleClick (int x, int y) {
 
 void EntityEditor::ProcessKey (unsigned char key) {
 	if (key=='\t') g_shapes_bar->ToggleFixed();
-	if (not g_state.edit) {
-		if (key==27) Salir();
-		return;
-	} else {
-//		if (g_canvas->GetModifiers()&MODIFIER_CTRL) return;
-		g_state.edit->EditLabel(key);
-	}
+	
+	else if (g_state.edit) g_state.edit->EditLabel(key);
+	
+	else if (key=='-') for (int i=0; i<5; ++i) ProcessClick(ZMB_WHEEL_UP  ,0, g_view.win_w/2, g_view.win_h/2);
+	else if (key=='+') for (int i=0; i<5; ++i) ProcessClick(ZMB_WHEEL_DOWN,0, g_view.win_w/2, g_view.win_h/2);
+	else if (key==27) Salir();
 }
 
 void EntityEditor::ProcessSpecialKey (int key) {
@@ -233,5 +232,12 @@ void EntityEditor::ProcessSpecialKey (int key) {
 	else if (key==WXK_F7) { if (not g_state.debugging) ToggleEditable(); }
 	else if (key==WXK_F11) ProcessMenu(MO_TOGGLE_FULLSCREEN);
 	else if (key==WXK_F12) ProcessMenu(MO_ZOOM_EXTEND);
-	else if (g_state.edit) g_state.edit->EditSpecialLabel(key);}
+	
+	else if (g_state.edit) g_state.edit->EditSpecialLabel(key);
+	
+	else if (key==WXK_UP   ) g_view.d_dy -= 100/g_view.zoom;
+	else if (key==WXK_DOWN ) g_view.d_dy += 100/g_view.zoom;
+	else if (key==WXK_LEFT ) g_view.d_dx += 100/g_view.zoom;
+	else if (key==WXK_RIGHT) g_view.d_dx -= 100/g_view.zoom;
+}
 

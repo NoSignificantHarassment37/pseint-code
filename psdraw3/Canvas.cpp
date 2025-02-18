@@ -154,7 +154,7 @@ void Canvas::OnKeyDown (wxKeyEvent & event) {
 	case WXK_CONTROL: modifiers|=MODIFIER_CTRL; break;
 	default: 
 		if (key>=WXK_F1&&key<=WXK_F12) keyboard_esp_cb(key);
-		else if (key==WXK_LEFT||key==WXK_RIGHT||key==WXK_END||key==WXK_HOME) keyboard_esp_cb(key);
+		else if (key==WXK_LEFT||key==WXK_UP||key==WXK_DOWN||key==WXK_RIGHT||key==WXK_END||key==WXK_HOME) keyboard_esp_cb(key);
 		else event.Skip();
 	}
 }
