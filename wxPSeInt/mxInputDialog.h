@@ -6,9 +6,9 @@ class wxCheckBox;
 class wxTextCtrl;
 class mxInputDialog : public wxDialog {
 private:
-	wxCheckBox *check_use, *check_partial;
-	wxTextCtrl *values;
-	wxString old_values;
+	wxCheckBox *m_check_use, *m_check_partial;
+	wxTextCtrl *m_values;
+	wxString m_old_values;
 protected:
 public:
 	mxInputDialog(wxWindow *parent);
@@ -16,6 +16,8 @@ public:
 	void OnCheckUse(wxCommandEvent &evt);
 	void OnButtonOk(wxCommandEvent &evt);
 	void OnButtonCancel(wxCommandEvent &evt);
+	void OnButtonLoad(wxCommandEvent &evt);
+	void OnButtonSave(wxCommandEvent &evt);
 	bool HasInput();
 	bool IsPartial();
 	wxString GetInput();
