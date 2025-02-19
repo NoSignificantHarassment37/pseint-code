@@ -112,7 +112,7 @@ void mxExportPreview::UpdatePrev ( ) {
 #ifdef __APPLE__
 	the_process->Redirect(); // no necesito la salida, pero sin esto en mac y con wx8 execute no funciona
 #endif
-	pid = wxExecute(command,wxEXEC_ASYNC,the_process);
+	pid = wxExecute(command,wxEXEC_ASYNC|wxEXEC_HIDE_CONSOLE,the_process);
 	if (pid<=0) { SetMessage(_Z("Error al intentar exportar.")); return; }
 	SetMessage("Actualizando...");
 	state=mxEP_CHECK;
@@ -147,7 +147,7 @@ _LOG("mxExportPreview::OnProcessTerminate");
 		the_process->Redirect(); // no necesito la salida, pero sin esto en mac y con wx8 execute no funciona
 #endif
 		_LOG("mxExportPreview, command="<<command);
-		pid = wxExecute(command,wxEXEC_ASYNC,the_process);
+		pid = wxExecute(command,wxEXEC_ASYNC|wxEXEC_HIDE_CONSOLE,the_process);
 		state = mxEP_EXP;
 		
 	} break;

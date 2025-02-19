@@ -302,7 +302,7 @@ bool mxProcess::ExportLang(wxString file, wxString lang, bool check_first) {
 	if (lang.size()) command<<" --lang="<<lang;
 	_LOG("mxProcess::ExportCpp this="<<this);
 	_LOG("    "<<command);
-	return wxExecute(command, wxEXEC_ASYNC, this)!=0;
+	return wxExecute(command, wxEXEC_ASYNC|wxEXEC_HIDE_CONSOLE, this)!=0;
 }
 
 wxString mxProcess::GetProfileArgs() {
