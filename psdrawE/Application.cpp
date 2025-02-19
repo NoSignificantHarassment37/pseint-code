@@ -74,7 +74,7 @@ bool mxApplication::OnInit() {
 	// cargar el diagrama
 	bool nogui = false;
 	g_config.enable_partial_text=false;
-	g_config.show_comments=false;
+	g_config.show_comments=true;
 	wxString fin,fout;
 	for(int i=1;i<argc;i++) { 
 		wxString arg(argv[i]);

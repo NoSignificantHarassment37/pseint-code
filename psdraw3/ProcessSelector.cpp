@@ -23,8 +23,8 @@ void ProcessSelector::Draw ( ) {
 	DrawTextRaster(g_colors.menu_front,10,g_view.win_h-25,
 				   (g_lang[LS_PREFER_FUNCION]
 					? (g_lang[LS_PREFER_ALGORITMO]
-					   ? "Seleccione un algoritmo/funcion para visualizar:"
-					   : "Seleccione un proceso/funcion para visualizar:")
+					   ? "Seleccione un algoritmo/función para visualizar:"
+					   : "Seleccione un proceso/función para visualizar:")
 					: (g_lang[LS_PREFER_ALGORITMO]
 					   ? "Seleccione un proceso/subproceso para visualizar:"
 					   : "Seleccione un algoritmo/subalgoritmo para visualizar:") ) );
@@ -49,7 +49,7 @@ void ProcessSelector::Draw ( ) {
 		
 		if (i==int(g_code.procesos.size())) {
 			DrawTextRaster(/*m_selection==i?g_colors.selection:*/g_colors.menu_front,20,base+10,
-						   g_lang[LS_PREFER_FUNCION]?"Agregar Nueva Funcion"
+						   g_lang[LS_PREFER_FUNCION]?"Agregar Nueva Función"
 						   :(g_lang[LS_PREFER_ALGORITMO]?"Agregar Nuevo SubAlgoritmo"
 							 :"Agregar Nuevo SubProceso") );
 		} else {

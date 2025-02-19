@@ -1,15 +1,15 @@
-#include "mxConfig.h"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 #include <wx/combobox.h>
 #include <wx/button.h>
+#include <wx/bitmap.h>
+#include <wx/icon.h>
+#include "mxConfig.h"
 #include "../psdraw3/Global.h"
 #include "../psdraw3/Load.h"
 #include "../wxPSeInt/string_conversions.h"
-#include <wx/bitmap.h>
-#include <wx/icon.h>
 
 enum { MID_NULL = wxID_HIGHEST, MID_ANCHO, MID_ALTO, MID_ZOOM, MID_CROP, MID_COMPACT, MID_COMMENTS, MID_COLORS, MID_STYLE, MID_PROC };
 
@@ -48,13 +48,14 @@ mxConfig::mxConfig():wxDialog(NULL,wxID_ANY,_Z("Guardar diagrama de flujo"),wxDe
 	ignore_events=true;
 	
 	wxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-	szflag = wxSizerFlags().Border(wxALL,4).Center();
+	// el FixedMinSize no parece necesario, pero sin eso en windows los combos dejan un espacio inexplicable
+	szflag = wxSizerFlags().Border(wxALL,4).Center().FixedMinSize();
 	
 	wxArrayString procs;
 	for(unsigned int i=0;i<g_code.procesos.size();i++) 
 		procs.Add((g_code.procesos[i]->lpre+g_code.procesos[i]->label).c_str());
 	cm_proc = new wxComboBox(this,MID_PROC,_Z(""),wxDefaultPosition,wxDefaultSize,procs,wxCB_READONLY|wxCB_SIMPLE);
-	AddWithLabel(this, sizer, _Z("(Sub)Proceso:"),cm_proc);
+	AddWithLabel(this, sizer, _Z("Algoritmo:"),cm_proc);
 
 	tx_zoom = new wxTextCtrl(this,MID_ZOOM,_Z("100"));
 	AddWithLabel(this, sizer, _Z("Zoom(%):"),tx_zoom);
