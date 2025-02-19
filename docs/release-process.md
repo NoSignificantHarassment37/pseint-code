@@ -9,7 +9,7 @@ Si es para una release, antes de generar el paquete de código fuente y los dife
 
 ## Microsoft Windows
 
-El proceso se hace un GNU/Linux ejecutando el compilador para windows (mingw32 o mingw64) mediante wine (actualmente uso Fedora37 con el wine de sus repositorios)
+El proceso se hace un GNU/Linux ejecutando el compilador para windows (mingw32 o mingw64) mediante wine (actualmente uso Fedora40 con el wine de sus repositorios)
 
 ### Preparación del compilador en wine
 
