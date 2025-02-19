@@ -47,6 +47,7 @@
 #define UOP_OR L'\u2228'
 #define UOP_NOT L'\u00AC'
 #define UOP_POWER L'\u2191'
+#include "mxInputDialog.h"
 
 
 int mxSource::last_id=0;
@@ -246,6 +247,7 @@ mxSource::~mxSource() {
 		if (proc->source==this) proc->SetSourceDeleted();
 		proc=proc->next;
 	}
+	if (input) input->Destroy();
 }
 
 void mxSource::SetStyle(int idx, const char *foreground, const char *background, int fontStyle){

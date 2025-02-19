@@ -53,7 +53,6 @@
 #include "mxFontsConfig.h"
 #include <wx/button.h>
 #include "mxBacktrace.h"
-#include "mxSplashScreen.h"
 
 mxMainWindow *main_window = NULL;
 
@@ -216,10 +215,7 @@ mxMainWindow::mxMainWindow(wxPoint pos, wxSize size)
 	wxIcon icon128; icon128.CopyFromBitmap(wxBitmap("imgs/icon128.png",wxBITMAP_TYPE_PNG)); bundle.AddIcon(icon128);
 	SetIcons(bundle);
 	
-	// si lo creo acá, por alguna extraña razón, en windows cuando se destruye la
-	// mxSplashScreen se "rompe" también este mxFindDialog... ya no se muestra más
-	// (y tampoco hace nada, no revienta, no muestra error, solo se cierra y ya)
-//	find_replace_dialog = new mxFindDialog(this);
+	find_replace_dialog = new mxFindDialog(this);
 	
 	CreateMenus();
 	CreateToolbars();
@@ -681,7 +677,6 @@ mxSource *mxMainWindow::OpenProgram(wxString path, bool is_example) {
 #endif
 	
 	if (!file_exists) {
-		if (splash_screen) splash_screen->DestroyNow(); // en linux al menos, wx revienta si la splash se autodetruye mientras el messagebox esta activo
 		wxMessageBox(wxString(_Z("No se pudo abrir el archivo "))<<path,_Z("Error"),wxOK|wxICON_ERROR);
 		return NULL;
 	}
@@ -1184,12 +1179,10 @@ void mxMainWindow::InsertCode(wxArrayString &toins) {
 	}
 }
 void mxMainWindow::OnEditFind (wxCommandEvent &event) {
-	if (not find_replace_dialog) find_replace_dialog = new mxFindDialog(this);
 	IF_THERE_IS_SOURCE find_replace_dialog->ShowFind(CURRENT_SOURCE);
 }
 
 void mxMainWindow::OnEditFindNext (wxCommandEvent &event) {
-	if (not find_replace_dialog) find_replace_dialog = new mxFindDialog(this);
 	if (find_replace_dialog->last_search.Len()) {
 		if (!find_replace_dialog->FindNext())
 			wxMessageBox(_ZZ("La cadena \"")<<find_replace_dialog->last_search<<_Z("\" no se encontró."), _Z("Buscar"),wxOK|wxICON_HAND);
@@ -1199,7 +1192,6 @@ void mxMainWindow::OnEditFindNext (wxCommandEvent &event) {
 }
 
 void mxMainWindow::OnEditFindPrev (wxCommandEvent &event) {
-	if (not find_replace_dialog) find_replace_dialog = new mxFindDialog(this);
 	if (find_replace_dialog->last_search.Len()) {
 		if (!find_replace_dialog->FindPrev())
 			wxMessageBox(_ZZ("La cadena \"")<<find_replace_dialog->last_search<<_Z("\" no se encontró."), _Z("Buscar"),wxOK|wxICON_HAND);
@@ -1209,7 +1201,6 @@ void mxMainWindow::OnEditFindPrev (wxCommandEvent &event) {
 }
 
 void mxMainWindow::OnEditReplace (wxCommandEvent &event) {
-	if (not find_replace_dialog) find_replace_dialog = new mxFindDialog(this);
 	IF_THERE_IS_SOURCE find_replace_dialog->ShowReplace(CURRENT_SOURCE);
 	return;
 }

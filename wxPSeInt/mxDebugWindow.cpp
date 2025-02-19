@@ -218,9 +218,10 @@ void mxDebugWindow::OnDebugStep(wxCommandEvent &evt) {
 	if (debug->debugging) {
 		debug->Step();
 	} else {
-		main_window->ReorganizeForDebugging();
 		mxSource *src=main_window->GetCurrentSource();
-		if (src) StartDebugging(src,true);
+		if (!src) return;
+		main_window->ReorganizeForDebugging();
+		StartDebugging(src,true);
 	}
 }
 

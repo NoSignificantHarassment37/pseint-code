@@ -85,6 +85,8 @@ public:
 	
 	void Log() const;
 	
+	bool IsFirstRun() const { return version==0; }
+	
 };
 
 extern ConfigManager *config;

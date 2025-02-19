@@ -130,7 +130,7 @@ bool mxApplication::OnInit() {
 	
 	status_bar->SetStatus(STATUS_WELCOME);
 	
-	if (!config->version) {
+	if (config->IsFirstRun()) {
 		_LOG("mxApplication::OnInit NO_PROFILE");
 //		wxMessageBox(_Z(
 //			"Bienvenido a PSeInt. Antes de comenzar debes seleccionar un perfil "
